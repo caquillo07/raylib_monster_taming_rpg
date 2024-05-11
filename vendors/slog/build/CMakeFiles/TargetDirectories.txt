@@ -1,0 +1,8 @@
+/Users/hector/Documents/code/breakout_game/vendors/slog/build/CMakeFiles/slog.dir
+/Users/hector/Documents/code/breakout_game/vendors/slog/build/CMakeFiles/slog-sample.dir
+/Users/hector/Documents/code/breakout_game/vendors/slog/build/CMakeFiles/edit_cache.dir
+/Users/hector/Documents/code/breakout_game/vendors/slog/build/CMakeFiles/rebuild_cache.dir
+/Users/hector/Documents/code/breakout_game/vendors/slog/build/CMakeFiles/list_install_components.dir
+/Users/hector/Documents/code/breakout_game/vendors/slog/build/CMakeFiles/install.dir
+/Users/hector/Documents/code/breakout_game/vendors/slog/build/CMakeFiles/install/local.dir
+/Users/hector/Documents/code/breakout_game/vendors/slog/build/CMakeFiles/install/strip.dir

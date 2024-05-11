@@ -1,0 +1,2 @@
+/usr/local/lib/libslog.a
+/usr/local/include/slog.h
