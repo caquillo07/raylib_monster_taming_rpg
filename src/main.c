@@ -3,7 +3,6 @@
 #include <string.h>
 
 #define CUTE_TILED_IMPLEMENTATION
-#include "cute_tiled.h"
 
 #include "raylib.h"
 #include "common.h"

@@ -7,145 +7,254 @@
 #include "common.h"
 #include "array/array.h"
 
+#include <tmx.h>
+
+#define LINE_THICKNESS 2.5
+static bool loaded = false;
+
+// private funcs
+static void *texture_loader_callback(const char *path);
+static void texture_free_callback(void *ptr);
+static Color int_to_color(u32 color);
+static void draw_all_layers(tmx_map *tmap, tmx_layer *layers);
+static void draw_objects(tmx_object_group *objectGroup);
+static void draw_image(tmx_image *image);
+static void draw_layer(tmx_map *tmap, tmx_layer *layer);
+static void draw_tile(void *image, Rectangle sourceRec, Vector2 destination, f32 opacity, i32 flags);
+
+static void draw_polygon(double x, double y, double **points, int pointsCount, Color color);
+
+static void draw_polyline(double x, double y, double **points, int pointsLen, Color color);
+
+void maps_manager_init() {
+    tmx_img_load_func = texture_loader_callback;
+    tmx_img_free_func = texture_free_callback;
+
+    loaded = true;
+}
+
+static Color int_to_color(u32 color) {
+    tmx_col_bytes res = tmx_col_to_bytes(color);
+    return (Color) {
+        .r = res.r,
+        .g = res.g,
+        .b = res.b,
+        .a = res.a,
+    };
+    // nice, get a pointer to the memory location, cast it to a Color* and then
+    // deref that and get a copy of all the values. This works because they have
+    // the same memory layout, but if that struct changes, this goes kaboom.
+    // do it manually instead
+    // return *((Color*)&res);
+}
 
 Map *load_map(MapID mapID) {
+    panicIf(!loaded, "maps_manager was initialize, forgot to call maps_manager_init()?");
     panicIf(mapID >= MapIDMax, "map ID provided is invalid");
-
     MapInfo mapInfo = mapAtlas[mapID];
-    cute_tiled_map_t *tiledMap = cute_tiled_load_map_from_file(mapInfo.mapFilePath, 0);
-    panicIf(tiledMap == nil, "failed to alloc tileMap");
 
-    printf("sizeof Map %lu\n", sizeof(Map));
-    Image *imagesArray = calloc(5, sizeof(*imagesArray));
-    panicIf(imagesArray == nil, "failed to alloc imagesArray");
+    tmx_map *tmap = tmx_load(mapInfo.mapFilePath);
+    panicIf(tmap == nil, tmx_strerr());
 
     Map *map = calloc(1, sizeof(*map));
     panicIf(map == nil, "failed to alloc map");
 
-    map->tiledMap = tiledMap;
-
-    cute_tiled_layer_t *layer = get_layer_by_name(tiledMap, "Terrain");
-    panicIf(layer == nil, "expected to find Terrain layer in tiledMap");
-    assert(layer->data_count == layer->height * layer->width);
-
-    printf("found %s\n", layer->name.ptr);
-
-    load_map_images(map);
-
-    for (i32 row = 0; row < layer->height; row++) {
-        for (i32 col = 0; col < layer->width; col++) {
-            int mapTileY = row * layer->width;
-            int mapTileX = mapTileY + col;
-            i32 tileInfoFlag = layer->data[mapTileY + mapTileX];
-            cute_tiled_tileset_t *tileSet = get_tile_set_for_gid(map->tiledMap->tilesets, tileInfoFlag);
-            printf("using tilset %d for data %d\n", tileSet->firstgid, tileInfoFlag);
-
-            i32 hFlip, vFlip, dFlip;
-            cute_tiled_get_flags(tileInfoFlag, &hFlip, &vFlip, &dFlip);
-            i32 tileID = cute_tiled_unset_flags(tileInfoFlag);
-            int spriteID = tileInfoFlag - tileSet->firstgid;
-            printf("spriteID: %d - tileID: %d - hFlip: %d - vFlip: %d - dFlip: %d\n", spriteID, tileID, hFlip, vFlip,
-                   dFlip);
-
-            // todo (hector) - give up, try the other TMX lib
-
-            Sprite sprite = {
-                .imageID = spriteID,
-                .depth = 0,
-                .x = (float) (col % map->tiledMap->width),
-                .y = (float) (map->tiledMap->height - col / map->tiledMap->width),
-                .scaleX = 1.0f,
-                .scaleY = 1.0f,
-
-            };
-
-        }
-        break;
-    }
-    cute_tiled_free_map(tiledMap);
+    map->tiledMap = tmap;
     return map;
 }
 
-void load_map_images(Map *map) {
-    cute_tiled_tileset_t *tileSet = map->tiledMap->tilesets;
-    while (tileSet) {
-        printf("%d - %s\n", tileSet->firstgid, tileSet->source.ptr);
-
-        if (tileSet->image.ptr != nil) {
-            Image image = LoadImage(tileSet->image.ptr);
-            panicIf(image.data == nil, "failed to allocate image");
-            array_push(map->images, image);
-        } else if (tileSet->tiles != nil) {
-            cute_tiled_tile_descriptor_t *tile = tileSet->tiles;
-            while (tile) {
-                Image image = LoadImage(tile->image.ptr);
-                panicIf(image.data == nil, "failed to allocate image");
-                array_push(map->images, image);
-                tile = tile->next;
-            }
-        }
-
-        tileSet = tileSet->next;
-    }
+void map_draw(Map *map) {
+    ClearBackground(int_to_color(map->tiledMap->backgroundcolor));
+    draw_all_layers(map->tiledMap, map->tiledMap->ly_head);
 }
 
-void free_map(Map *map) {
-    for (i32 i = 0; i < array_length(map->images); i++) {
-        UnloadImage(map->images[i]);
-    }
-    map->images = nil;
+void map_free(Map *map) {
+    // LibTMX
+    tmx_map_free(map->tiledMap);
 
     free(map);
     map = nil;
 }
 
-cute_tiled_layer_t *get_layer_by_name(cute_tiled_map_t *map, char *layerName) {
-    cute_tiled_layer_t *layer = map->layers;
-    while (layer) {
-        if (strcmp(layer->name.ptr, layerName) == 0) {
-            return layer;
+static void draw_all_layers(tmx_map *tmap, tmx_layer *layers) {
+    while (layers) {
+        if (layers->visible) {
+            if (layers->type == L_GROUP) {
+                draw_all_layers(tmap, layers->content.group_head); // recursive call
+            } else if (layers->type == L_OBJGR) {
+                draw_objects(layers->content.objgr); // Function to be implemented
+            } else if (layers->type == L_IMAGE) {
+                draw_image(layers->content.image); // Function to be implemented
+            } else if (layers->type == L_LAYER) {
+                draw_layer(tmap, layers); // Function to be implemented
+            }
         }
-        layer = layer->next;
+        layers = layers->next;
     }
-
-    return nil;
 }
 
-cute_tiled_tileset_t *get_tile_set_for_gid(cute_tiled_tileset_t *tileSet, i32 gid) {
-    cute_tiled_tileset_t *cursor = tileSet;
-    while(cursor) {
-        if (cursor->firstgid <= gid) {
-            return cursor;
+static void draw_layer(tmx_map *tmap, tmx_layer *layer) {
+    if (layer == nil || layer->name == nil) {
+        printf("no layer found\n");
+        return;
+    }
+    for (u64 i = 0; i < tmap->height; i++) {
+        for (u64 j = 0; j < tmap->width; j++) {
+
+            i32 gid = (layer->content.gids[(i * tmap->width) + j]) & TMX_FLIP_BITS_REMOVAL;
+            if (tmap->tiles[gid] != NULL) {
+
+                tmx_tileset *tileSet = tmap->tiles[gid]->tileset;
+                void *image = tileSet->image->resource_image;
+
+                if (tmap->tiles[gid]->image) {
+                    image = tmap->tiles[gid]->image->resource_image;
+                }
+
+                i32 flags = (layer->content.gids[(i * tmap->width) + j]) & ~TMX_FLIP_BITS_REMOVAL;
+                Rectangle sourceRec = {
+                    .x = tmap->tiles[gid]->ul_x,
+                    .y = tmap->tiles[gid]->ul_y,
+                    .width = tileSet->tile_width,
+                    .height = tileSet->tile_height,
+                };
+                Vector2 destination = {
+                    .x = j * tileSet->tile_width,
+                    .y = i * tileSet->tile_height,
+                };
+                draw_tile(
+                    image,
+                    sourceRec,
+                    destination,
+                    layer->opacity,
+                    flags
+                );
+            }
         }
-        cursor = cursor->next;
     }
-    return nil;
 }
 
-void tiled_demo() {
+static void draw_tile(void *image, Rectangle sourceRec, Vector2 destination, f32 opacity, i32 flags) {
+    (void) flags;
+    i8 c = (i8) opacity * 255;
+    Color tint = {c, c, c, c};
+    DrawTextureRec(*(Texture2D *) image, sourceRec, destination, tint);
+}
 
-    cute_tiled_map_t *map = cute_tiled_load_map_from_file("data/maps/world.json", 0);
-    // get map width and height
-    int w = map->width;
-    int h = map->height;
-    printf("Map width: %d, height: %d\n", w, h);
+static void draw_image(tmx_image *image) {
+    if (image == nil || image->source == nil) {
+        printf("no image found\n");
+        return;
+    }
+    printf("drawing image: %s\n", image->source);
+    Texture2D *texture = (Texture2D *) image->resource_image;
+    DrawTexture(*texture, 0, 0, WHITE);
+    panic("not implemented");
+}
 
-    // loop over the map's layers
-    cute_tiled_layer_t *layer = map->layers;
-    while (layer) {
-//        int *data = layer->data;
-//        int data_count = layer->data_count;
-        printf("%s\n", layer->name.ptr);
-        printf("\tID %d\n", layer->id);
-        printf("\timage %s\n", layer->image.ptr);
-        printf("\tsize %dx%d\n", layer->height, layer->width);
-        printf("\tvisible %d\n", layer->visible);
-
-        // do something with the tile data
-//        UserFunction_HandleTiles(data, data_count);
-
-        layer = layer->next;
+static void draw_objects(tmx_object_group *objectGroup) {
+    if (objectGroup == nil || objectGroup->head == nil) {
+        printf("no objects found\n");
+        return;
     }
 
-    cute_tiled_free_map(map);
+    Color color = int_to_color(objectGroup->color);
+    tmx_object *head = objectGroup->head;
+    while (head) {
+        if (head->visible) {
+            switch (head->obj_type) {
+                case OT_NONE:
+                    panic("draw_object->type == OT_NONE not implemented");
+                    break;
+                case OT_SQUARE:
+                    DrawRectangleLinesEx(
+                        (Rectangle) {head->x, head->y, head->width, head->height},
+                        LINE_THICKNESS,
+                        color
+                    );
+                    break;
+                case OT_POLYGON:
+                    draw_polygon(
+                        head->x,
+                        head->y,
+                        head->content.shape->points,
+                        head->content.shape->points_len,
+                        color
+                    );
+                    break;
+                case OT_POLYLINE:
+                    draw_polyline(
+                        head->x,
+                        head->y,
+                        head->content.shape->points,
+                        head->content.shape->points_len,
+                        color
+                    );
+                    break;
+                case OT_ELLIPSE:
+                    DrawEllipseLines(
+                        head->x + head->width / 2.0,
+                        head->y + head->height / 2.0,
+                        head->width / 2.0,
+                        head->height / 2.0, color
+                    );
+                    break;
+                case OT_TILE:
+                    panic("draw_object->type == OT_TILE not implemented");
+                    break;
+                case OT_TEXT:
+                    panic("draw_object->type == OT_TEXT not implemented");
+                    break;
+                case OT_POINT:
+                    panic("draw_object->type == OT_POINT not implemented");
+                    break;
+            }
+        }
+        head = head->next;
+    }
 }
+
+static void draw_polyline(double offsetX, double offsetY, double **points, int pointsCount, Color color) {
+    printf("draw_polyline\n");
+    panic("not implemented");
+
+    for (i32 i = 1; i < pointsCount; i++) {
+        DrawLineEx(
+            (Vector2) {offsetX + points[i - 1][0], offsetY + points[i - 1][1]},
+            (Vector2) {offsetX + points[i][0], offsetY + points[i][1]},
+            LINE_THICKNESS,
+            color
+        );
+    }
+
+}
+
+static void draw_polygon(double offsetX, double offsetY, double **points, int pointsCount, Color color) {
+    printf("draw_polygon\n");
+    panic("not implemented");
+
+    draw_polyline(offsetX, offsetY, points, pointsCount, color);
+    if (pointsCount > 2) {
+        DrawLineEx(
+            (Vector2) {offsetX + points[0][0], offsetY + points[0][1]},
+            (Vector2) {offsetX + points[pointsCount - 1][0], offsetY + points[pointsCount - 1][1]},
+            LINE_THICKNESS,
+            color
+        );
+    }
+}
+
+
+static void *texture_loader_callback(const char *path) {
+    Texture2D *text = calloc(1, sizeof(*text));
+    *text = LoadTexture(path);
+    printf("loaded %s with ID %d\n", path, text->id);
+    return text;
+}
+
+static void texture_free_callback(void *ptr) {
+    printf("unloading texture #%d\n", ((Texture2D *) ptr)->id);
+    UnloadTexture(*(Texture2D *) ptr);
+    free(ptr);
+}
+

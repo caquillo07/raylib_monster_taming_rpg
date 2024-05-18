@@ -7,8 +7,8 @@
 
 #include <stdio.h>
 #include "raylib.h"
-#include "cute_tiled.h"
 #include "common.h"
+#include "tmx.h"
 
 #define maps_dir "./data/maps/"
 #define map_path(MAP_NAME) maps_dir#MAP_NAME
@@ -33,24 +33,24 @@ typedef struct Sprite {
 } Sprite;
 
 typedef struct Map {
-    cute_tiled_map_t *tiledMap;
-    Image *images;
-    Sprite *sprites;
+    tmx_map *tiledMap;
+//    Image *images;
+//    Sprite *sprites;
 } Map;
 
 static MapInfo mapAtlas[MapIDMax] = {
     {
         .id = MapIDWorld,
         .name = "world_map",
-        .mapFilePath = map_path(world.json)
+//        .mapFilePath = map_path(world.json),
+        .mapFilePath = map_path(world.tmx),
     }
 };
 
+void maps_manager_init();
 Map *load_map(MapID mapID);
-void free_map(Map * map);
 
-void load_map_images(Map *map);
-cute_tiled_layer_t *get_layer_by_name(cute_tiled_map_t *map, char* layerName);
-cute_tiled_tileset_t *get_tile_set_for_gid(cute_tiled_tileset_t *tileSet, i32 gid);
+void map_free(Map *map);
+void map_draw(Map *map);
 
 #endif //RAYLIB_POKEMON_CLONE_MAPS_MANAGER_H

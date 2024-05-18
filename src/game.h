@@ -5,8 +5,10 @@
 #ifndef RAYLIB_POKEMON_CLONE_GAME_H
 #define RAYLIB_POKEMON_CLONE_GAME_H
 
-typedef struct Game {
+#include "maps_manager.h"
 
+typedef struct Game {
+    Map *currentMap;
 } Game;
 
 Game* game_new();
