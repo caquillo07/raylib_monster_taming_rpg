@@ -12,6 +12,7 @@
 static void init_game(Game *game);
 static void setup_game(Game *game, MapID mapID, Vector2 playerStartPosition);
 static void game_draw_debug(Game *game);
+static void update_camera(Game *game);
 
 Game *game_new() {
     Game *game = calloc(1, sizeof(*game));
@@ -44,15 +45,7 @@ void game_handle_input(Game *game) {
 void game_update(Game *game, f32 deltaTime) {
     player_update(game->player, deltaTime);
 
-    // update camera
-    game->camera.target = player_get_center(game->player);
-    printf("player x: %f y: %f - camera x: %f y: %f\n", game->player->frame.x, game->player->frame.y,
-           game->camera.target.x, game->camera.target.y);
-    game->camera.offset = (Vector2) {
-        .x = (ScreenWidth / 2.0f),
-        .y = (ScreenHeight / 2.0f),
-    };
-//    game->camera.zoom = (f32) GetScreenHeight() / PixelWindowHeight;
+    update_camera(game);
 }
 
 void game_draw(Game *game) {
@@ -89,11 +82,17 @@ static void setup_game(Game *game, MapID mapID, Vector2 playerStartPosition) {
     game->player = player_new(map->playerStartingPosition);
 
     // camera
-    Camera2D camera = {0};
-    camera.target = player_get_center(game->player);
-    camera.offset = (Vector2) {ScreenWidth / 2.0f, ScreenHeight / 2.0f};
-    camera.zoom = (f32) GetScreenHeight() / PixelWindowHeight;
-    camera.rotation = 0.0f;
-    game->camera = camera;
+    game->camera = (Camera2D) {0};
+    update_camera(game);
+}
+
+static void update_camera(Game *game) {
+    game->camera.target = player_get_center(game->player);
+    game->camera.offset = (Vector2) {
+        .x = ((f32) GetScreenWidth() / 2.0f),
+        .y = ((f32) GetScreenHeight() / 2.0f),
+    };
+    game->camera.zoom = (f32) GetScreenHeight() / PixelWindowHeight;
+    game->camera.rotation = 0.0f;
 }
 

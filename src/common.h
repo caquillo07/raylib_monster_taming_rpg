@@ -37,8 +37,8 @@ typedef int64_t i64;
 typedef size_t usize;
 typedef ssize_t isize;
 
-#define ScreenWidth 1920
-#define ScreenHeight 1080
+#define ScreenWidth 1280
+#define ScreenHeight 720
 #define PixelWindowHeight ScreenHeight
 #define FPS 120
 #define TILE_SIZE 64
