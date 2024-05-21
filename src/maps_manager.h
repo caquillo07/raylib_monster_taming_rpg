@@ -34,6 +34,9 @@ typedef struct Sprite {
 
 typedef struct Map {
     tmx_map *tiledMap;
+    tmx_layer *terrainLayer;
+    tmx_layer *entitiesLayer;
+    Vector2 playerStartingPosition;
 //    Image *images;
 //    Sprite *sprites;
 } Map;
@@ -42,7 +45,6 @@ static MapInfo mapAtlas[MapIDMax] = {
     {
         .id = MapIDWorld,
         .name = "world_map",
-//        .mapFilePath = map_path(world.json),
         .mapFilePath = map_path(world.tmx),
     }
 };

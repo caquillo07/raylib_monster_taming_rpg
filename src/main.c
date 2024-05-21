@@ -11,10 +11,11 @@
 
 static void init() {
     initLogger();
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Monster Taming RPG");
+    InitWindow(ScreenWidth, ScreenHeight, "Monster Taming RPG");
     if (!IsWindowReady()) {
         panic("Window failed to initialize");
     }
+    SetWindowState(FLAG_WINDOW_RESIZABLE);
 
     SetTargetFPS(120);
 }
@@ -26,8 +27,9 @@ int main() {
     panicIf(game == nil, "Failed to create game");
 
     while (!WindowShouldClose()) {
+        f32 deltaTime = GetFrameTime();
         game_handle_input(game);
-        game_update(game);
+        game_update(game, deltaTime);
         game_draw(game);
     }
 

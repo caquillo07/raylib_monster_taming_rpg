@@ -9,14 +9,9 @@
 #include "raylib.h"
 #include "maps_manager.h"
 
-static void init_game(Game *game) {
-    maps_manager_init();
-}
-
-static void setup_game(Game *game, MapID mapID, Vector2 playerStartPosition) {
-    Map *map = load_map(mapID);
-    game->currentMap = map;
-}
+static void init_game(Game *game);
+static void setup_game(Game *game, MapID mapID, Vector2 playerStartPosition);
+static void game_draw_debug(Game *game);
 
 Game *game_new() {
     Game *game = calloc(1, sizeof(*game));
@@ -32,25 +27,73 @@ void game_destroy(Game *game) {
     map_free(game->currentMap);
     game->currentMap = nil;
 
+    player_free(game->player);
+    game->player = nil;
+
     free(game);
-    game = nil;
 }
 
 void game_handle_input(Game *game) {
-
+    if (IsKeyPressed(KEY_F2)) {
+        game->debug = !game->debug;
+        return;
+    }
+    player_input(game->player);
 }
 
-void game_update(Game *game) {
+void game_update(Game *game, f32 deltaTime) {
+    player_update(game->player, deltaTime);
 
+    // update camera
+    game->camera.target = player_get_center(game->player);
+    printf("player x: %f y: %f - camera x: %f y: %f\n", game->player->frame.x, game->player->frame.y,
+           game->camera.target.x, game->camera.target.y);
+    game->camera.offset = (Vector2) {
+        .x = (ScreenWidth / 2.0f),
+        .y = (ScreenHeight / 2.0f),
+    };
+//    game->camera.zoom = (f32) GetScreenHeight() / PixelWindowHeight;
 }
 
 void game_draw(Game *game) {
     BeginDrawing();
     {
-//        ClearBackground(DARKGRAY);
-//        DrawText("Congrats! You created your first window!", 190, 200, 20, LIGHTGRAY);
-        map_draw(game->currentMap);
+        ClearBackground(DARKGRAY);
+        BeginMode2D(game->camera);
+        {
+            map_draw(game->currentMap);
+            player_draw(game->player);
+        }
+        game_draw_debug(game);
+        EndMode2D();
     }
     EndDrawing();
+}
+
+static void game_draw_debug(Game *game) {
+    if (!game->debug) {
+        return;
+    }
+    DrawFPS(10, 10);
+}
+
+
+static void init_game(Game *game) {
+    maps_manager_init();
+}
+
+static void setup_game(Game *game, MapID mapID, Vector2 playerStartPosition) {
+    Map *map = load_map(mapID);
+    game->currentMap = map;
+
+    game->player = player_new(map->playerStartingPosition);
+
+    // camera
+    Camera2D camera = {0};
+    camera.target = player_get_center(game->player);
+    camera.offset = (Vector2) {ScreenWidth / 2.0f, ScreenHeight / 2.0f};
+    camera.zoom = (f32) GetScreenHeight() / PixelWindowHeight;
+    camera.rotation = 0.0f;
+    game->camera = camera;
 }
 

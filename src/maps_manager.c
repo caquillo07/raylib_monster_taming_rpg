@@ -59,13 +59,41 @@ Map *load_map(MapID mapID) {
     Map *map = calloc(1, sizeof(*map));
     panicIf(map == nil, "failed to alloc map");
 
+    // in a real game, this wouldn't work? but for this demo, this is good enough
+    // to match the tutorial video
     map->tiledMap = tmap;
+    map->terrainLayer = tmx_find_layer_by_name(tmap, "Terrain");
+    panicIf(map->terrainLayer == nil, "could not find the Terrain layer in tmx map");
+    map->entitiesLayer = tmx_find_layer_by_name(tmap, "Entities");
+    panicIf(map->entitiesLayer == nil, "could not find the Entities layer in tmx map");
+
+    // get player starting position
+#define houseObjectID 12
+    tmx_object *housePlayerObject = tmx_find_object_by_id(map->tiledMap, houseObjectID);
+    map->playerStartingPosition = (Vector2){
+        .x = housePlayerObject->x,
+        .y = housePlayerObject->y,
+    };
     return map;
 }
 
 void map_draw(Map *map) {
     ClearBackground(int_to_color(map->tiledMap->backgroundcolor));
-    draw_all_layers(map->tiledMap, map->tiledMap->ly_head);
+//    draw_all_layers(map->tiledMap, map->tiledMap->ly_head);
+    draw_layer(map->tiledMap, map->terrainLayer);
+
+    // players object
+//    tmx_object *head = map->entitiesLayer->content.objgr->head;
+//    while (head) {
+//        if (strcmp(head->name, "Player") == 0) {
+//            printf("found %s\n", head->name);
+//            tmx_property *directionProp = tmx_get_property(head->properties, "direction");
+//            printf("found %s: %s\n", directionProp->name, directionProp->value.string);
+//            tmx_property *position = tmx_get_property(head->properties, "pos");
+//            printf("found %s: %s\n", position->name, position->value.string);
+//        }
+//        head = head->next;
+//    }
 }
 
 void map_free(Map *map) {
@@ -73,7 +101,6 @@ void map_free(Map *map) {
     tmx_map_free(map->tiledMap);
 
     free(map);
-    map = nil;
 }
 
 static void draw_all_layers(tmx_map *tmap, tmx_layer *layers) {

@@ -11,6 +11,7 @@
 #include <string.h>
 #include <time.h>
 #include <slog.h>
+#include "raylib.h"
 
 // todo: make this env driven
 #define DEBUG 1
@@ -36,15 +37,24 @@ typedef int64_t i64;
 typedef size_t usize;
 typedef ssize_t isize;
 
-#define SCREEN_WIDTH 1280
-#define SCREEN_HEIGHT 720
+#define ScreenWidth 1920
+#define ScreenHeight 1080
+#define PixelWindowHeight ScreenHeight
 #define FPS 120
 #define TILE_SIZE 64
 #define ANIMATION_SPEED 6
 #define BATTLE_OUTLINE_WIDTH 4
 
+typedef struct Size{
+    f32 width;
+    f32 height;
+} Size;
+
 void initLogger();
 void panic(const char *message);
 void panicIf(bool condition, const char *message);
+
+Size size_from_rectangle(Rectangle rect);
+
 
 #endif //POKEMON_GAME_COMMON_H
