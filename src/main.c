@@ -1,9 +1,3 @@
-#include <stdio.h>
-#include <assert.h>
-#include <string.h>
-
-#define CUTE_TILED_IMPLEMENTATION
-
 #include "raylib.h"
 #include "common.h"
 #include "game.h"
@@ -12,9 +6,8 @@
 static void init() {
     initLogger();
     InitWindow(ScreenWidth, ScreenHeight, "Monster Taming RPG");
-    if (!IsWindowReady()) {
-        panic("Window failed to initialize");
-    }
+    panicIf(!IsWindowReady(), "Window failed to initialize");
+
     SetWindowState(FLAG_WINDOW_RESIZABLE);
 
     SetTargetFPS(120);

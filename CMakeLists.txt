@@ -9,7 +9,6 @@ include(FetchContent)
 file(GLOB SOURCES *.c *.cpp *.h *.hpp src/*.c src/*.cpp src/*.h src/*.hpp src/*/*.c src/*/*.cpp src/*/*.h src/*/*.hpp)
 add_executable(${PROJECT_NAME} ${SOURCES})
 
-
 # FetchContent deps
 FetchContent_Declare(
         tmx
@@ -29,8 +28,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE slog)
 
 # because of raylib - TODO(hector) - make this only for debug builds, figure out
 #  why this is even needed.
-target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -fsanitize=address)
-target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
+target_compile_options(${PROJECT_NAME} PRIVATE -g -O1 -fno-omit-frame-pointer -Wall -Wextra -fsanitize=address,undefined)
+target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address,undefined)
 
 find_package(glfw3 CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE glfw)

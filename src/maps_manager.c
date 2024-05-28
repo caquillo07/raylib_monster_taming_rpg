@@ -44,34 +44,39 @@ Map *load_map(MapID mapID) {
     panicIf(mapID >= MapIDMax, "map ID provided is invalid");
     MapInfo mapInfo = mapAtlas[mapID];
 
-    tmx_map *tmap = tmx_load(mapInfo.mapFilePath);
-    panicIfNil(tmap, tmx_strerr());
-
     Map *map = calloc(1, sizeof(*map));
     panicIfNil(map, "failed to alloc map");
+    map->id = mapID;
 
-    // in a real game, this wouldn't work? but for this demo, this is good enough
-    // to match the tutorial video
-    map->tiledMap = tmap;
+    map->tiledMap = tmx_load(mapInfo.mapFilePath);
+    panicIfNil(map->tiledMap, tmx_strerr());
 
-    // terrain, main world
-    map->terrainLayer = tmx_find_layer_by_name(tmap, "Terrain");
+
+    // in a real game, this wouldn't work? The way the maps are setup, every map
+    // has the same layers so it works, in a real game, that may or may not
+    // be the same. Depends how I set it up
+
+    // terrain
+    map->terrainLayer = tmx_find_layer_by_name(map->tiledMap, "Terrain");
     panicIfNil(map->terrainLayer, "could not find the Terrain layer in tmx map");
 
+    // terrain top
+    map->terrainTopLayer = tmx_find_layer_by_name(map->tiledMap, "Terrain Top");
+    panicIfNil(map->terrainLayer, "could not find the Terrain Top layer in tmx map");
+
     // entities
-    map->entitiesLayer = tmx_find_layer_by_name(tmap, "Entities");
+    map->entitiesLayer = tmx_find_layer_by_name(map->tiledMap, "Entities");
     panicIfNil(map->entitiesLayer, "could not find the Entities layer in tmx map");
 
     // objects
-    map->objectsLayer = tmx_find_layer_by_name(tmap, "Objects");
+    map->objectsLayer = tmx_find_layer_by_name(map->tiledMap, "Objects");
     panicIfNil(map->objectsLayer, "could not find the Objects layer in the tmx map");
 
     // get player starting position
-    const i32 houseObjectID = 12;
-    tmx_object *housePlayerObject = tmx_find_object_by_id(map->tiledMap, houseObjectID);
+    tmx_object *housePlayerObject = tmx_find_object_by_id(map->tiledMap, mapInfo.startingPositionObjectID);
     map->playerStartingPosition = (Vector2) {
-        .x = (f32)housePlayerObject->x,
-        .y = (f32)housePlayerObject->y,
+        .x = (f32) housePlayerObject->x,
+        .y = (f32) housePlayerObject->y,
     };
     return map;
 }
@@ -82,8 +87,8 @@ void map_draw(Map *map) {
     // todo this is slow as all hell, but it works .-.
     //  optimize to cache all images/tiles instead of parsing the linked list each time.
     draw_layer(map->tiledMap, map->terrainLayer);
+    draw_layer(map->tiledMap, map->terrainTopLayer);
     draw_objects_layer(map->tiledMap, map->objectsLayer);
-
 }
 
 void map_free(Map *map) {
@@ -113,10 +118,10 @@ static void draw_layer(tmx_map *tmap, tmx_layer *layer) {
 
                 // i32 flags = (layer->content.gids[(i * tmap->width) + j]) & ~TMX_FLIP_BITS_REMOVAL;
                 Rectangle sourceRec = {
-                    .x = (f32)tmap->tiles[gid]->ul_x,
-                    .y = (f32)tmap->tiles[gid]->ul_y,
-                    .width = (f32)tileSet->tile_width,
-                    .height = (f32)tileSet->tile_height,
+                    .x = (f32) tmap->tiles[gid]->ul_x,
+                    .y = (f32) tmap->tiles[gid]->ul_y,
+                    .width = (f32) tileSet->tile_width,
+                    .height = (f32) tileSet->tile_height,
                 };
                 Vector2 destination = {
                     .x = (f32) (j * tileSet->tile_width),
@@ -216,12 +221,12 @@ static void draw_objects_layer(tmx_map *tmap, tmx_layer *layer) {
 static void *texture_loader_callback(const char *path) {
     Texture2D *text = calloc(1, sizeof(*text));
     *text = LoadTexture(path);
-    printf("loaded %s with ID %d\n", path, text->id);
+    slogi("loaded %s with ID %d", path, text->id);
     return text;
 }
 
 static void texture_free_callback(void *ptr) {
-    printf("unloading texture #%d\n", ((Texture2D *) ptr)->id);
+    slogi("unloading texture #%d", ((Texture2D *) ptr)->id);
     UnloadTexture(*(Texture2D *) ptr);
     free(ptr);
 }

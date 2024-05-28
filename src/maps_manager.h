@@ -15,6 +15,7 @@
 
 typedef enum MapID {
     MapIDWorld = 0,
+    MapIDHospital = 1,
     MapIDMax
 } MapID;
 
@@ -22,6 +23,7 @@ typedef struct MapInfo {
     MapID id;
     char *name;
     char *mapFilePath;
+    u32 startingPositionObjectID;
 } MapInfo;
 
 typedef struct Sprite {
@@ -33,11 +35,14 @@ typedef struct Sprite {
 } Sprite;
 
 typedef struct Map {
+    MapID id;
     tmx_map *tiledMap;
     tmx_layer *terrainLayer;
+    tmx_layer *terrainTopLayer;
     tmx_layer *entitiesLayer;
-    Vector2 playerStartingPosition;
     tmx_layer *objectsLayer;
+
+    Vector2 playerStartingPosition;
 } Map;
 
 static MapInfo mapAtlas[MapIDMax] = {
@@ -45,6 +50,13 @@ static MapInfo mapAtlas[MapIDMax] = {
         .id = MapIDWorld,
         .name = "world_map",
         .mapFilePath = map_path(world.tmx),
+        .startingPositionObjectID = 12,
+    },
+    {
+        .id = MapIDHospital,
+        .name = "hospital_map",
+        .mapFilePath = map_path(hospital.tmx),
+        .startingPositionObjectID = 12,
     }
 };
 

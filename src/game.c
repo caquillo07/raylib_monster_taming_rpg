@@ -14,12 +14,14 @@ static void game_draw_debug_camera(Game *game);
 static void update_camera(Game *game);
 static void game_draw_debug_screen(Game *game);
 
+const MapID startingMap = MapIDWorld;
+
 Game *game_new() {
     Game *game = calloc(1, sizeof(*game));
     panicIf(game == nil, "failed to allocate game");
 
     init_game(game);
-    setup_game(game, MapIDWorld);
+    setup_game(game, startingMap);
 
     return game;
 }
@@ -39,6 +41,21 @@ void game_handle_input(Game *game) {
         isDebug = !isDebug;
         return;
     }
+    if (IsKeyPressed(KEY_F3) && game->currentMap->id != MapIDWorld) {
+        map_free(game->currentMap);
+        game->currentMap = load_map(MapIDWorld);
+        game->player->frame.x = game->currentMap->playerStartingPosition.x;
+        game->player->frame.y = game->currentMap->playerStartingPosition.y;
+        return;
+    }
+    if (IsKeyPressed(KEY_F4) && game->currentMap->id != MapIDHospital) {
+        map_free(game->currentMap);
+        game->currentMap = load_map(MapIDHospital);
+        game->player->frame.x = game->currentMap->playerStartingPosition.x;
+        game->player->frame.y = game->currentMap->playerStartingPosition.y;
+        return;
+    }
+
     player_input(game->player);
 }
 
@@ -94,7 +111,6 @@ static void setup_game(Game *game, MapID mapID) {
 
     Map *map = load_map(mapID);
     game->currentMap = map;
-
     game->player = player_new(map->playerStartingPosition);
 
     // camera
