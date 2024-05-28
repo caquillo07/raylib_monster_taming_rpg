@@ -4,6 +4,8 @@
 
 #include "common.h"
 
+bool isDebug = false;
+
 void initLogger() {
     slog_init("logs", SLOG_FLAGS_ALL, false);
 
@@ -27,6 +29,12 @@ void panic(const char *message) {
 // todo(hector) - add line number through a macro?
 void panicIf(bool condition, const char *message) {
     if (condition) {
+        panic(message);
+    }
+}
+
+void panicIfNil(void *ptr, const char *message) {
+    if (ptr == nil) {
         panic(message);
     }
 }

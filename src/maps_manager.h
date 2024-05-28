@@ -37,8 +37,7 @@ typedef struct Map {
     tmx_layer *terrainLayer;
     tmx_layer *entitiesLayer;
     Vector2 playerStartingPosition;
-//    Image *images;
-//    Sprite *sprites;
+    tmx_layer *objectsLayer;
 } Map;
 
 static MapInfo mapAtlas[MapIDMax] = {

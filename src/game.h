@@ -11,7 +11,6 @@
 typedef struct Game {
     Map *currentMap;
     Player *player;
-    bool debug;
     Camera2D camera;
 } Game;
 

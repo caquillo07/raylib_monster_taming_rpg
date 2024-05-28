@@ -39,7 +39,7 @@ typedef ssize_t isize;
 
 #define ScreenWidth 1280
 #define ScreenHeight 720
-#define PixelWindowHeight ScreenHeight
+#define PixelWindowHeight (ScreenHeight * 2)
 #define FPS 120
 #define TILE_SIZE 64
 #define ANIMATION_SPEED 6
@@ -50,9 +50,13 @@ typedef struct Size{
     f32 height;
 } Size;
 
+extern bool isDebug;
+
 void initLogger();
 void panic(const char *message);
 void panicIf(bool condition, const char *message);
+void panicIfNil(void *ptr, const char *message);
+
 
 Size size_from_rectangle(Rectangle rect);
 
