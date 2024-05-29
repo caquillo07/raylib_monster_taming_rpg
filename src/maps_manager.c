@@ -62,7 +62,7 @@ Map *load_map(MapID mapID) {
 
     // terrain top
     map->terrainTopLayer = tmx_find_layer_by_name(map->tiledMap, "Terrain Top");
-    panicIfNil(map->terrainLayer, "could not find the Terrain Top layer in tmx map");
+    panicIfNil(map->terrainTopLayer, "could not find the Terrain Top layer in tmx map");
 
     // entities
     map->entitiesLayer = tmx_find_layer_by_name(map->tiledMap, "Entities");
@@ -93,6 +93,10 @@ void map_draw(Map *map) {
 
 void map_free(Map *map) {
     // LibTMX
+    map->terrainLayer = nil;
+    map->terrainTopLayer = nil;
+    map->entitiesLayer = nil;
+    map->objectsLayer = nil;
     tmx_map_free(map->tiledMap);
 
     free(map);

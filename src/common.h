@@ -20,9 +20,6 @@
 #define max(_a, _b) ({ __typeof__(_a) __a = (_a), __b = (_b); __a > __b ? __a : __b; })
 
 #define nil NULL
-#define bool uint8_t
-#define true 1
-#define false 0
 typedef float f32;
 typedef double f64;
 typedef uint8_t byte;

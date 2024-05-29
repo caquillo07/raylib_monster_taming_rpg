@@ -28,8 +28,15 @@ target_link_libraries(${PROJECT_NAME} PRIVATE slog)
 
 # because of raylib - TODO(hector) - make this only for debug builds, figure out
 #  why this is even needed.
-target_compile_options(${PROJECT_NAME} PRIVATE -g -O1 -fno-omit-frame-pointer -Wall -Wextra -fsanitize=address,undefined)
-target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address,undefined)
+if(APPLE)
+    message("Building for macOS")
+    target_compile_options(${PROJECT_NAME} PRIVATE -g -O1 -fno-omit-frame-pointer -Wall -Wextra -fsanitize=address)
+    target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address,undefined)
+elseif (UNIX AND NOT APPLE)
+    message("Building for Linux")
+    target_compile_options(${PROJECT_NAME} PRIVATE -g3 -O0 -fno-omit-frame-pointer -Wall -Wextra -fsanitize=address,undefined)
+    target_link_options(${PROJECT_NAME} PRIVATE -g -fsanitize=address,undefined)
+endif ()
 
 find_package(glfw3 CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE glfw)

@@ -8,7 +8,7 @@
 #include "raylib.h"
 #include "maps_manager.h"
 
-static void init_game(Game *game);
+static void init_game();
 static void setup_game(Game *game, MapID mapID);
 static void game_draw_debug_camera(Game *game);
 static void update_camera(Game *game);
@@ -20,7 +20,7 @@ Game *game_new() {
     Game *game = calloc(1, sizeof(*game));
     panicIf(game == nil, "failed to allocate game");
 
-    init_game(game);
+    init_game();
     setup_game(game, startingMap);
 
     return game;
@@ -101,8 +101,7 @@ static void game_draw_debug_camera(Game *game) {
     DrawCircleV(game->camera.target, 5.f, BLUE);
 }
 
-static void init_game(Game *game) {
-    (void )game;
+static void init_game() {
     maps_manager_init();
 }
 
