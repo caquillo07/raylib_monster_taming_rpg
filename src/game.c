@@ -7,6 +7,7 @@
 #include "common.h"
 #include "raylib.h"
 #include "maps_manager.h"
+#include "memory/memory.h"
 
 static void init_game();
 static void setup_game(Game *game, MapID mapID);
@@ -17,7 +18,7 @@ static void game_draw_debug_screen(Game *game);
 const MapID startingMap = MapIDWorld;
 
 Game *game_new() {
-    Game *game = calloc(1, sizeof(*game));
+    Game *game = mallocate(sizeof(*game), MemoryTagGame);
     panicIf(game == nil, "failed to allocate game");
 
     init_game();
@@ -33,7 +34,7 @@ void game_destroy(Game *game) {
     player_free(game->player);
     game->player = nil;
 
-    free(game);
+    mfree(game, sizeof(*game), MemoryTagGame);
 }
 
 void game_handle_input(Game *game) {

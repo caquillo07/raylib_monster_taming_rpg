@@ -4,6 +4,8 @@
 
 #include "maps_manager.h"
 #include "common.h"
+#include "memory/memory.h"
+#include "array/array.h"
 
 #include <tmx.h>
 
@@ -12,6 +14,9 @@ static bool loaded = false;
 // private funcs
 static void *texture_loader_callback(const char *path);
 static void texture_free_callback(void *ptr);
+static void *map_alloc_callback(void *ptr, size_t len);
+static void map_free_callback(void *ptr);
+static void print_map_total_memory();
 static Color int_to_color(u32 color);
 static void draw_layer(tmx_map *tmap, tmx_layer *layer);
 static void draw_objects_layer(tmx_map *tmap, tmx_layer *layer);
@@ -21,7 +26,11 @@ void maps_manager_init() {
     tmx_img_load_func = texture_loader_callback;
     tmx_img_free_func = texture_free_callback;
 
+    tmx_alloc_func = map_alloc_callback;
+    tmx_free_func = map_free_callback;
+
     loaded = true;
+    atexit(print_map_total_memory);
 }
 
 static Color int_to_color(u32 color) {
@@ -44,9 +53,10 @@ Map *load_map(MapID mapID) {
     panicIf(mapID >= MapIDMax, "map ID provided is invalid");
     MapInfo mapInfo = mapAtlas[mapID];
 
-    Map *map = calloc(1, sizeof(*map));
+    Map *map = mallocate(sizeof(*map), MemoryTagGame);
     panicIfNil(map, "failed to alloc map");
     map->id = mapID;
+
 
     map->tiledMap = tmx_load(mapInfo.mapFilePath);
     panicIfNil(map->tiledMap, tmx_strerr());
@@ -97,9 +107,11 @@ void map_free(Map *map) {
     map->terrainTopLayer = nil;
     map->entitiesLayer = nil;
     map->objectsLayer = nil;
+
+    // todo - add to memory/memory.h
     tmx_map_free(map->tiledMap);
 
-    free(map);
+    mfree(map, sizeof(*map), MemoryTagGame);
 }
 
 static void draw_layer(tmx_map *tmap, tmx_layer *layer) {
@@ -223,15 +235,32 @@ static void draw_objects_layer(tmx_map *tmap, tmx_layer *layer) {
 }
 
 static void *texture_loader_callback(const char *path) {
-    Texture2D *text = calloc(1, sizeof(*text));
+    Texture2D *text = mallocate(sizeof(*text), MemoryTagTexture);
     *text = LoadTexture(path);
     slogi("loaded %s with ID %d", path, text->id);
     return text;
 }
 
 static void texture_free_callback(void *ptr) {
-    slogi("unloading texture #%d", ((Texture2D *) ptr)->id);
-    UnloadTexture(*(Texture2D *) ptr);
+    Texture2D *text = (Texture2D *) ptr;
+    slogi("unloading texture #%d", text->id);
+    UnloadTexture(*text);
+    mfree(ptr, sizeof(*text), MemoryTagTexture);
+}
+
+static u64 totalMapMemoryAllocated = 0;
+void *map_alloc_callback(void *ptr, size_t len) {
+    // TODO - what to do .-.
+    totalMapMemoryAllocated += len;
+    slogi("allocating %d bytes for map, total: %d", len, totalMapMemoryAllocated);
+    return realloc(ptr, len);
+}
+
+void map_free_callback(void *ptr) {
     free(ptr);
+}
+
+void print_map_total_memory() {
+    slogi("total memory allocated by TmxLib: %d byes", totalMapMemoryAllocated);
 }
 

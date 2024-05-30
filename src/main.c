@@ -2,8 +2,10 @@
 #include "common.h"
 #include "game.h"
 #include "maps_manager.h"
+#include "memory/memory.h"
 
 static void init() {
+    initialize_memory();
     initLogger();
     InitWindow(ScreenWidth, ScreenHeight, "Monster Taming RPG");
     panicIf(!IsWindowReady(), "Window failed to initialize");
@@ -29,6 +31,12 @@ int main() {
     game_destroy(game);
 
     CloseWindow();
+
+    char* memUsage = get_memory_usage_str();
+    slogi(memUsage);
+    free(memUsage);
+    shutdown_memory();
+
     return 0;
 }
 

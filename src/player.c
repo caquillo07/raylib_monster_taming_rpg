@@ -5,12 +5,12 @@
 #include <stdlib.h>
 #include "player.h"
 #include "common.h"
-#include <raymath.h>
+#include "memory/memory.h"
 
 const f32 playerSpeed = 250;
 
 Player *player_new(Vector2 position) {
-    Player *player = calloc(1, sizeof(*player));
+    Player *player = mallocate(sizeof(*player), MemoryTagEntity);
     panicIf(player == nil, "failed to allocate player");
 
     Texture2D texture = LoadTexture("graphics/characters/player.png");
@@ -37,7 +37,7 @@ Player *player_new(Vector2 position) {
 
 void player_free(Player *player) {
     UnloadTexture(player->texture);
-    free(player);
+    mfree(player, sizeof(*player), MemoryTagEntity);
 }
 
 void player_input(Player *player) {
