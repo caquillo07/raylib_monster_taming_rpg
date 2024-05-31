@@ -9,6 +9,25 @@
 
 #include <tmx.h>
 
+
+#define maps_dir "./data/maps/"
+#define map_path(MAP_NAME) maps_dir#MAP_NAME
+
+static MapInfo mapAtlas[MapIDMax] = {
+    {
+        .id = MapIDWorld,
+        .name = "world_map",
+        .mapFilePath = map_path(world.tmx),
+        .startingPositionObjectID = 12,
+    },
+    {
+        .id = MapIDHospital,
+        .name = "hospital_map",
+        .mapFilePath = map_path(hospital.tmx),
+        .startingPositionObjectID = 12,
+    }
+};
+
 static bool loaded = false;
 
 // private funcs

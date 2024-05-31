@@ -10,8 +10,6 @@
 #include "common.h"
 #include "tmx.h"
 
-#define maps_dir "./data/maps/"
-#define map_path(MAP_NAME) maps_dir#MAP_NAME
 
 typedef enum MapID {
     MapIDWorld = 0,
@@ -45,20 +43,6 @@ typedef struct Map {
     Vector2 playerStartingPosition;
 } Map;
 
-static MapInfo mapAtlas[MapIDMax] = {
-    {
-        .id = MapIDWorld,
-        .name = "world_map",
-        .mapFilePath = map_path(world.tmx),
-        .startingPositionObjectID = 12,
-    },
-    {
-        .id = MapIDHospital,
-        .name = "hospital_map",
-        .mapFilePath = map_path(hospital.tmx),
-        .startingPositionObjectID = 12,
-    }
-};
 
 void maps_manager_init();
 Map *load_map(MapID mapID);
