@@ -261,6 +261,6 @@ void map_free_callback(void *ptr) {
 }
 
 void print_map_total_memory() {
-    slogi("total memory allocated by TmxLib: %d byes", totalMapMemoryAllocated);
+    slogi("total memory allocated by TmxLib: %d bytes", totalMapMemoryAllocated);
 }
 
