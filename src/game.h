@@ -7,6 +7,7 @@
 
 #include "maps_manager.h"
 #include "player.h"
+#include "sprites.h"
 
 typedef struct Game {
     Map *currentMap;

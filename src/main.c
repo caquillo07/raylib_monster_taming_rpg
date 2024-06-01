@@ -1,5 +1,6 @@
 #include "raylib.h"
 #include "common.h"
+#include "settings.h"
 #include "game.h"
 #include "maps_manager.h"
 #include "memory/memory.h"

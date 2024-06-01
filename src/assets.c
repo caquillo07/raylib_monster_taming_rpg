@@ -3,9 +3,22 @@
 //
 
 #include <dirent.h>
-#include "assets_manager.h"
+#include "assets.h"
 #include "common.h"
 #include "array/array.h"
+
+#define assets_dir "./graphics/tilesets/"
+#define assets_path(assetName) assets_dir#assetName
+
+
+// todo(hector) - heap?
+Assets assets;
+
+void init_textures() {
+    assets = (Assets){};
+    assets.waterTextures.textures = import_textures_from_directory(assets_path(water));
+    assets.waterTextures.len = 4;
+}
 
 Texture2D *import_textures_from_directory(char *dirPath) {
     DIR *dir = opendir(dirPath);

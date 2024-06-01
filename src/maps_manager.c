@@ -6,6 +6,9 @@
 #include "common.h"
 #include "memory/memory.h"
 #include "array/array.h"
+#include "sprites.h"
+#include "assets.h"
+#include "settings.h"
 
 #include <tmx.h>
 
@@ -36,9 +39,14 @@ static void texture_free_callback(void *ptr);
 static void *map_alloc_callback(void *ptr, size_t len);
 static void map_free_callback(void *ptr);
 static void print_map_total_memory();
+
 static Color int_to_color(u32 color);
+
+static AnimatedSprite *init_water_sprites(tmx_layer *layer);
+
 static void draw_layer(tmx_map *tmap, tmx_layer *layer);
 static void draw_objects_layer(tmx_map *tmap, tmx_layer *layer);
+static void draw_water_sprites(AnimatedSprite *waterSprites);
 static void draw_tile(void *image, Rectangle sourceRec, Vector2 destination, f32 opacity);
 
 void maps_manager_init() {
@@ -74,9 +82,8 @@ Map *load_map(MapID mapID) {
 
     Map *map = mallocate(sizeof(*map), MemoryTagGame);
     panicIfNil(map, "failed to alloc map");
+
     map->id = mapID;
-
-
     map->tiledMap = tmx_load(mapInfo.mapFilePath);
     panicIfNil(map->tiledMap, tmx_strerr());
 
@@ -101,6 +108,12 @@ Map *load_map(MapID mapID) {
     map->objectsLayer = tmx_find_layer_by_name(map->tiledMap, "Objects");
     panicIfNil(map->objectsLayer, "could not find the Objects layer in the tmx map");
 
+    // Water
+    map->waterLayer = tmx_find_layer_by_name(map->tiledMap, "Water");
+    panicIfNil(map->waterLayer, "could not find the Objects layer in the tmx map");
+
+    map->waterSprites = init_water_sprites(map->waterLayer);
+
     // get player starting position
     tmx_object *housePlayerObject = tmx_find_object_by_id(map->tiledMap, mapInfo.startingPositionObjectID);
     map->playerStartingPosition = (Vector2) {
@@ -108,6 +121,56 @@ Map *load_map(MapID mapID) {
         .y = (f32) housePlayerObject->y,
     };
     return map;
+}
+
+void map_free(Map *map) {
+    // LibTMX
+    map->terrainLayer = nil;
+    map->terrainTopLayer = nil;
+    map->entitiesLayer = nil;
+    map->objectsLayer = nil;
+    map->waterLayer = nil;
+    map->waterSprites = nil;
+
+    // todo - add to memory/memory.h
+    tmx_map_free(map->tiledMap);
+
+    mfree(map, sizeof(*map), MemoryTagGame);
+}
+
+static AnimatedSprite *init_water_sprites(tmx_layer *layer) {
+    AnimatedSprite *animatedSprite = nil;
+    tmx_object *waterTileH = layer->content.objgr->head;
+    while (waterTileH) {
+        if (!waterTileH->visible) {
+            continue;
+        }
+
+        for (i32 x = (i32) waterTileH->x; x < waterTileH->x + waterTileH->width; x += TILE_SIZE) {
+            for (i32 y = (i32) waterTileH->y; y < waterTileH->y + waterTileH->height; y += TILE_SIZE) {
+                AnimatedSprite waterSprite = {
+                    .id = waterTileH->id,
+                    .position = {.x = (f32) x, .y = (f32) y},
+                    .textures = assets.waterTextures.textures,
+                    .framesLen = 4,
+                    .currentFrame = 0,
+                    .frameTimer = 0.f,
+                    .animationSpeed = settings.waterAnimationSpeed,
+                };
+                array_push(animatedSprite, waterSprite);
+            }
+        }
+
+        waterTileH = waterTileH->next;
+    }
+
+    return animatedSprite;
+}
+
+void map_update(Map *map, f32 dt) {
+    for (i32 i = 0; i < array_length(map->waterSprites); i++) {
+        animate_sprite(&map->waterSprites[i], dt);
+    }
 }
 
 void map_draw(Map *map) {
@@ -118,19 +181,7 @@ void map_draw(Map *map) {
     draw_layer(map->tiledMap, map->terrainLayer);
     draw_layer(map->tiledMap, map->terrainTopLayer);
     draw_objects_layer(map->tiledMap, map->objectsLayer);
-}
-
-void map_free(Map *map) {
-    // LibTMX
-    map->terrainLayer = nil;
-    map->terrainTopLayer = nil;
-    map->entitiesLayer = nil;
-    map->objectsLayer = nil;
-
-    // todo - add to memory/memory.h
-    tmx_map_free(map->tiledMap);
-
-    mfree(map, sizeof(*map), MemoryTagGame);
+    draw_water_sprites(map->waterSprites);
 }
 
 static void draw_layer(tmx_map *tmap, tmx_layer *layer) {
@@ -168,10 +219,10 @@ static void draw_layer(tmx_map *tmap, tmx_layer *layer) {
     }
 }
 
-static void draw_tile(void *image, Rectangle sourceRec, Vector2 destination, f32 opacity) {
+static void draw_tile(void *imageTexture2D, Rectangle sourceRec, Vector2 destination, f32 opacity) {
     u8 c = (u8) opacity * 255;
     Color tint = {c, c, c, c};
-    DrawTextureRec(*(Texture2D *) image, sourceRec, destination, tint);
+    DrawTextureRec(*(Texture2D *) imageTexture2D, sourceRec, destination, tint);
 }
 
 static void draw_object_tile(tmx_map *tmap, tmx_object *object) {
@@ -253,6 +304,41 @@ static void draw_objects_layer(tmx_map *tmap, tmx_layer *layer) {
     }
 }
 
+static void draw_water_sprites(AnimatedSprite *waterSprites) {
+    if (array_length(waterSprites) == 0) { return; }
+
+    for (i32 i = 0; i < array_length(waterSprites); i++) {
+        AnimatedSprite waterSprite = waterSprites[i];
+
+        Rectangle sourceRec = {
+            .x = waterSprite.position.x,
+            .y = waterSprite.position.y,
+            .height = (f32) waterSprite.textures[0].height,
+            .width = (f32) waterSprite.textures[0].width,
+        };
+
+        Texture2D *frameToDraw = &waterSprite.textures[waterSprite.currentFrame];
+        draw_tile(
+            frameToDraw,
+            sourceRec,
+            waterSprite.position,
+            1.f
+        );
+
+        // draw debug frames
+        if (!isDebug) { continue; }
+
+        Rectangle tileFrame = {
+            .x = waterSprite.position.x,
+            .y = waterSprite.position.y,
+            .width = sourceRec.width,
+            .height = sourceRec.height,
+        };
+        DrawRectangleLinesEx(tileFrame, 3.f, RED);
+        DrawCircleV(waterSprite.position, 5.f, RED);
+    }
+}
+
 static void *texture_loader_callback(const char *path) {
     Texture2D *text = mallocate(sizeof(*text), MemoryTagTexture);
     *text = LoadTexture(path);
@@ -268,6 +354,7 @@ static void texture_free_callback(void *ptr) {
 }
 
 static u64 totalMapMemoryAllocated = 0;
+
 void *map_alloc_callback(void *ptr, size_t len) {
     // TODO - what to do .-.
     totalMapMemoryAllocated += len;
@@ -282,4 +369,3 @@ void map_free_callback(void *ptr) {
 void print_map_total_memory() {
     slogi("total memory allocated by TmxLib: %d bytes", totalMapMemoryAllocated);
 }
-

@@ -8,6 +8,7 @@
 #include "raylib.h"
 #include "maps_manager.h"
 #include "memory/memory.h"
+#include "assets.h"
 
 static void init_game();
 static void setup_game(Game *game, MapID mapID);
@@ -62,6 +63,7 @@ void game_handle_input(Game *game) {
 
 void game_update(Game *game, f32 deltaTime) {
     player_update(game->player, deltaTime);
+    map_update(game->currentMap, deltaTime);
 
     update_camera(game);
 }
@@ -104,6 +106,7 @@ static void game_draw_debug_camera(Game *game) {
 
 static void init_game() {
     maps_manager_init();
+    init_textures();
 }
 
 static void setup_game(Game *game, MapID mapID) {
