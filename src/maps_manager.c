@@ -88,9 +88,9 @@ Map *load_map(MapID mapID) {
     panicIfNil(map->tiledMap, tmx_strerr());
 
 
-    // in a real game, this wouldn't work? The way the maps are setup, every map
-    // has the same layers so it works, in a real game, that may or may not
-    // be the same. Depends how I set it up
+    // in a real game, this wouldn't work? The way the maps are set up, every map
+    // has the same layers, so it works, in a real game, that may or may not
+    // be the same. Depends on how I set it up
 
     // terrain
     map->terrainLayer = tmx_find_layer_by_name(map->tiledMap, "Terrain");
@@ -124,17 +124,18 @@ Map *load_map(MapID mapID) {
 }
 
 void map_free(Map *map) {
+    array_free(map->waterSprites);
+    map->waterSprites = nil;
+
     // LibTMX
+    // todo - add to memory/memory.h
+    tmx_map_free(map->tiledMap);
+
     map->terrainLayer = nil;
     map->terrainTopLayer = nil;
     map->entitiesLayer = nil;
     map->objectsLayer = nil;
     map->waterLayer = nil;
-    map->waterSprites = nil;
-
-    // todo - add to memory/memory.h
-    tmx_map_free(map->tiledMap);
-
     mfree(map, sizeof(*map), MemoryTagGame);
 }
 

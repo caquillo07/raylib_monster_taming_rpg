@@ -4,6 +4,7 @@
 #include "game.h"
 #include "maps_manager.h"
 #include "memory/memory.h"
+#include "array/array.h"
 
 static void init() {
     initialize_memory();
@@ -19,7 +20,7 @@ static void init() {
 int main() {
     init();
 
-    Game* game = game_new();
+    Game *game = game_new();
     panicIf(game == nil, "Failed to create game");
 
     while (!WindowShouldClose()) {
@@ -33,7 +34,7 @@ int main() {
 
     CloseWindow();
 
-    char* memUsage = get_memory_usage_str();
+    char *memUsage = get_memory_usage_str();
     slogi(memUsage);
     free(memUsage);
     shutdown_memory();

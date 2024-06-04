@@ -36,6 +36,12 @@ void game_destroy(Game *game) {
     game->player = nil;
 
     mfree(game, sizeof(*game), MemoryTagGame);
+    unload_textures();
+}
+
+static void init_game() {
+    maps_manager_init();
+    load_textures();
 }
 
 void game_handle_input(Game *game) {
@@ -102,11 +108,6 @@ static void game_draw_debug_camera(Game *game) {
 
     // Draw camera anchor
     DrawCircleV(game->camera.target, 5.f, BLUE);
-}
-
-static void init_game() {
-    maps_manager_init();
-    init_textures();
 }
 
 static void setup_game(Game *game, MapID mapID) {

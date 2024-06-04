@@ -30,7 +30,7 @@ void *mallocate(u64 size, memory_tag tag);
 void mfree(void *block, u64 size, memory_tag tag);
 void *mzero_memory(void *block, u64 size);
 void *mcopy_memory(void *dest, const void *source, u64 size);
-void *kset_memory(void *dest, i32 value, u64 size);
+void *mset_memory(void *dest, i32 value, u64 size);
 char *get_memory_usage_str();
 
 #endif //RAYLIB_POKEMON_CLONE_MEMORY_H

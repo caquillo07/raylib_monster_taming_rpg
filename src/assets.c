@@ -14,10 +14,14 @@
 // todo(hector) - heap?
 Assets assets;
 
-void init_textures() {
+void load_textures() {
     assets = (Assets){};
     assets.waterTextures.textures = import_textures_from_directory(assets_path(water));
     assets.waterTextures.len = 4;
+}
+
+void unload_textures() {
+    array_free(assets.waterTextures.textures);
 }
 
 Texture2D *import_textures_from_directory(char *dirPath) {

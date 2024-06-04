@@ -17,7 +17,8 @@ typedef struct Assets {
 
 extern Assets assets;
 
-void init_textures();
+void load_textures();
+void unload_textures();
 
 Texture2D *import_textures_from_directory(char* dir);
 
