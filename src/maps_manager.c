@@ -359,7 +359,7 @@ static u64 totalMapMemoryAllocated = 0;
 void *map_alloc_callback(void *ptr, size_t len) {
     // TODO - what to do .-.
     totalMapMemoryAllocated += len;
-    slogi("allocating %d bytes for map, total: %d", len, totalMapMemoryAllocated);
+//    slogi("allocating %d bytes for map, total: %d", len, totalMapMemoryAllocated);
     return realloc(ptr, len);
 }
 

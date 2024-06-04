@@ -9,6 +9,7 @@
 #include "maps_manager.h"
 #include "memory/memory.h"
 #include "assets.h"
+#include "settings.h"
 
 static void init_game();
 static void setup_game(Game *game, MapID mapID);
@@ -17,6 +18,9 @@ static void update_camera(Game *game);
 static void game_draw_debug_screen(Game *game);
 
 const MapID startingMap = MapIDWorld;
+
+static bool frameStepMode = false;
+static bool shouldRenderFrame = true;
 
 Game *game_new() {
     Game *game = mallocate(sizeof(*game), MemoryTagGame);
@@ -45,10 +49,28 @@ static void init_game() {
 }
 
 void game_handle_input(Game *game) {
-    if (IsKeyPressed(KEY_F2)) {
-        isDebug = !isDebug;
+    if (isDebug && IsKeyPressed(KEY_F1)) {
+        frameStepMode = !frameStepMode;
+        shouldRenderFrame = false;
         return;
     }
+
+    if (isDebug && frameStepMode && IsKeyPressed(KEY_SPACE)) {
+        shouldRenderFrame = true;
+        return;
+    }
+
+    if (IsKeyPressed(KEY_F2)) {
+        isDebug = !isDebug;
+        frameStepMode = false;
+        shouldRenderFrame = true;
+        return;
+    }
+
+    if (frameStepMode && !shouldRenderFrame) {
+        return;
+    }
+
     if (IsKeyPressed(KEY_F3) && game->currentMap->id != MapIDWorld) {
         map_free(game->currentMap);
         game->currentMap = load_map(MapIDWorld);
@@ -68,6 +90,9 @@ void game_handle_input(Game *game) {
 }
 
 void game_update(Game *game, f32 deltaTime) {
+    if (frameStepMode && !shouldRenderFrame) {
+        return;
+    }
     player_update(game->player, deltaTime);
     map_update(game->currentMap, deltaTime);
 
@@ -88,6 +113,9 @@ void game_draw(Game *game) {
         game_draw_debug_screen(game);
     }
     EndDrawing();
+    if (frameStepMode) {
+        shouldRenderFrame = false;
+    }
 }
 
 static void game_draw_debug_screen(Game *game) {

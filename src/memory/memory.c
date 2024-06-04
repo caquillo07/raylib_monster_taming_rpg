@@ -79,7 +79,6 @@ void *mzero_memory(void *block, u64 size) {
 }
 
 void *mcopy_memory(void *dest, const void *source, u64 size) {
-    printf("copying %lld bytes", size);
     return memcpy(dest, source, size);
 }
 
