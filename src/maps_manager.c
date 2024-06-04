@@ -42,11 +42,13 @@ static void print_map_total_memory();
 
 static Color int_to_color(u32 color);
 
-static AnimatedSprite *init_water_sprites(tmx_layer *layer);
+static AnimatedTexturesSprite *init_water_sprites(tmx_layer *layer);
+static AnimatedTiledSprite *init_coast_line_sprites(tmx_layer *layer);
 
 static void draw_layer(tmx_map *tmap, tmx_layer *layer);
 static void draw_objects_layer(tmx_map *tmap, tmx_layer *layer);
-static void draw_water_sprites(AnimatedSprite *waterSprites);
+static void draw_water_sprites(AnimatedTexturesSprite *waterSprites);
+static void draw_coast_line_sprites(AnimatedTiledSprite *coastLineSprites);
 static void draw_tile(void *image, Rectangle sourceRec, Vector2 destination, f32 opacity);
 
 void maps_manager_init() {
@@ -112,7 +114,14 @@ Map *load_map(MapID mapID) {
     map->waterLayer = tmx_find_layer_by_name(map->tiledMap, "Water");
     panicIfNil(map->waterLayer, "could not find the Objects layer in the tmx map");
 
-    map->waterSprites = init_water_sprites(map->waterLayer);
+    // Coast line
+    map->coastLineLayer = tmx_find_layer_by_name(map->tiledMap, "Coast");
+    panicIfNil(map->waterLayer, "could not find the Coast layer in the tmx map");
+
+
+    // sprites
+    map->waterSpritesList = init_water_sprites(map->waterLayer);
+    map->coastLineSpritesList = init_coast_line_sprites(map->coastLineLayer);
 
     // get player starting position
     tmx_object *housePlayerObject = tmx_find_object_by_id(map->tiledMap, mapInfo.startingPositionObjectID);
@@ -124,8 +133,14 @@ Map *load_map(MapID mapID) {
 }
 
 void map_free(Map *map) {
-    array_free(map->waterSprites);
-    map->waterSprites = nil;
+    array_free(map->waterSpritesList);
+    map->waterSpritesList = nil;
+
+    array_range(map->coastLineSpritesList, i) {
+        array_free(map->coastLineSpritesList[i].sourceFrames);
+    }
+    array_free(map->coastLineSpritesList);
+    map->coastLineSpritesList = nil;
 
     // LibTMX
     // todo - add to memory/memory.h
@@ -139,8 +154,8 @@ void map_free(Map *map) {
     mfree(map, sizeof(*map), MemoryTagGame);
 }
 
-static AnimatedSprite *init_water_sprites(tmx_layer *layer) {
-    AnimatedSprite *animatedSprite = nil;
+static AnimatedTexturesSprite *init_water_sprites(tmx_layer *layer) {
+    AnimatedTexturesSprite *animatedSprite = nil;
     tmx_object *waterTileH = layer->content.objgr->head;
     while (waterTileH) {
         if (!waterTileH->visible) {
@@ -149,10 +164,10 @@ static AnimatedSprite *init_water_sprites(tmx_layer *layer) {
 
         for (i32 x = (i32) waterTileH->x; x < waterTileH->x + waterTileH->width; x += TILE_SIZE) {
             for (i32 y = (i32) waterTileH->y; y < waterTileH->y + waterTileH->height; y += TILE_SIZE) {
-                AnimatedSprite waterSprite = {
+                AnimatedTexturesSprite waterSprite = {
                     .id = waterTileH->id,
                     .position = {.x = (f32) x, .y = (f32) y},
-                    .textures = assets.waterTextures.textures,
+                    .textures = assets.waterTextures.texturesList,
                     .framesLen = 4,
                     .currentFrame = 0,
                     .frameTimer = 0.f,
@@ -168,9 +183,111 @@ static AnimatedSprite *init_water_sprites(tmx_layer *layer) {
     return animatedSprite;
 }
 
+static AnimatedTiledSprite *init_coast_line_sprites(tmx_layer *layer) {
+    AnimatedTiledSprite *spritesList = nil;
+
+    tmx_object *coastLineH = layer->content.objgr->head;
+    while (coastLineH) {
+        if (!coastLineH->visible) {
+            continue;
+        }
+
+        tmx_property *sideProp = tmx_get_property(coastLineH->properties, "side");
+        panicIfNil(sideProp, "expected coast line object ot have 'side' property");
+
+        // todo - use enums? .-.
+        //  this needs to be reworked
+
+#define maxStringValSize 12
+        int colBase = 0, rowBase = 0;
+        if (strncmp(sideProp->value.string, "topleft", maxStringValSize) == 0) {
+            colBase = 0;
+            rowBase = 0;
+        } else if (strncmp(sideProp->value.string, "top", maxStringValSize) == 0) {
+            colBase = 1;
+            rowBase = 0;
+        } else if (strncmp(sideProp->value.string, "topright", maxStringValSize) == 0) {
+            colBase = 2;
+            rowBase = 0;
+        } else if (strncmp(sideProp->value.string, "left", maxStringValSize) == 0) {
+            colBase = 0;
+            rowBase = 1;
+        } else if (strncmp(sideProp->value.string, "right", maxStringValSize) == 0) {
+            colBase = 2;
+            rowBase = 1;
+        } else if (strncmp(sideProp->value.string, "bottomleft", maxStringValSize) == 0) {
+            colBase = 0;
+            rowBase = 2;
+        } else if (strncmp(sideProp->value.string, "bottom", maxStringValSize) == 0) {
+            colBase = 1;
+            rowBase = 2;
+        } else if (strncmp(sideProp->value.string, "bottomright", maxStringValSize) == 0) {
+            colBase = 2;
+            rowBase = 2;
+        }
+
+        int firstFrameCol = 0, firstFrameRow = 0;
+        tmx_property *terrainProp = tmx_get_property(coastLineH->properties, "terrain");
+        panicIfNil(terrainProp, "expected coast line object ot have 'terrain' property");
+
+        if (strncmp(terrainProp->value.string, "grass", maxStringValSize) == 0) {
+            firstFrameCol = colBase + 0;
+            firstFrameRow = rowBase + 0;
+        } else if (strncmp(terrainProp->value.string, "grass_i", maxStringValSize) == 0) {
+            firstFrameCol = colBase + 1 * 3;
+            firstFrameRow = rowBase + 0;
+        } else if (strncmp(terrainProp->value.string, "sand_i", maxStringValSize) == 0) {
+            firstFrameCol = colBase + 2 * 3;
+            firstFrameRow = rowBase + 0;
+        } else if (strncmp(terrainProp->value.string, "sand", maxStringValSize) == 0) {
+            firstFrameCol = colBase + 3 * 3;
+            firstFrameRow = rowBase + 0;
+        } else if (strncmp(terrainProp->value.string, "rock", maxStringValSize) == 0) {
+            firstFrameCol = colBase + 4 * 3;
+            firstFrameRow = rowBase + 0;
+        } else if (strncmp(terrainProp->value.string, "rock_i", maxStringValSize) == 0) {
+            firstFrameCol = colBase + 5 * 3;
+            firstFrameRow = rowBase + 0;
+        } else if (strncmp(terrainProp->value.string, "ice", maxStringValSize) == 0) {
+            firstFrameCol = colBase + 6 * 3;
+            firstFrameRow = rowBase + 0;
+        } else if (strncmp(terrainProp->value.string, "ice_i", maxStringValSize) == 0) {
+            firstFrameCol = colBase + 7 * 3;
+            firstFrameRow = rowBase + 0;
+        }
+
+        Rectangle *sourceFrames = nil;
+        array_push(sourceFrames, tile_map_get_frame_at(assets.coastLineTileMap, firstFrameCol, firstFrameRow));
+        array_push(sourceFrames, tile_map_get_frame_at(assets.coastLineTileMap, firstFrameCol, firstFrameRow + 1 * 3));
+        array_push(sourceFrames, tile_map_get_frame_at(assets.coastLineTileMap, firstFrameCol, firstFrameRow + 2 * 3));
+        array_push(sourceFrames, tile_map_get_frame_at(assets.coastLineTileMap, firstFrameCol, firstFrameRow + 3 * 3));
+
+        AnimatedTiledSprite sprite = {
+            .id = coastLineH->id,
+            .position = {.x = (f32) coastLineH->x, .y = (f32) coastLineH->y},
+            .texture = assets.coastLineTileMap.texture,
+            .framesLen = 4,
+            .currentFrame = 0,
+            .frameTimer = 0.f,
+            .animationSpeed = settings.coastLineAnimationSpeed,
+            .sourceFrames = sourceFrames,
+        };
+
+        array_push(spritesList, sprite);
+
+        coastLineH = coastLineH->next;
+    }
+
+    return spritesList;
+}
+
 void map_update(Map *map, f32 dt) {
-    for (i32 i = 0; i < array_length(map->waterSprites); i++) {
-        animate_sprite(&map->waterSprites[i], dt);
+    for (i32 i = 0; i < array_length(map->waterSpritesList); i++) {
+        animate_textures_sprite(&map->waterSpritesList[i], dt);
+    }
+
+    array_range(map->coastLineSpritesList, i) {
+        animate_tiled_sprite(&map->coastLineSpritesList[i], dt);
     }
 }
 
@@ -182,7 +299,8 @@ void map_draw(Map *map) {
     draw_layer(map->tiledMap, map->terrainLayer);
     draw_layer(map->tiledMap, map->terrainTopLayer);
     draw_objects_layer(map->tiledMap, map->objectsLayer);
-    draw_water_sprites(map->waterSprites);
+    draw_water_sprites(map->waterSpritesList);
+    draw_coast_line_sprites(map->coastLineSpritesList);
 }
 
 static void draw_layer(tmx_map *tmap, tmx_layer *layer) {
@@ -305,11 +423,33 @@ static void draw_objects_layer(tmx_map *tmap, tmx_layer *layer) {
     }
 }
 
-static void draw_water_sprites(AnimatedSprite *waterSprites) {
+static void draw_coast_line_sprites(AnimatedTiledSprite *coastLineSprites) {
+    if (array_length(coastLineSprites) == 0) { return; }
+
+    array_range(coastLineSprites, i) {
+        AnimatedTiledSprite coastSprite = coastLineSprites[i];
+        Rectangle tileToDraw = coastSprite.sourceFrames[coastSprite.currentFrame];
+        draw_tile(&assets.coastLineTileMap.texture, tileToDraw, coastSprite.position, 1.f);
+
+        // draw debug frames
+        if (!isDebug) { continue; }
+
+        Rectangle tileFrame = {
+            .x = coastSprite.position.x,
+            .y = coastSprite.position.y,
+            .width = coastSprite.sourceFrames[0].width,
+            .height = coastSprite.sourceFrames[0].height,
+        };
+        DrawRectangleLinesEx(tileFrame, 3.f, RED);
+        DrawCircleV(coastSprite.position, 5.f, RED);
+    }
+}
+
+static void draw_water_sprites(AnimatedTexturesSprite *waterSprites) {
     if (array_length(waterSprites) == 0) { return; }
 
     for (i32 i = 0; i < array_length(waterSprites); i++) {
-        AnimatedSprite waterSprite = waterSprites[i];
+        AnimatedTexturesSprite waterSprite = waterSprites[i];
 
         Rectangle sourceRec = {
             .x = waterSprite.position.x,
@@ -359,7 +499,7 @@ static u64 totalMapMemoryAllocated = 0;
 void *map_alloc_callback(void *ptr, size_t len) {
     // TODO - what to do .-.
     totalMapMemoryAllocated += len;
-//    slogi("allocating %d bytes for map, total: %d", len, totalMapMemoryAllocated);
+    // slogi("allocating %d bytes for map, total: %d", len, totalMapMemoryAllocated);
     return realloc(ptr, len);
 }
 

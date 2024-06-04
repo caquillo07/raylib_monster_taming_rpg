@@ -10,6 +10,7 @@
 typedef struct GameSettings {
     f32 playerSpeed;
     f32 waterAnimationSpeed;
+    f32 coastLineAnimationSpeed;
 } GameSettings;
 
 extern GameSettings settings;

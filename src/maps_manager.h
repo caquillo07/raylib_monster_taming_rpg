@@ -33,8 +33,10 @@ typedef struct Map {
     tmx_layer *entitiesLayer;
     tmx_layer *objectsLayer;
     tmx_layer *waterLayer;
+    tmx_layer *coastLineLayer;
 
-    AnimatedSprite *waterSprites;
+    AnimatedTexturesSprite *waterSpritesList;
+    AnimatedTiledSprite *coastLineSpritesList;
 
     Vector2 playerStartingPosition;
 } Map;

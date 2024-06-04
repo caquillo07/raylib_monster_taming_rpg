@@ -8,11 +8,20 @@
 #include "raylib.h"
 #include "common.h"
 
+typedef struct TileMap {
+    i32 columns;
+    i32 rows;
+    Texture2D texture;
+    Rectangle *framesList;
+} TileMap;
+
 typedef struct Assets {
     struct {
         i32 len;
-        Texture2D *textures;
-    } waterTextures ;
+        Texture2D *texturesList;
+    } waterTextures;
+
+    TileMap coastLineTileMap;
 } Assets;
 
 extern Assets assets;
@@ -20,6 +29,8 @@ extern Assets assets;
 void load_textures();
 void unload_textures();
 
-Texture2D *import_textures_from_directory(char* dir);
+Texture2D *import_textures_from_directory(char *dir);
+
+Rectangle tile_map_get_frame_at(TileMap tm, i32 col, i32 row);
 
 #endif //RAYLIB_POKEMON_CLONE_ASSETS_H
