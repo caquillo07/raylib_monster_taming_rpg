@@ -13,30 +13,13 @@ void initLogger() {
     slog_config_get(&cfg);
     cfg.eDateControl = SLOG_TIME_ONLY;
     cfg.nIndent = true;
-//    cfg.nTraceTid = true;
+    // cfg.nTraceTid = true; // when using threads
     cfg.eColorFormat = SLOG_COLORING_FULL;
     cfg.nToFile = false;
     cfg.nKeepOpen = false;
+    cfg.nUseHeap = false;
 
     slog_config_set(&cfg);
-}
-
-void panic(const char *message) {
-    slogf("%s", message);
-    exit(EXIT_FAILURE);
-}
-
-// todo(hector) - add line number through a macro?
-void panicIf(bool condition, const char *message) {
-    if (condition) {
-        panic(message);
-    }
-}
-
-void panicIfNil(void *ptr, const char *message) {
-    if (ptr == nil) {
-        panic(message);
-    }
 }
 
 Size size_from_rectangle(Rectangle rect) {

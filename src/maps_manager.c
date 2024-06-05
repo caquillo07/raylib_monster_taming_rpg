@@ -87,7 +87,7 @@ Map *load_map(MapID mapID) {
 
     map->id = mapID;
     map->tiledMap = tmx_load(mapInfo.mapFilePath);
-    panicIfNil(map->tiledMap, tmx_strerr());
+    panicIfNil(map->tiledMap, "tmx_error: %s", tmx_strerr());
 
 
     // in a real game, this wouldn't work? The way the maps are set up, every map
