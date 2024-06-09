@@ -38,8 +38,8 @@ typedef struct AnimatedTexturesSprite {
     Vector2 position;
 } AnimatedTexturesSprite;
 
-void animate_textures_sprite(AnimatedTexturesSprite *sprite, f32 dt);
+void update_animated_textures_sprite(AnimatedTexturesSprite *sprite, f32 dt);
 
-void animate_tiled_sprite(AnimatedTiledSprite *sprite, f32 dt);
+void update_animated_tiled_sprite(AnimatedTiledSprite *sprite, f32 dt);
 
 #endif //RAYLIB_POKEMON_CLONE_SPRITES_H

@@ -13,7 +13,7 @@
 const u32 headerSize = (sizeof(int) * 3);
 
 void *array_hold(void *array, int count, int item_size) {
-    if (array == NULL) {
+    if (array == nil) {
         u32 rawSize = headerSize + (item_size * count);
         int *base = (int *) mallocate(rawSize, MemoryTagDynArray);
         base[0] = count;  // capacity
@@ -44,11 +44,15 @@ void *array_hold(void *array, int count, int item_size) {
 }
 
 int array_length(void *array) {
-    return (array != NULL) ? ARRAY_OCCUPIED(array) : 0;
+    return (array != nil) ? ARRAY_OCCUPIED(array) : 0;
+}
+
+int array_cap(void *array) {
+    return array != nil ? ARRAY_CAPACITY(array) : 0;
 }
 
 void array_free(void *array) {
-    if (array != NULL) {
+    if (array != nil) {
         u32 arraySize = headerSize + (ARRAY_ITEM_SIZE(array) * ARRAY_CAPACITY(array));
         mfree(ARRAY_RAW_DATA(array), arraySize, MemoryTagDynArray);
         return;

@@ -22,14 +22,22 @@ typedef struct Assets {
     } waterTextures;
 
     TileMap coastLineTileMap;
+    TileMap playerTileMap;
+    TileMap blondCharacterTileMap;
+    TileMap fireBossCharacterTileMap;
+    TileMap grassBossCharacterTileMap;
+    TileMap hatGirlCharacterTileMap;
+    TileMap purpleGirlCharacterTileMap;
+    TileMap strawCharacterTileMap;
+    TileMap waterBossCharacterTileMap;
+    TileMap youngGirlCharacterTileMap;
+    TileMap youngGuyCharacterTileMap;
 } Assets;
 
 extern Assets assets;
 
 void load_textures();
 void unload_textures();
-
-Texture2D *import_textures_from_directory(char *dir);
 
 Rectangle tile_map_get_frame_at(TileMap tm, i32 col, i32 row);
 

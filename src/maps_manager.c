@@ -283,11 +283,11 @@ static AnimatedTiledSprite *init_coast_line_sprites(tmx_layer *layer) {
 
 void map_update(Map *map, f32 dt) {
     for (i32 i = 0; i < array_length(map->waterSpritesList); i++) {
-        animate_textures_sprite(&map->waterSpritesList[i], dt);
+        update_animated_textures_sprite(&map->waterSpritesList[i], dt);
     }
 
     array_range(map->coastLineSpritesList, i) {
-        animate_tiled_sprite(&map->coastLineSpritesList[i], dt);
+        update_animated_tiled_sprite(&map->coastLineSpritesList[i], dt);
     }
 }
 

@@ -6,6 +6,7 @@
 
 GameSettings settings = {
     .playerSpeed = 250 * 3,
+    .playerAnimationSpeed = 4,
     .waterAnimationSpeed = 4,
     .coastLineAnimationSpeed = 4,
 };

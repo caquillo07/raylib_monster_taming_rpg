@@ -13,6 +13,7 @@
 void* array_hold(void* array, int count, int item_size);
 void array_remove(void* array, int index, int item_size);
 int array_length(void* array);
+int array_cap(void *array);
 void array_free(void* array);
 
 #endif
