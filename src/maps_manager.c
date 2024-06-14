@@ -118,7 +118,6 @@ Map *load_map(MapID mapID) {
     map->coastLineLayer = tmx_find_layer_by_name(map->tiledMap, "Coast");
     panicIfNil(map->waterLayer, "could not find the Coast layer in the tmx map");
 
-
     // sprites
     map->waterSpritesList = init_water_sprites(map->waterLayer);
     map->coastLineSpritesList = init_coast_line_sprites(map->coastLineLayer);
@@ -256,16 +255,17 @@ static AnimatedTiledSprite *init_coast_line_sprites(tmx_layer *layer) {
             firstFrameRow = rowBase + 0;
         }
 
+        TileMap coastLineTileMap = assets.tileMaps[TileMapIDCoastLine];
         Rectangle *sourceFrames = nil;
-        array_push(sourceFrames, tile_map_get_frame_at(assets.coastLineTileMap, firstFrameCol, firstFrameRow));
-        array_push(sourceFrames, tile_map_get_frame_at(assets.coastLineTileMap, firstFrameCol, firstFrameRow + 1 * 3));
-        array_push(sourceFrames, tile_map_get_frame_at(assets.coastLineTileMap, firstFrameCol, firstFrameRow + 2 * 3));
-        array_push(sourceFrames, tile_map_get_frame_at(assets.coastLineTileMap, firstFrameCol, firstFrameRow + 3 * 3));
+        array_push(sourceFrames, tile_map_get_frame_at(coastLineTileMap, firstFrameCol, firstFrameRow));
+        array_push(sourceFrames, tile_map_get_frame_at(coastLineTileMap, firstFrameCol, firstFrameRow + 1 * 3));
+        array_push(sourceFrames, tile_map_get_frame_at(coastLineTileMap, firstFrameCol, firstFrameRow + 2 * 3));
+        array_push(sourceFrames, tile_map_get_frame_at(coastLineTileMap, firstFrameCol, firstFrameRow + 3 * 3));
 
         AnimatedTiledSprite sprite = {
             .id = coastLineH->id,
             .position = {.x = (f32) coastLineH->x, .y = (f32) coastLineH->y},
-            .texture = assets.coastLineTileMap.texture,
+            .texture = coastLineTileMap.texture,
             .framesLen = 4,
             .currentFrame = 0,
             .frameTimer = 0.f,
@@ -398,26 +398,19 @@ static void draw_objects_layer(tmx_map *tmap, tmx_layer *layer) {
                 draw_object_tile(tmap, objectHead);
                 break;
             case OT_NONE:
-                panic("draw_object_tile->type == OT_NONE not implemented");
-                break;
+            panic("draw_object_tile->type == OT_NONE not implemented");
             case OT_SQUARE:
-                panic("draw_object_tile->type == OT_SQUARE not implemented");
-                break;
+            panic("draw_object_tile->type == OT_SQUARE not implemented");
             case OT_POLYGON:
-                panic("draw_object_tile->type == OT_POLYGON not implemented");
-                break;
+            panic("draw_object_tile->type == OT_POLYGON not implemented");
             case OT_POLYLINE:
-                panic("draw_object_tile->type == OT_POLYLINE not implemented");
-                break;
+            panic("draw_object_tile->type == OT_POLYLINE not implemented");
             case OT_ELLIPSE:
-                panic("draw_object_tile->type == OT_ELLIPSE not implemented");
-                break;
+            panic("draw_object_tile->type == OT_ELLIPSE not implemented");
             case OT_TEXT:
-                panic("draw_object_tile->type == OT_TEXT not implemented");
-                break;
+            panic("draw_object_tile->type == OT_TEXT not implemented");
             case OT_POINT:
-                panic("draw_object_tile->type == OT_POINT not implemented");
-                break;
+            panic("draw_object_tile->type == OT_POINT not implemented");
         }
         objectHead = objectHead->next;
     }
@@ -429,7 +422,7 @@ static void draw_coast_line_sprites(AnimatedTiledSprite *coastLineSprites) {
     array_range(coastLineSprites, i) {
         AnimatedTiledSprite coastSprite = coastLineSprites[i];
         Rectangle tileToDraw = coastSprite.sourceFrames[coastSprite.currentFrame];
-        draw_tile(&assets.coastLineTileMap.texture, tileToDraw, coastSprite.position, 1.f);
+        draw_tile(&assets.tileMaps[TileMapIDCoastLine].texture, tileToDraw, coastSprite.position, 1.f);
 
         // draw debug frames
         if (!isDebug) { continue; }

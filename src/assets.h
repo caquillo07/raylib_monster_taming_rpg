@@ -15,23 +15,29 @@ typedef struct TileMap {
     Rectangle *framesList;
 } TileMap;
 
+typedef enum TileMapID {
+    TileMapIDCoastLine = 0,
+    TileMapIDPlayer,
+    TileMapIDBlondCharacter,
+    TileMapIDFireBossCharacter,
+    TileMapIDGrassBossCharacter,
+    TileMapIDHatGirlCharacter,
+    TileMapIDPurpleGirlCharacter,
+    TileMapIDStrawCharacter,
+    TileMapIDWaterBossCharacter,
+    TileMapIDYoungGirlCharacter,
+    TileMapIDYoungGuyCharacter,
+
+    TileMapIDMax,
+} TileMapID;
+
 typedef struct Assets {
     struct {
         i32 len;
         Texture2D *texturesList;
     } waterTextures;
 
-    TileMap coastLineTileMap;
-    TileMap playerTileMap;
-    TileMap blondCharacterTileMap;
-    TileMap fireBossCharacterTileMap;
-    TileMap grassBossCharacterTileMap;
-    TileMap hatGirlCharacterTileMap;
-    TileMap purpleGirlCharacterTileMap;
-    TileMap strawCharacterTileMap;
-    TileMap waterBossCharacterTileMap;
-    TileMap youngGirlCharacterTileMap;
-    TileMap youngGuyCharacterTileMap;
+    TileMap tileMaps[TileMapIDMax];
 } Assets;
 
 extern Assets assets;

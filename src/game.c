@@ -74,15 +74,15 @@ void game_handle_input(Game *game) {
     if (IsKeyPressed(KEY_F3) && game->currentMap->id != MapIDWorld) {
         map_free(game->currentMap);
         game->currentMap = load_map(MapIDWorld);
-        game->player->frame.x = game->currentMap->playerStartingPosition.x;
-        game->player->frame.y = game->currentMap->playerStartingPosition.y;
+        game->player->characterComponent.frame.x = game->currentMap->playerStartingPosition.x;
+        game->player->characterComponent.frame.y = game->currentMap->playerStartingPosition.y;
         return;
     }
     if (IsKeyPressed(KEY_F4) && game->currentMap->id != MapIDHospital) {
         map_free(game->currentMap);
         game->currentMap = load_map(MapIDHospital);
-        game->player->frame.x = game->currentMap->playerStartingPosition.x;
-        game->player->frame.y = game->currentMap->playerStartingPosition.y;
+        game->player->characterComponent.frame.x = game->currentMap->playerStartingPosition.x;
+        game->player->characterComponent.frame.y = game->currentMap->playerStartingPosition.y;
         return;
     }
 
