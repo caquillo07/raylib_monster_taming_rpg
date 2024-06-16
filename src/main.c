@@ -1,3 +1,5 @@
+#include <time.h>
+
 #include "raylib.h"
 #include "common.h"
 #include "game.h"

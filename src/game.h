@@ -9,10 +9,17 @@
 #include "player.h"
 #include "sprites.h"
 
+typedef struct GameMetrics {
+    f64 timeInInput;
+    f64 timeInUpdate;
+    f64 timeInDraw;
+} GameMetrics;
+
 typedef struct Game {
     Map *currentMap;
     Player *player;
     Camera2D camera;
+    GameMetrics gameMetrics;
 } Game;
 
 Game* game_new();

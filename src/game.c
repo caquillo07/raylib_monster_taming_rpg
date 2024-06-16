@@ -48,7 +48,7 @@ static void init_game() {
     load_textures();
 }
 
-void game_handle_input(Game *game) {
+static void do_game_handle_input(Game *game) {
     if (isDebug && IsKeyPressed(KEY_F1)) {
         frameStepMode = !frameStepMode;
         shouldRenderFrame = false;
@@ -89,7 +89,13 @@ void game_handle_input(Game *game) {
     player_input(game->player);
 }
 
-void game_update(Game *game, f32 deltaTime) {
+void game_handle_input(Game *game) {
+    clock_t now = clock();
+    do_game_handle_input(game);
+    game->gameMetrics.timeInInput = ((double)(clock() - now))/(CLOCKS_PER_SEC/1000);
+}
+
+static void do_game_update(Game *game, f32 deltaTime) {
     if (frameStepMode && !shouldRenderFrame) {
         return;
     }
@@ -98,8 +104,15 @@ void game_update(Game *game, f32 deltaTime) {
 
     update_camera(game);
 }
+void game_update(Game *game, f32 deltaTime) {
+    clock_t now = clock();
+    do_game_update(game, deltaTime);
+    game->gameMetrics.timeInUpdate = ((double)(clock() - now))/(CLOCKS_PER_SEC/1000);
+}
 
+static void do_game_draw(Game *game) { /* todo? */ }
 void game_draw(Game *game) {
+    clock_t now = clock();
     BeginDrawing();
     {
         ClearBackground(DARKGRAY);
@@ -116,6 +129,7 @@ void game_draw(Game *game) {
     if (frameStepMode) {
         shouldRenderFrame = false;
     }
+    game->gameMetrics.timeInDraw = ((double)(clock() - now))/(CLOCKS_PER_SEC/1000);
 }
 
 static void game_draw_debug_screen(Game *game) {
@@ -123,12 +137,26 @@ static void game_draw_debug_screen(Game *game) {
 
     DrawFPS(10, 10);
 
+    const i32 fontSize = 20;
     const size_t textBufSize = 120;
     char mousePosText[textBufSize];
     Vector2 mousePos = GetScreenToWorld2D(GetMousePosition(), game->camera);
     snprintf(mousePosText, textBufSize, "Mouse %dx%d", (i32) mousePos.x, (i32) mousePos.y);
-    DrawText(mousePosText, 12, 30, 20, DARKGREEN);
+    DrawText(mousePosText, 12, 30, fontSize, DARKGREEN);
 
+    char gameMetricsText[textBufSize * 3];
+    snprintf(
+        gameMetricsText,
+        textBufSize * 3,
+        "Time in input: %0.4f\n"
+        "Time in update: %0.4f\n"
+        "Time in draw: %0.4f",
+        game->gameMetrics.timeInInput,
+        game->gameMetrics.timeInUpdate,
+        game->gameMetrics.timeInDraw
+    );
+    Vector2 textSize = MeasureTextEx(GetFontDefault(), gameMetricsText, (f32) fontSize, 1);
+    DrawText(gameMetricsText, 12, (i32) (30.f + textSize.y), 20, DARKBLUE);
 }
 
 static void game_draw_debug_camera(Game *game) {
