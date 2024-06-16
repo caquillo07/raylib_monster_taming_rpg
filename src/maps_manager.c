@@ -10,6 +10,7 @@
 #include "assets.h"
 #include "settings.h"
 
+#include <raylib.h>
 #include <tmx.h>
 
 
@@ -45,6 +46,7 @@ static Color int_to_color(u32 color);
 static AnimatedTexturesSprite *init_water_sprites(tmx_layer *layer);
 static AnimatedTiledSprite *init_coast_line_sprites(tmx_layer *layer);
 
+Character *init_over_world_characters(tmx_layer *layer);
 static void draw_layer(tmx_map *tmap, tmx_layer *layer);
 static void draw_objects_layer(tmx_map *tmap, tmx_layer *layer);
 static void draw_water_sprites(AnimatedTexturesSprite *waterSprites);
@@ -121,6 +123,7 @@ Map *load_map(MapID mapID) {
     // sprites
     map->waterSpritesList = init_water_sprites(map->waterLayer);
     map->coastLineSpritesList = init_coast_line_sprites(map->coastLineLayer);
+    map->overWorldCharacters = init_over_world_characters(map->entitiesLayer);
 
     // get player starting position
     tmx_object *housePlayerObject = tmx_find_object_by_id(map->tiledMap, mapInfo.startingPositionObjectID);
@@ -140,6 +143,12 @@ void map_free(Map *map) {
     }
     array_free(map->coastLineSpritesList);
     map->coastLineSpritesList = nil;
+
+    array_range(map->overWorldCharacters, i) {
+        character_free(&map->overWorldCharacters[i]);
+    }
+    array_free(map->overWorldCharacters);
+    map->overWorldCharacters = nil;
 
     // LibTMX
     // todo - add to memory/memory.h
@@ -180,6 +189,70 @@ static AnimatedTexturesSprite *init_water_sprites(tmx_layer *layer) {
     }
 
     return animatedSprite;
+}
+
+Character *init_over_world_characters(tmx_layer *layer) {
+    Character *characters = nil;
+    tmx_object *characterH = layer->content.objgr->head;
+    const i32 maxStringValSize = strlen("water_boss.png");
+    while (characterH) {
+        if (!characterH->visible || strncmp(characterH->name, "Player", strlen("Player")) == 0) {
+            characterH = characterH->next;
+            continue;
+        }
+
+        tmx_property *directionProp = tmx_get_property(characterH->properties, "direction");
+//        tmx_property *posProp = tmx_get_property(characterH->properties, "pos");
+        tmx_property *graphicProp = tmx_get_property(characterH->properties, "graphic");
+
+        TileMapID characterTiledMapID = -1;
+        if (strncmp(graphicProp->value.string, "blond", maxStringValSize) == 0) {
+            characterTiledMapID = TileMapIDBlondCharacter;
+        } else if (strncmp(graphicProp->value.string, "fire_boss", maxStringValSize) == 0) {
+            characterTiledMapID = TileMapIDFireBossCharacter;
+        } else if (strncmp(graphicProp->value.string, "grass_boss", maxStringValSize) == 0) {
+            characterTiledMapID = TileMapIDGrassBossCharacter;
+        } else if (strncmp(graphicProp->value.string, "hat_girl", maxStringValSize) == 0) {
+            characterTiledMapID = TileMapIDHatGirlCharacter;
+        } else if (strncmp(graphicProp->value.string, "purple_girl", maxStringValSize) == 0) {
+            characterTiledMapID = TileMapIDPurpleGirlCharacter;
+        } else if (strncmp(graphicProp->value.string, "straw", maxStringValSize) == 0) {
+            characterTiledMapID = TileMapIDStrawCharacter;
+        } else if (strncmp(graphicProp->value.string, "water_boss", maxStringValSize) == 0) {
+            characterTiledMapID = TileMapIDWaterBossCharacter;
+        } else if (strncmp(graphicProp->value.string, "young_girl", maxStringValSize) == 0) {
+            characterTiledMapID = TileMapIDYoungGirlCharacter;
+        } else if (strncmp(graphicProp->value.string, "young_guy", maxStringValSize) == 0) {
+            characterTiledMapID = TileMapIDYoungGuyCharacter;
+        } else {
+            panic("unexpected graphics property for entity %s", graphicProp->value.string);
+        }
+
+        CharacterDirection direction = {0};
+        if (strncmp(directionProp->value.string, "down", maxStringValSize) == 0) {
+            direction = CharacterDirectionDown;
+        } else if (strncmp(directionProp->value.string, "up", maxStringValSize) == 0) {
+            direction = CharacterDirectionUp;
+        } else if (strncmp(directionProp->value.string, "right", maxStringValSize) == 0) {
+            direction = CharacterDirectionRight;
+        } else if (strncmp(directionProp->value.string, "left", maxStringValSize) == 0) {
+            direction = CharacterDirectionLeft;
+        } else {
+            panic("unexpected direction property for entity: %s", directionProp->value.string);
+        }
+
+        Character character = character_new(
+            (Vector2){},
+            characterTiledMapID,
+            direction
+        );
+
+        character_set_center_at(&character, (Vector2) {.x = (f32) characterH->x, .y = (f32) characterH->y});
+        array_push(characters, character);
+        characterH = characterH->next;
+    }
+
+    return characters;
 }
 
 static AnimatedTiledSprite *init_coast_line_sprites(tmx_layer *layer) {
@@ -289,6 +362,10 @@ void map_update(Map *map, f32 dt) {
     array_range(map->coastLineSpritesList, i) {
         update_animated_tiled_sprite(&map->coastLineSpritesList[i], dt);
     }
+
+    array_range(map->overWorldCharacters, i) {
+        character_update(&map->overWorldCharacters[i], dt);
+    }
 }
 
 void map_draw(Map *map) {
@@ -301,6 +378,9 @@ void map_draw(Map *map) {
     draw_objects_layer(map->tiledMap, map->objectsLayer);
     draw_water_sprites(map->waterSpritesList);
     draw_coast_line_sprites(map->coastLineSpritesList);
+    array_range(map->overWorldCharacters, i) {
+        character_draw(&map->overWorldCharacters[i]);
+    }
 }
 
 static void draw_layer(tmx_map *tmap, tmx_layer *layer) {
@@ -308,6 +388,8 @@ static void draw_layer(tmx_map *tmap, tmx_layer *layer) {
         printf("no layer found\n");
         return;
     }
+    // todo(hector) - this shit is slow as it gets, 5ms spent on this
+    //  for main terrain layer
     for (u64 i = 0; i < tmap->height; i++) {
         for (u64 j = 0; j < tmap->width; j++) {
 
@@ -332,6 +414,7 @@ static void draw_layer(tmx_map *tmap, tmx_layer *layer) {
                     .x = (f32) (j * tileSet->tile_width),
                     .y = (f32) (i * tileSet->tile_height),
                 };
+
                 draw_tile(image, sourceRec, destination, (f32) layer->opacity);
             }
         }

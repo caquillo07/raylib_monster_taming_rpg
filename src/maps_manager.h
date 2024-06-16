@@ -10,6 +10,7 @@
 #include "common.h"
 #include "tmx.h"
 #include "sprites.h"
+#include "character_entity.h"
 
 
 typedef enum MapID {
@@ -37,6 +38,7 @@ typedef struct Map {
 
     AnimatedTexturesSprite *waterSpritesList;
     AnimatedTiledSprite *coastLineSpritesList;
+    Character *overWorldCharacters;
 
     Vector2 playerStartingPosition;
 } Map;

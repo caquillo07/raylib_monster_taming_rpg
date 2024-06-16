@@ -40,13 +40,14 @@ typedef struct Character {
     TileMapID tileMapID;
 } Character;
 
-Character character_new(Vector2 position, TileMapID tileMapID);
+Character character_new(Vector2 centerPosition, TileMapID tileMapID, CharacterDirection direction);
 void character_init(Character *character, Vector2 position, TileMapID tileMapID);
 void character_free(Character *character);
 void character_input(Character *character);
 void character_update(Character *character, f32 deltaTime);
 void character_draw(Character *character);
 void character_move(Character *character, f32 deltaTime);
+void character_set_center_at(Character *character, Vector2 center);
 Vector2 character_get_center(Character *character);
 
 

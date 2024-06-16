@@ -16,7 +16,7 @@ Player *player_new(Vector2 position) {
     Player *player = mallocate(sizeof(*player), MemoryTagEntity);
     panicIfNil(player, "failed to allocate player");
 
-    player->characterComponent = character_new(position, TileMapIDPlayer);
+    player->characterComponent = character_new(position, TileMapIDPlayer, CharacterDirectionDown);
     return player;
 }
 

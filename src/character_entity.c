@@ -7,16 +7,19 @@
 #include "settings.h"
 #include "array/array.h"
 
-Character character_new(Vector2 position, TileMapID tileMapID) {
+Character character_new(Vector2 centerPosition, TileMapID tileMapID, CharacterDirection direction) {
     TileMap tm = assets.tileMaps[tileMapID];
+
+    i32 characterTileHeight = 128;
+    i32 characterTileWidth = 128;
     Character character = {
         .state = CharacterStateIdle,
-        .direction = CharacterDirectionDown,
+        .direction = direction,
         .tileMapID = tileMapID,
         .velocity = {},
         .frame = {
-            .x = position.x,
-            .y = position.y,
+            .x = centerPosition.x - (f32)characterTileWidth/2,
+            .y = centerPosition.y - (f32)characterTileHeight/2,
             .height = 128,
             .width = 128,
         },
@@ -104,12 +107,13 @@ void character_draw(Character *character) {
         .y = character->frame.y,
     };
 
-    DrawTextureRec(
-        character->animatedSprite.texture,
-        character->animatedSprite.sourceFrames[character->animatedSprite.currentFrame],
-        pos,
-        WHITE
-    );
+    Rectangle frame = character->animatedSprite.sourceFrames[character->animatedSprite.currentFrame];
+    DrawTextureRec(character->animatedSprite.texture,frame,pos,WHITE);
+
+    if (!isDebug) { return; }
+
+    DrawRectangleLinesEx(frame, 3.f, RED);
+    DrawCircleV(pos, 5.f, RED);
 }
 
 Vector2 character_get_center(Character *character) {
@@ -139,5 +143,10 @@ const char *character_state_string(CharacterState d) {
 
     panicIf(d >= CharacterStateMax, "invalid CharacterState provided");
     return CharacterStateStrings[d];
+}
+
+void character_set_center_at(Character *character, Vector2 center) {
+    character->frame.x = center.x - character->frame.width/2;
+    character->frame.y = center.y - character->frame.height/2;
 }
 
