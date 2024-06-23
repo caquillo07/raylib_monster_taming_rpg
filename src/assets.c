@@ -33,6 +33,10 @@ void load_textures() {
     assets.tileMaps[TileMapIDWaterBossCharacter] = load_tile_map(4, 4, ("./graphics/characters/water_boss.png"));
     assets.tileMaps[TileMapIDYoungGirlCharacter] = load_tile_map(4, 4, ("./graphics/characters/young_girl.png"));
     assets.tileMaps[TileMapIDYoungGuyCharacter] = load_tile_map(4, 4, ("./graphics/characters/young_guy.png"));
+
+    assets.grassTexture = LoadTexture("./graphics/objects/grass.png");
+    assets.iceGrassTexture = LoadTexture("./graphics/objects/grass_ice.png");
+    assets.sandTexture = LoadTexture("./graphics/objects/sand.png");
 }
 
 void unload_textures() {
@@ -65,6 +69,10 @@ void unload_textures() {
     array_free(assets.tileMaps[TileMapIDYoungGirlCharacter].framesList);
     UnloadTexture(assets.tileMaps[TileMapIDYoungGuyCharacter].texture);
     array_free(assets.tileMaps[TileMapIDYoungGuyCharacter].framesList);
+
+    UnloadTexture(assets.grassTexture);
+    UnloadTexture(assets.iceGrassTexture);
+    UnloadTexture(assets.sandTexture);
 }
 
 static Texture2D *import_textures_from_directory(char *dirPath) {

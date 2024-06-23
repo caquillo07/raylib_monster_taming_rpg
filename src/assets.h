@@ -38,6 +38,9 @@ typedef struct Assets {
     } waterTextures;
 
     TileMap tileMaps[TileMapIDMax];
+    Texture2D grassTexture;
+    Texture2D iceGrassTexture;
+    Texture2D sandTexture;
 } Assets;
 
 extern Assets assets;

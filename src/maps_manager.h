@@ -35,7 +35,9 @@ typedef struct Map {
     tmx_layer *objectsLayer;
     tmx_layer *waterLayer;
     tmx_layer *coastLineLayer;
+    tmx_layer * monsterEcounterLayer;
 
+    Sprite *monsterEncounterSpritesList;
     AnimatedTexturesSprite *waterSpritesList;
     AnimatedTiledSprite *coastLineSpritesList;
     Character *overWorldCharacters;

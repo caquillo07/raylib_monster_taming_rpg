@@ -13,7 +13,6 @@
 #include <raylib.h>
 #include <tmx.h>
 
-
 #define maps_dir "./data/maps/"
 #define map_path(MAP_NAME) maps_dir#MAP_NAME
 
@@ -45,6 +44,7 @@ static Color int_to_color(u32 color);
 
 static AnimatedTexturesSprite *init_water_sprites(const tmx_layer *layer);
 static AnimatedTiledSprite *init_coast_line_sprites(const tmx_layer *layer);
+static Sprite *init_monster_encounter_sprites(const tmx_layer *layer);
 
 Character *init_over_world_characters(const tmx_layer *layer);
 static void draw_layer(const tmx_map *tmap, const tmx_layer *layer);
@@ -104,6 +104,10 @@ Map *load_map(const MapID mapID) {
     map->terrainTopLayer = tmx_find_layer_by_name(map->tiledMap, "Terrain Top");
     panicIfNil(map->terrainTopLayer, "could not find the Terrain Top layer in tmx map");
 
+    // grass for random ecounters
+    map->monsterEcounterLayer = tmx_find_layer_by_name(map->tiledMap, "Monsters");
+    panicIfNil(map->monsterEcounterLayer, "could not find the Monsters layer in tmx map");
+
     // entities
     map->entitiesLayer = tmx_find_layer_by_name(map->tiledMap, "Entities");
     panicIfNil(map->entitiesLayer, "could not find the Entities layer in tmx map");
@@ -121,6 +125,7 @@ Map *load_map(const MapID mapID) {
     panicIfNil(map->waterLayer, "could not find the Coast layer in the tmx map");
 
     // sprites
+    map->monsterEncounterSpritesList = init_monster_encounter_sprites(map->monsterEcounterLayer);
     map->waterSpritesList = init_water_sprites(map->waterLayer);
     map->coastLineSpritesList = init_coast_line_sprites(map->coastLineLayer);
     map->overWorldCharacters = init_over_world_characters(map->entitiesLayer);
@@ -150,6 +155,8 @@ void map_free(Map *map) {
     array_free(map->overWorldCharacters);
     map->overWorldCharacters = nil;
 
+    array_free(map->monsterEncounterSpritesList);
+
     // LibTMX
     // todo - add to memory/memory.h
     tmx_map_free(map->tiledMap);
@@ -159,7 +166,49 @@ void map_free(Map *map) {
     map->entitiesLayer = nil;
     map->objectsLayer = nil;
     map->waterLayer = nil;
+    map->monsterEcounterLayer = nil;
     mfree(map, sizeof(*map), MemoryTagGame);
+}
+
+static Sprite *init_monster_encounter_sprites(const tmx_layer *layer) {
+    Sprite *sprites = nil;
+    const tmx_object *monsterTileH = layer->content.objgr->head;
+    while (monsterTileH) {
+        if (!monsterTileH->visible) {
+            monsterTileH = monsterTileH->next;
+            continue;
+        }
+        const tmx_property *biomeProp = tmx_get_property(monsterTileH->properties, "biome");
+        Texture2D texture;
+        if (strncmp(biomeProp->value.string, "ice", strlen("ice")) == 0) {
+            texture = assets.iceGrassTexture;
+        } else if (strncmp(biomeProp->value.string, "forest", strlen("forest")) == 0) {
+            texture = assets.grassTexture;
+        } else if (strncmp(biomeProp->value.string, "sand", strlen("sand")) == 0) {
+            texture = assets.sandTexture;
+        } else {
+            panic("init_monster_encounter_sprites - biome prop '%s' not supported", biomeProp->value.string);
+        }
+
+
+        const Sprite s = {
+            .id = texture.id,
+            .texture = texture,
+            .position = {
+                .x = monsterTileH->x,
+                .y = monsterTileH->y - monsterTileH->width,
+            },
+            .width = monsterTileH->width,
+            .height = monsterTileH->height,
+            .sourceFrame = {
+                .height = monsterTileH->height,
+                .width = monsterTileH->width,
+            },
+        };
+        array_push(sprites, s);
+        monsterTileH = monsterTileH->next;
+    }
+    return sprites;
 }
 
 static AnimatedTexturesSprite *init_water_sprites(const tmx_layer *layer) {
@@ -167,6 +216,7 @@ static AnimatedTexturesSprite *init_water_sprites(const tmx_layer *layer) {
     const tmx_object *waterTileH = layer->content.objgr->head;
     while (waterTileH) {
         if (!waterTileH->visible) {
+            waterTileH = waterTileH->next;
             continue;
         }
 
@@ -261,6 +311,7 @@ static AnimatedTiledSprite *init_coast_line_sprites(const tmx_layer *layer) {
     const tmx_object *coastLineH = layer->content.objgr->head;
     while (coastLineH) {
         if (!coastLineH->visible) {
+            coastLineH = coastLineH->next;
             continue;
         }
 
@@ -381,6 +432,10 @@ void map_draw(const Map *map) {
     array_range(map->overWorldCharacters, i) {
         character_draw(&map->overWorldCharacters[i]);
     }
+    array_range(map->monsterEncounterSpritesList, i) {
+        const Sprite s = map->monsterEncounterSpritesList[i];
+        DrawTextureRec(s.texture, s.sourceFrame, s.position, WHITE);
+    }
 }
 
 static void draw_layer(const tmx_map *tmap, const tmx_layer *layer) {
@@ -469,9 +524,10 @@ static void draw_objects_layer(tmx_map *tmap, tmx_layer *layer) {
         return;
     }
 
-    tmx_object *objectHead = layer->content.objgr->head;
+    const tmx_object *objectHead = layer->content.objgr->head;
     while (objectHead) {
         if (!objectHead->visible) {
+            objectHead = objectHead->next;
             continue;
         }
         switch (objectHead->obj_type) {

@@ -45,7 +45,7 @@ void character_init(Character *character, Vector2 position, TileMapID tileMapID)
 void character_free(Character *character);
 void character_input(Character *character);
 void character_update(Character *character, f32 deltaTime);
-void character_draw(Character *character);
+void character_draw(const Character *character);
 void character_move(Character *character, f32 deltaTime);
 void character_set_center_at(Character *character, Vector2 center);
 Vector2 character_get_center(Character *character);

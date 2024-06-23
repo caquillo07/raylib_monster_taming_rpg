@@ -101,13 +101,13 @@ void character_update(Character *character, f32 deltaTime) {
     update_animated_tiled_sprite(&character->animatedSprite, deltaTime);
 }
 
-void character_draw(Character *character) {
-    Vector2 pos = {
+void character_draw(const Character *character) {
+    const Vector2 pos = {
         .x = character->frame.x,
         .y = character->frame.y,
     };
 
-    Rectangle frame = character->animatedSprite.sourceFrames[character->animatedSprite.currentFrame];
+    const Rectangle frame = character->animatedSprite.sourceFrames[character->animatedSprite.currentFrame];
     DrawTextureRec(character->animatedSprite.texture,frame,pos,WHITE);
 
     if (!isDebug) { return; }
