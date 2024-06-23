@@ -48,7 +48,7 @@ void maps_manager_init();
 Map *load_map(MapID mapID);
 void map_free(Map *map);
 
-void map_update(Map *map, f32 dt);
-void map_draw(Map *map);
+void map_update(const Map *map, f32 dt);
+void map_draw(const Map *map);
 
 #endif //RAYLIB_POKEMON_CLONE_MAPS_MANAGER_H

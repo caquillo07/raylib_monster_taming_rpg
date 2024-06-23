@@ -43,15 +43,15 @@ static void print_map_total_memory();
 
 static Color int_to_color(u32 color);
 
-static AnimatedTexturesSprite *init_water_sprites(tmx_layer *layer);
-static AnimatedTiledSprite *init_coast_line_sprites(tmx_layer *layer);
+static AnimatedTexturesSprite *init_water_sprites(const tmx_layer *layer);
+static AnimatedTiledSprite *init_coast_line_sprites(const tmx_layer *layer);
 
-Character *init_over_world_characters(tmx_layer *layer);
-static void draw_layer(tmx_map *tmap, tmx_layer *layer);
+Character *init_over_world_characters(const tmx_layer *layer);
+static void draw_layer(const tmx_map *tmap, const tmx_layer *layer);
 static void draw_objects_layer(tmx_map *tmap, tmx_layer *layer);
 static void draw_water_sprites(AnimatedTexturesSprite *waterSprites);
 static void draw_coast_line_sprites(AnimatedTiledSprite *coastLineSprites);
-static void draw_tile(void *image, Rectangle sourceRec, Vector2 destination, f32 opacity);
+static void draw_tile(void *imageTexture2D, Rectangle sourceRec, Vector2 destination, f32 opacity);
 
 void maps_manager_init() {
     tmx_img_load_func = texture_loader_callback;
@@ -64,9 +64,9 @@ void maps_manager_init() {
     atexit(print_map_total_memory);
 }
 
-static Color int_to_color(u32 color) {
-    tmx_col_bytes res = tmx_col_to_bytes(color);
-    return (Color) {
+static Color int_to_color(const u32 color) {
+    const tmx_col_bytes res = tmx_col_to_bytes(color);
+    return (Color){
         .r = res.r,
         .g = res.g,
         .b = res.b,
@@ -79,10 +79,10 @@ static Color int_to_color(u32 color) {
     // return *((Color*)&res);
 }
 
-Map *load_map(MapID mapID) {
+Map *load_map(const MapID mapID) {
     panicIf(!loaded, "maps_manager was initialize, forgot to call maps_manager_init()?");
     panicIf(mapID >= MapIDMax, "map ID provided is invalid");
-    MapInfo mapInfo = mapAtlas[mapID];
+    const MapInfo mapInfo = mapAtlas[mapID];
 
     Map *map = mallocate(sizeof(*map), MemoryTagGame);
     panicIfNil(map, "failed to alloc map");
@@ -126,8 +126,8 @@ Map *load_map(MapID mapID) {
     map->overWorldCharacters = init_over_world_characters(map->entitiesLayer);
 
     // get player starting position
-    tmx_object *housePlayerObject = tmx_find_object_by_id(map->tiledMap, mapInfo.startingPositionObjectID);
-    map->playerStartingPosition = (Vector2) {
+    const tmx_object *housePlayerObject = tmx_find_object_by_id(map->tiledMap, mapInfo.startingPositionObjectID);
+    map->playerStartingPosition = (Vector2){
         .x = (f32) housePlayerObject->x,
         .y = (f32) housePlayerObject->y,
     };
@@ -162,9 +162,9 @@ void map_free(Map *map) {
     mfree(map, sizeof(*map), MemoryTagGame);
 }
 
-static AnimatedTexturesSprite *init_water_sprites(tmx_layer *layer) {
+static AnimatedTexturesSprite *init_water_sprites(const tmx_layer *layer) {
     AnimatedTexturesSprite *animatedSprite = nil;
-    tmx_object *waterTileH = layer->content.objgr->head;
+    const tmx_object *waterTileH = layer->content.objgr->head;
     while (waterTileH) {
         if (!waterTileH->visible) {
             continue;
@@ -172,7 +172,7 @@ static AnimatedTexturesSprite *init_water_sprites(tmx_layer *layer) {
 
         for (i32 x = (i32) waterTileH->x; x < waterTileH->x + waterTileH->width; x += TILE_SIZE) {
             for (i32 y = (i32) waterTileH->y; y < waterTileH->y + waterTileH->height; y += TILE_SIZE) {
-                AnimatedTexturesSprite waterSprite = {
+                const AnimatedTexturesSprite waterSprite = {
                     .id = waterTileH->id,
                     .position = {.x = (f32) x, .y = (f32) y},
                     .textures = assets.waterTextures.texturesList,
@@ -191,9 +191,9 @@ static AnimatedTexturesSprite *init_water_sprites(tmx_layer *layer) {
     return animatedSprite;
 }
 
-Character *init_over_world_characters(tmx_layer *layer) {
+Character *init_over_world_characters(const tmx_layer *layer) {
     Character *characters = nil;
-    tmx_object *characterH = layer->content.objgr->head;
+    const tmx_object *characterH = layer->content.objgr->head;
     const i32 maxStringValSize = strlen("water_boss.png");
     while (characterH) {
         if (!characterH->visible || strncmp(characterH->name, "Player", strlen("Player")) == 0) {
@@ -201,9 +201,9 @@ Character *init_over_world_characters(tmx_layer *layer) {
             continue;
         }
 
-        tmx_property *directionProp = tmx_get_property(characterH->properties, "direction");
-//        tmx_property *posProp = tmx_get_property(characterH->properties, "pos");
-        tmx_property *graphicProp = tmx_get_property(characterH->properties, "graphic");
+        const tmx_property *directionProp = tmx_get_property(characterH->properties, "direction");
+        //        tmx_property *posProp = tmx_get_property(characterH->properties, "pos");
+        const tmx_property *graphicProp = tmx_get_property(characterH->properties, "graphic");
 
         TileMapID characterTiledMapID = -1;
         if (strncmp(graphicProp->value.string, "blond", maxStringValSize) == 0) {
@@ -247,7 +247,7 @@ Character *init_over_world_characters(tmx_layer *layer) {
             direction
         );
 
-        character_set_center_at(&character, (Vector2) {.x = (f32) characterH->x, .y = (f32) characterH->y});
+        character_set_center_at(&character, (Vector2){.x = (f32) characterH->x, .y = (f32) characterH->y});
         array_push(characters, character);
         characterH = characterH->next;
     }
@@ -255,16 +255,16 @@ Character *init_over_world_characters(tmx_layer *layer) {
     return characters;
 }
 
-static AnimatedTiledSprite *init_coast_line_sprites(tmx_layer *layer) {
+static AnimatedTiledSprite *init_coast_line_sprites(const tmx_layer *layer) {
     AnimatedTiledSprite *spritesList = nil;
 
-    tmx_object *coastLineH = layer->content.objgr->head;
+    const tmx_object *coastLineH = layer->content.objgr->head;
     while (coastLineH) {
         if (!coastLineH->visible) {
             continue;
         }
 
-        tmx_property *sideProp = tmx_get_property(coastLineH->properties, "side");
+        const tmx_property *sideProp = tmx_get_property(coastLineH->properties, "side");
         panicIfNil(sideProp, "expected coast line object ot have 'side' property");
 
         // todo - use enums? .-.
@@ -354,7 +354,7 @@ static AnimatedTiledSprite *init_coast_line_sprites(tmx_layer *layer) {
     return spritesList;
 }
 
-void map_update(Map *map, f32 dt) {
+void map_update(const Map *map, const f32 dt) {
     for (i32 i = 0; i < array_length(map->waterSpritesList); i++) {
         update_animated_textures_sprite(&map->waterSpritesList[i], dt);
     }
@@ -368,7 +368,7 @@ void map_update(Map *map, f32 dt) {
     }
 }
 
-void map_draw(Map *map) {
+void map_draw(const Map *map) {
     ClearBackground(int_to_color(map->tiledMap->backgroundcolor));
 
     // todo this is slow as all hell, but it works .-.
@@ -383,7 +383,7 @@ void map_draw(Map *map) {
     }
 }
 
-static void draw_layer(tmx_map *tmap, tmx_layer *layer) {
+static void draw_layer(const tmx_map *tmap, const tmx_layer *layer) {
     if (layer == nil || layer->name == nil) {
         printf("no layer found\n");
         return;
@@ -392,11 +392,9 @@ static void draw_layer(tmx_map *tmap, tmx_layer *layer) {
     //  for main terrain layer
     for (u64 i = 0; i < tmap->height; i++) {
         for (u64 j = 0; j < tmap->width; j++) {
-
             u32 gid = (layer->content.gids[(i * tmap->width) + j]) & TMX_FLIP_BITS_REMOVAL;
             if (tmap->tiles[gid] != NULL) {
-
-                tmx_tileset *tileSet = tmap->tiles[gid]->tileset;
+                const tmx_tileset *tileSet = tmap->tiles[gid]->tileset;
                 void *image = tileSet->image->resource_image;
 
                 if (tmap->tiles[gid]->image) {
@@ -421,31 +419,31 @@ static void draw_layer(tmx_map *tmap, tmx_layer *layer) {
     }
 }
 
-static void draw_tile(void *imageTexture2D, Rectangle sourceRec, Vector2 destination, f32 opacity) {
-    u8 c = (u8) opacity * 255;
-    Color tint = {c, c, c, c};
+static void draw_tile(void *imageTexture2D, const Rectangle sourceRec, const Vector2 destination, const f32 opacity) {
+    const u8 c = (u8) opacity * 255;
+    const Color tint = {c, c, c, c};
     DrawTextureRec(*(Texture2D *) imageTexture2D, sourceRec, destination, tint);
 }
 
-static void draw_object_tile(tmx_map *tmap, tmx_object *object) {
+static void draw_object_tile(const tmx_map *tmap, const tmx_object *object) {
     if (tmap == nil || object == nil) {
         slogw("tmap or object are nil in draw_object_tile");
         return;
     }
 
-    i32 gid = object->content.gid;
-    tmx_tile *tile = tmap->tiles[gid];
+    const i32 gid = object->content.gid;
+    const tmx_tile *tile = tmap->tiles[gid];
     panicIfNil(tile, "expected to find tileSet for object");
     panicIfNil(tile->image, "object does contain image");
     panicIfNil(tile->image->resource_image, "object does contain image data");
 
-    Rectangle sourceRec = {
+    const Rectangle sourceRec = {
         .x = (f32) tile->ul_x,
         .y = (f32) tile->ul_y,
         .width = (f32) object->width,
         .height = (f32) object->height,
     };
-    Vector2 destination = {
+    const Vector2 destination = {
         .x = (f32) object->x,
         .y = (f32) object->y - sourceRec.height,
     };
@@ -455,7 +453,7 @@ static void draw_object_tile(tmx_map *tmap, tmx_object *object) {
     // draw debug frames
     if (!isDebug) { return; }
 
-    Rectangle tileFrame = {
+    const Rectangle tileFrame = {
         .x = destination.x,
         .y = destination.y,
         .width = sourceRec.width,
@@ -481,19 +479,19 @@ static void draw_objects_layer(tmx_map *tmap, tmx_layer *layer) {
                 draw_object_tile(tmap, objectHead);
                 break;
             case OT_NONE:
-            panic("draw_object_tile->type == OT_NONE not implemented");
+                panic("draw_object_tile->type == OT_NONE not implemented");
             case OT_SQUARE:
-            panic("draw_object_tile->type == OT_SQUARE not implemented");
+                panic("draw_object_tile->type == OT_SQUARE not implemented");
             case OT_POLYGON:
-            panic("draw_object_tile->type == OT_POLYGON not implemented");
+                panic("draw_object_tile->type == OT_POLYGON not implemented");
             case OT_POLYLINE:
-            panic("draw_object_tile->type == OT_POLYLINE not implemented");
+                panic("draw_object_tile->type == OT_POLYLINE not implemented");
             case OT_ELLIPSE:
-            panic("draw_object_tile->type == OT_ELLIPSE not implemented");
+                panic("draw_object_tile->type == OT_ELLIPSE not implemented");
             case OT_TEXT:
-            panic("draw_object_tile->type == OT_TEXT not implemented");
+                panic("draw_object_tile->type == OT_TEXT not implemented");
             case OT_POINT:
-            panic("draw_object_tile->type == OT_POINT not implemented");
+                panic("draw_object_tile->type == OT_POINT not implemented");
         }
         objectHead = objectHead->next;
     }

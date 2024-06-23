@@ -86,6 +86,10 @@ static void do_game_handle_input(Game *game) {
         return;
     }
 
+    // todo if any of the events happens above, we never update the player input.
+    //  we should instead hold a list of events on this frame and check them on each system
+    //  instead. add the key press to the global event
+    //  https://github.com/raysan5/raylib/blob/52f2a10db610d0e9f619fd7c521db08a876547d0/src/rcore.c#L297
     player_input(game->player);
 }
 
@@ -151,7 +155,7 @@ static void game_draw_debug_screen(Game *game) {
         "Time in input: %0.4f\n"
         "Time in update: %0.4f\n"
         "Time in draw: %0.4f",
-        game->gameMetrics.timeInInput,
+        game->gameMetrics.timeInInput, // todo make this static variables inside the functions instead.
         game->gameMetrics.timeInUpdate,
         game->gameMetrics.timeInDraw
     );
