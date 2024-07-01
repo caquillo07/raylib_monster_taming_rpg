@@ -185,4 +185,12 @@ static void update_camera() {
     };
     game.camera.zoom = (f32) GetScreenHeight() / PixelWindowHeight;
     game.camera.rotation = 0.0f;
+
+    game.cameraBoundingBox = (Rectangle) {
+        game.camera.target.x - game.camera.offset.x / game.camera.zoom,
+        game.camera.target.y - game.camera.offset.y / game.camera.zoom,
+        GetScreenWidth() / game.camera.zoom,
+        GetScreenHeight() / game.camera.zoom
+    };
+
 }

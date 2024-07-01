@@ -21,6 +21,7 @@ typedef struct Game {
     Map *currentMap;
     Player *player;
     Camera2D camera;
+    Rectangle cameraBoundingBox;
     GameMetrics gameMetrics;
 } Game;
 

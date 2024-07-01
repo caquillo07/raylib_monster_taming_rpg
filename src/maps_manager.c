@@ -41,6 +41,7 @@ static void texture_free_callback(void *ptr);
 static void *map_alloc_callback(void *ptr, size_t len);
 static void map_free_callback(void *ptr);
 static void print_map_total_memory();
+static bool collidesWithCamera(Rectangle rect);
 
 static Color int_to_color(u32 color);
 
@@ -50,7 +51,7 @@ static Sprite *init_monster_encounter_sprites(const tmx_layer *layer);
 
 Character *init_over_world_characters(const tmx_layer *layer);
 static void draw_layer(const tmx_map *tmap, const tmx_layer *layer);
-static void draw_objects_layer(tmx_map *tmap, tmx_layer *layer);
+static void draw_objects_layer(const tmx_map *tmap, const tmx_layer *layer);
 static void draw_water_sprites(AnimatedTexturesSprite *waterSprites);
 static void draw_coast_line_sprites(AnimatedTiledSprite *coastLineSprites);
 static void draw_tile(void *imageTexture2D, Rectangle sourceRec, Vector2 destination, f32 opacity);
@@ -424,10 +425,9 @@ void map_update(const Map *map, const f32 dt) {
 void map_draw(const Map *map) {
     ClearBackground(int_to_color(map->tiledMap->backgroundcolor));
 
-    // todo this is slow as all hell, but it works .-.
-    //  optimize to cache all images/tiles instead of parsing the linked list each time.
     draw_layer(map->tiledMap, map->terrainLayer);
-    draw_layer(map->tiledMap, map->terrainTopLayer);
+    // todo(hector) - why is this again?
+    // draw_layer(map->tiledMap, map->terrainTopLayer);
     draw_objects_layer(map->tiledMap, map->objectsLayer);
     draw_water_sprites(map->waterSpritesList);
     draw_coast_line_sprites(map->coastLineSpritesList);
@@ -449,7 +449,7 @@ static void draw_layer(const tmx_map *tmap, const tmx_layer *layer) {
     //  for main terrain layer
     for (u64 i = 0; i < tmap->height; i++) {
         for (u64 j = 0; j < tmap->width; j++) {
-            u32 gid = (layer->content.gids[(i * tmap->width) + j]) & TMX_FLIP_BITS_REMOVAL;
+            const u32 gid = (layer->content.gids[(i * tmap->width) + j]) & TMX_FLIP_BITS_REMOVAL;
             if (tmap->tiles[gid] != NULL) {
                 const tmx_tileset *tileSet = tmap->tiles[gid]->tileset;
                 void *image = tileSet->image->resource_image;
@@ -459,18 +459,27 @@ static void draw_layer(const tmx_map *tmap, const tmx_layer *layer) {
                 }
 
                 // i32 flags = (layer->content.gids[(i * tmap->width) + j]) & ~TMX_FLIP_BITS_REMOVAL;
-                Rectangle sourceRec = {
+                const Rectangle sourceRec = {
                     .x = (f32) tmap->tiles[gid]->ul_x,
                     .y = (f32) tmap->tiles[gid]->ul_y,
                     .width = (f32) tileSet->tile_width,
                     .height = (f32) tileSet->tile_height,
                 };
-                Vector2 destination = {
+                const Vector2 destination = {
                     .x = (f32) (j * tileSet->tile_width),
                     .y = (f32) (i * tileSet->tile_height),
                 };
+                const Rectangle boundBox = {
+                    .x = destination.x,
+                    .y = destination.y,
+                    .height = sourceRec.height,
+                    .width = sourceRec.width,
+                };
 
-                draw_tile(image, sourceRec, destination, (f32) layer->opacity);
+                if (!collidesWithCamera(boundBox)) {
+                    continue;
+                }
+                draw_tile(image, sourceRec, destination, layer->opacity);
             }
         }
     }
@@ -505,6 +514,16 @@ static void draw_object_tile(const tmx_map *tmap, const tmx_object *object) {
         .y = (f32) object->y - sourceRec.height,
     };
 
+    const Rectangle boundingBox = {
+        .x = destination.x,
+        .y = destination.y,
+        .width = sourceRec.width,
+        .height = sourceRec.height,
+    };
+    if (!collidesWithCamera(boundingBox)) {
+        return;
+    }
+
     draw_tile(tile->image->resource_image, sourceRec, destination, 1.f); // todo opacity?
 
     // draw debug frames
@@ -520,7 +539,7 @@ static void draw_object_tile(const tmx_map *tmap, const tmx_object *object) {
     DrawCircleV(destination, 5.f, RED);
 }
 
-static void draw_objects_layer(tmx_map *tmap, tmx_layer *layer) {
+static void draw_objects_layer(const tmx_map *tmap, const tmx_layer *layer) {
     if (layer == nil || layer->name == nil) {
         printf("no layer objects found\n");
         return;
@@ -555,24 +574,32 @@ static void draw_objects_layer(tmx_map *tmap, tmx_layer *layer) {
     }
 }
 
+static bool collidesWithCamera(const Rectangle rect) {
+    return CheckCollisionRecs(game.cameraBoundingBox, rect);
+}
+
 static void draw_coast_line_sprites(AnimatedTiledSprite *coastLineSprites) {
     if (array_length(coastLineSprites) == 0) { return; }
 
     array_range(coastLineSprites, i) {
-        AnimatedTiledSprite coastSprite = coastLineSprites[i];
-        Rectangle tileToDraw = coastSprite.sourceFrames[coastSprite.currentFrame];
-        draw_tile(&assets.tileMaps[TileMapIDCoastLine].texture, tileToDraw, coastSprite.position, 1.f);
-
-        // draw debug frames
-        if (!game.isDebug) { continue; }
-
-        const Rectangle tileFrame = {
+        const AnimatedTiledSprite coastSprite = coastLineSprites[i];
+        const Rectangle coastSpriteBoundingBox = {
             .x = coastSprite.position.x,
             .y = coastSprite.position.y,
             .width = coastSprite.sourceFrames[0].width,
             .height = coastSprite.sourceFrames[0].height,
         };
-        DrawRectangleLinesEx(tileFrame, 3.f, RED);
+
+        if (!collidesWithCamera(coastSpriteBoundingBox)) {
+            continue;
+        }
+        const Rectangle tileToDraw = coastSprite.sourceFrames[coastSprite.currentFrame];
+        draw_tile(&assets.tileMaps[TileMapIDCoastLine].texture, tileToDraw, coastSprite.position, 1.f);
+
+        // draw debug frames
+        if (!game.isDebug) { continue; }
+
+        DrawRectangleLinesEx(coastSpriteBoundingBox, 3.f, RED);
         DrawCircleV(coastSprite.position, 5.f, RED);
     }
 }
@@ -581,14 +608,16 @@ static void draw_water_sprites(AnimatedTexturesSprite *waterSprites) {
     if (array_length(waterSprites) == 0) { return; }
 
     for (i32 i = 0; i < array_length(waterSprites); i++) {
-        AnimatedTexturesSprite waterSprite = waterSprites[i];
-
-        Rectangle sourceRec = {
+        const AnimatedTexturesSprite waterSprite = waterSprites[i];
+        const Rectangle sourceRec = {
             .x = waterSprite.position.x,
             .y = waterSprite.position.y,
             .height = (f32) waterSprite.textures[0].height,
             .width = (f32) waterSprite.textures[0].width,
         };
+        if (!collidesWithCamera(sourceRec)) {
+            continue;
+        }
 
         Texture2D *frameToDraw = &waterSprite.textures[waterSprite.currentFrame];
         draw_tile(
@@ -601,13 +630,7 @@ static void draw_water_sprites(AnimatedTexturesSprite *waterSprites) {
         // draw debug frames
         if (!game.isDebug) { continue; }
 
-        Rectangle tileFrame = {
-            .x = waterSprite.position.x,
-            .y = waterSprite.position.y,
-            .width = sourceRec.width,
-            .height = sourceRec.height,
-        };
-        DrawRectangleLinesEx(tileFrame, 3.f, RED);
+        DrawRectangleLinesEx(sourceRec, 3.f, RED);
         DrawCircleV(waterSprite.position, 5.f, RED);
     }
 }
