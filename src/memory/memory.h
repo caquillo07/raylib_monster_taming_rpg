@@ -6,6 +6,8 @@
 #define RAYLIB_POKEMON_CLONE_MEMORY_H
 
 #include "../common.h"
+// todo https://github.com/raysan5/raylib/blob/37205bba84263c5168f7aaeef4da9c43c56a87e1/src/raylib.h#L130
+//  will require recompile
 
 typedef enum memory_tag {
     // For temporary use. Should be assigned one of the below or have a new tag created.

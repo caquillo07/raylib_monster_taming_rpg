@@ -19,18 +19,16 @@ static void init() {
 
 int main() {
     init();
-
-    Game *game = game_new();
-    panicIf(game == nil, "Failed to create game");
+    game_init();
 
     while (!WindowShouldClose()) {
-        f32 deltaTime = GetFrameTime();
-        game_handle_input(game);
-        game_update(game, deltaTime);
-        game_draw(game);
+        const f32 deltaTime = GetFrameTime();
+        game_handle_input();
+        game_update(deltaTime);
+        game_draw();
     }
 
-    game_destroy(game);
+    game_shutdown();
 
     CloseWindow();
 

@@ -46,8 +46,6 @@ typedef struct Size {
     f32 height;
 } Size;
 
-extern bool isDebug;
-
 #define panic(...) slogf(__VA_ARGS__); exit(EXIT_FAILURE);
 #define panicIf(condition, ...) if (condition) { panic(__VA_ARGS__); }
 #define panicIfNil(ptr, ...) if (ptr == nil) { panic( __VA_ARGS__); }

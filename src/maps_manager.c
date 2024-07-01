@@ -13,6 +13,8 @@
 #include <raylib.h>
 #include <tmx.h>
 
+#include "game.h"
+
 #define maps_dir "./data/maps/"
 #define map_path(MAP_NAME) maps_dir#MAP_NAME
 
@@ -506,7 +508,7 @@ static void draw_object_tile(const tmx_map *tmap, const tmx_object *object) {
     draw_tile(tile->image->resource_image, sourceRec, destination, 1.f); // todo opacity?
 
     // draw debug frames
-    if (!isDebug) { return; }
+    if (!game.isDebug) { return; }
 
     const Rectangle tileFrame = {
         .x = destination.x,
@@ -562,9 +564,9 @@ static void draw_coast_line_sprites(AnimatedTiledSprite *coastLineSprites) {
         draw_tile(&assets.tileMaps[TileMapIDCoastLine].texture, tileToDraw, coastSprite.position, 1.f);
 
         // draw debug frames
-        if (!isDebug) { continue; }
+        if (!game.isDebug) { continue; }
 
-        Rectangle tileFrame = {
+        const Rectangle tileFrame = {
             .x = coastSprite.position.x,
             .y = coastSprite.position.y,
             .width = coastSprite.sourceFrames[0].width,
@@ -597,7 +599,7 @@ static void draw_water_sprites(AnimatedTexturesSprite *waterSprites) {
         );
 
         // draw debug frames
-        if (!isDebug) { continue; }
+        if (!game.isDebug) { continue; }
 
         Rectangle tileFrame = {
             .x = waterSprite.position.x,

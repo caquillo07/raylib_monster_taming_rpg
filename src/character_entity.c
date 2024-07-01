@@ -4,6 +4,7 @@
 
 #include "character_entity.h"
 #include "assets.h"
+#include "game.h"
 #include "settings.h"
 #include "array/array.h"
 
@@ -110,20 +111,20 @@ void character_draw(const Character *character) {
     const Rectangle frame = character->animatedSprite.sourceFrames[character->animatedSprite.currentFrame];
     DrawTextureRec(character->animatedSprite.texture,frame,pos,WHITE);
 
-    if (!isDebug) { return; }
+    if (!game.isDebug) { return; }
 
     DrawRectangleLinesEx(frame, 3.f, RED);
     DrawCircleV(pos, 5.f, RED);
 }
 
-Vector2 character_get_center(Character *character) {
+Vector2 character_get_center(const Character *character) {
     return (Vector2) {
         .x = character->frame.x + character->frame.width / 2,
         .y = character->frame.y + character->frame.height / 2,
     };
 }
 
-const char *character_direction_string(CharacterDirection d) {
+const char *character_direction_string(const CharacterDirection d) {
     static const char *CharacterDirectionStrings[CharacterDirectionMax] = {
         "CharacterDirectionDown",
         "CharacterDirectionLeft",
@@ -135,7 +136,7 @@ const char *character_direction_string(CharacterDirection d) {
     return CharacterDirectionStrings[d];
 }
 
-const char *character_state_string(CharacterState d) {
+const char *character_state_string(const CharacterState d) {
     static const char *CharacterStateStrings[CharacterStateMax] = {
         "CharacterStateIdle",
         "CharacterStateWalking",

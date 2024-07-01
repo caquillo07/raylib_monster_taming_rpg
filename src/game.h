@@ -16,16 +16,20 @@ typedef struct GameMetrics {
 } GameMetrics;
 
 typedef struct Game {
+    bool isDebug;
+
     Map *currentMap;
     Player *player;
     Camera2D camera;
     GameMetrics gameMetrics;
 } Game;
 
-Game* game_new();
-void game_handle_input(Game *game);
-void game_destroy(Game *game);
-void game_update(Game *game, f32 deltaTime);
-void game_draw(Game *game);
+extern Game game;
+
+void game_init();
+void game_handle_input();
+void game_shutdown();
+void game_update(f32 deltaTime);
+void game_draw();
 
 #endif //RAYLIB_POKEMON_CLONE_GAME_H

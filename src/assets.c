@@ -11,7 +11,6 @@ static Texture2D *import_textures_from_directory(char *dir);
 static int dir_entry_compare(const void *lhsp, const void *rhsp);
 static TileMap load_tile_map(i32 cols, i32 rows, const char *imagePath);
 
-// todo(hector) - heap?
 Assets assets;
 
 void load_textures() {

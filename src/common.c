@@ -4,8 +4,6 @@
 
 #include "common.h"
 
-bool isDebug = false;
-
 void initLogger() {
     slog_init("logs", SLOG_FLAGS_ALL, false);
 
