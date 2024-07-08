@@ -183,23 +183,25 @@ static Sprite *init_monster_encounter_sprites(const tmx_layer *layer) {
         }
         const tmx_property *biomeProp = tmx_get_property(monsterTileH->properties, "biome");
         Texture2D texture;
-        if (strncmp(biomeProp->value.string, "ice", strlen("ice")) == 0) {
+        WorldLayer worldLayer = WorldLayerMain;
+        if (streq(biomeProp->value.string, "ice")) {
             texture = assets.iceGrassTexture;
-        } else if (strncmp(biomeProp->value.string, "forest", strlen("forest")) == 0) {
+        } else if (streq(biomeProp->value.string, "forest")) {
             texture = assets.grassTexture;
-        } else if (strncmp(biomeProp->value.string, "sand", strlen("sand")) == 0) {
+        } else if (streq(biomeProp->value.string, "sand")) {
             texture = assets.sandTexture;
+            worldLayer = WorldLayerBackground;
         } else {
             panic("init_monster_encounter_sprites - biome prop '%s' not supported", biomeProp->value.string);
         }
 
-
+        const f32 yPos = monsterTileH->y - monsterTileH->width;
         const Sprite s = {
             .id = texture.id,
             .texture = texture,
             .position = {
                 .x = monsterTileH->x,
-                .y = monsterTileH->y - monsterTileH->width,
+                .y = yPos,
             },
             .width = monsterTileH->width,
             .height = monsterTileH->height,
@@ -207,6 +209,8 @@ static Sprite *init_monster_encounter_sprites(const tmx_layer *layer) {
                 .height = monsterTileH->height,
                 .width = monsterTileH->width,
             },
+            .layer = worldLayer,
+            .ySort = yPos - 40,
         };
         array_push(sprites, s);
         monsterTileH = monsterTileH->next;
@@ -233,6 +237,7 @@ static AnimatedTexturesSprite *init_water_sprites(const tmx_layer *layer) {
                     .currentFrame = 0,
                     .frameTimer = 0.f,
                     .animationSpeed = settings.waterAnimationSpeed,
+                    .layer = WorldLayerWater,
                 };
                 array_push(animatedSprite, waterSprite);
             }
@@ -323,73 +328,71 @@ static AnimatedTiledSprite *init_coast_line_sprites(const tmx_layer *layer) {
 
         // todo - use enums? .-.
         //  this needs to be reworked
-
-#define maxStringValSize 12
         int colBase = 0, rowBase = 0;
-        if (strncmp(sideProp->value.string, "topleft", maxStringValSize) == 0) {
+        if (streq(sideProp->value.string, "topleft")) {
             colBase = 0;
             rowBase = 0;
-        } else if (strncmp(sideProp->value.string, "top", maxStringValSize) == 0) {
+        } else if (streq(sideProp->value.string, "top")) {
             colBase = 1;
             rowBase = 0;
-        } else if (strncmp(sideProp->value.string, "topright", maxStringValSize) == 0) {
+        } else if (streq(sideProp->value.string, "topright")) {
             colBase = 2;
             rowBase = 0;
-        } else if (strncmp(sideProp->value.string, "left", maxStringValSize) == 0) {
+        } else if (streq(sideProp->value.string, "left")) {
             colBase = 0;
             rowBase = 1;
-        } else if (strncmp(sideProp->value.string, "right", maxStringValSize) == 0) {
+        } else if (streq(sideProp->value.string, "right")) {
             colBase = 2;
             rowBase = 1;
-        } else if (strncmp(sideProp->value.string, "bottomleft", maxStringValSize) == 0) {
+        } else if (streq(sideProp->value.string, "bottomleft")) {
             colBase = 0;
             rowBase = 2;
-        } else if (strncmp(sideProp->value.string, "bottom", maxStringValSize) == 0) {
+        } else if (streq(sideProp->value.string, "bottom")) {
             colBase = 1;
             rowBase = 2;
-        } else if (strncmp(sideProp->value.string, "bottomright", maxStringValSize) == 0) {
+        } else if (streq(sideProp->value.string, "bottomright")) {
             colBase = 2;
             rowBase = 2;
         }
 
         int firstFrameCol = 0, firstFrameRow = 0;
-        tmx_property *terrainProp = tmx_get_property(coastLineH->properties, "terrain");
+        const tmx_property *terrainProp = tmx_get_property(coastLineH->properties, "terrain");
         panicIfNil(terrainProp, "expected coast line object ot have 'terrain' property");
 
-        if (strncmp(terrainProp->value.string, "grass", maxStringValSize) == 0) {
+        if (streq(terrainProp->value.string, "grass")) {
             firstFrameCol = colBase + 0;
             firstFrameRow = rowBase + 0;
-        } else if (strncmp(terrainProp->value.string, "grass_i", maxStringValSize) == 0) {
+        } else if (streq(terrainProp->value.string, "grass_i")) {
             firstFrameCol = colBase + 1 * 3;
             firstFrameRow = rowBase + 0;
-        } else if (strncmp(terrainProp->value.string, "sand_i", maxStringValSize) == 0) {
+        } else if (streq(terrainProp->value.string, "sand_i")) {
             firstFrameCol = colBase + 2 * 3;
             firstFrameRow = rowBase + 0;
-        } else if (strncmp(terrainProp->value.string, "sand", maxStringValSize) == 0) {
+        } else if (streq(terrainProp->value.string, "sand")) {
             firstFrameCol = colBase + 3 * 3;
             firstFrameRow = rowBase + 0;
-        } else if (strncmp(terrainProp->value.string, "rock", maxStringValSize) == 0) {
+        } else if (streq(terrainProp->value.string, "rock")) {
             firstFrameCol = colBase + 4 * 3;
             firstFrameRow = rowBase + 0;
-        } else if (strncmp(terrainProp->value.string, "rock_i", maxStringValSize) == 0) {
+        } else if (streq(terrainProp->value.string, "rock_i")) {
             firstFrameCol = colBase + 5 * 3;
             firstFrameRow = rowBase + 0;
-        } else if (strncmp(terrainProp->value.string, "ice", maxStringValSize) == 0) {
+        } else if (streq(terrainProp->value.string, "ice")) {
             firstFrameCol = colBase + 6 * 3;
             firstFrameRow = rowBase + 0;
-        } else if (strncmp(terrainProp->value.string, "ice_i", maxStringValSize) == 0) {
+        } else if (streq(terrainProp->value.string, "ice_i")) {
             firstFrameCol = colBase + 7 * 3;
             firstFrameRow = rowBase + 0;
         }
 
-        TileMap coastLineTileMap = assets.tileMaps[TileMapIDCoastLine];
+        const TileMap coastLineTileMap = assets.tileMaps[TileMapIDCoastLine];
         Rectangle *sourceFrames = nil;
         array_push(sourceFrames, tile_map_get_frame_at(coastLineTileMap, firstFrameCol, firstFrameRow));
         array_push(sourceFrames, tile_map_get_frame_at(coastLineTileMap, firstFrameCol, firstFrameRow + 1 * 3));
         array_push(sourceFrames, tile_map_get_frame_at(coastLineTileMap, firstFrameCol, firstFrameRow + 2 * 3));
         array_push(sourceFrames, tile_map_get_frame_at(coastLineTileMap, firstFrameCol, firstFrameRow + 3 * 3));
 
-        AnimatedTiledSprite sprite = {
+        const AnimatedTiledSprite sprite = {
             .id = coastLineH->id,
             .position = {.x = (f32) coastLineH->x, .y = (f32) coastLineH->y},
             .texture = coastLineTileMap.texture,
@@ -398,10 +401,10 @@ static AnimatedTiledSprite *init_coast_line_sprites(const tmx_layer *layer) {
             .frameTimer = 0.f,
             .animationSpeed = settings.coastLineAnimationSpeed,
             .sourceFrames = sourceFrames,
+            .ySort = WorldLayerWater
         };
 
         array_push(spritesList, sprite);
-
         coastLineH = coastLineH->next;
     }
 

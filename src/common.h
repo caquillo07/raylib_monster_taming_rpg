@@ -50,6 +50,9 @@ typedef struct Size {
 #define panicIf(condition, ...) if (condition) { panic(__VA_ARGS__); }
 #define panicIfNil(ptr, ...) if (ptr == nil) { panic( __VA_ARGS__); }
 
+// cant forget the null character at the end of the string .-.
+#define streq(str, val) (strncmp(str, val, strlen(val)+1) == 0)
+
 void initLogger();
 
 Size size_from_rectangle(Rectangle rect);

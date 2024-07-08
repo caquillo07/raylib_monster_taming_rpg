@@ -8,6 +8,16 @@
 #include "raylib.h"
 #include "common.h"
 
+typedef enum {
+    WorldLayerWater = 0,
+    WorldLayerBackground,
+    WorldLayerShadow,
+    WorldLayerMain,
+    WorldLayerTop,
+
+    WorldLayerTotal,
+} WorldLayer;
+
 typedef struct Sprite {
     u32 id;
     Texture2D texture;
@@ -15,6 +25,8 @@ typedef struct Sprite {
     f32 width;
     f32 height;
     Rectangle sourceFrame;
+    WorldLayer layer;
+    f32 ySort;
 } Sprite;
 
 typedef struct AnimatedTiledSprite {
@@ -26,6 +38,8 @@ typedef struct AnimatedTiledSprite {
     f32 animationSpeed;
     Vector2 position;
     Rectangle *sourceFrames;
+    WorldLayer layer;
+    f32 ySort;
 } AnimatedTiledSprite;
 
 typedef struct AnimatedTexturesSprite {
@@ -36,6 +50,8 @@ typedef struct AnimatedTexturesSprite {
     f32 frameTimer;
     f32 animationSpeed;
     Vector2 position;
+    WorldLayer layer;
+    f32 ySort;
 } AnimatedTexturesSprite;
 
 void update_animated_textures_sprite(AnimatedTexturesSprite *sprite, f32 dt);
