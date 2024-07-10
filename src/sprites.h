@@ -18,40 +18,41 @@ typedef enum {
     WorldLayerTotal,
 } WorldLayer;
 
-typedef struct Sprite {
+typedef struct Entity {
     u32 id;
-    Texture2D texture;
+    f32 ySort;
     Vector2 position;
+    WorldLayer layer;
+} Entity;
+
+typedef struct StaticSprite {
+    Entity entity; // cannot be moved from 1st position
+
+    Texture2D texture;
     f32 width;
     f32 height;
     Rectangle sourceFrame;
-    WorldLayer layer;
-    f32 ySort;
-} Sprite;
+} StaticSprite;
 
 typedef struct AnimatedTiledSprite {
-    u32 id;
+    Entity entity; // cannot be moved from 1st position
+
     Texture2D texture;
     i32 framesLen;
     i32 currentFrame;
     f32 frameTimer;
     f32 animationSpeed;
-    Vector2 position;
     Rectangle *sourceFrames;
-    WorldLayer layer;
-    f32 ySort;
 } AnimatedTiledSprite;
 
 typedef struct AnimatedTexturesSprite {
-    u32 id;
+    Entity entity; // cannot be moved from 1st position
+
     Texture2D *textures;
     i32 framesLen;
     i32 currentFrame;
     f32 frameTimer;
     f32 animationSpeed;
-    Vector2 position;
-    WorldLayer layer;
-    f32 ySort;
 } AnimatedTexturesSprite;
 
 void update_animated_textures_sprite(AnimatedTexturesSprite *sprite, f32 dt);

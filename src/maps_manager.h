@@ -29,18 +29,14 @@ typedef struct MapInfo {
 typedef struct Map {
     MapID id;
     tmx_map *tiledMap;
-    tmx_layer *terrainLayer;
-    tmx_layer *terrainTopLayer;
-    tmx_layer *entitiesLayer;
-    tmx_layer *objectsLayer;
-    tmx_layer *waterLayer;
-    tmx_layer *coastLineLayer;
-    tmx_layer * monsterEcounterLayer;
 
-    Sprite *monsterEncounterSpritesList;
     AnimatedTexturesSprite *waterSpritesList;
     AnimatedTiledSprite *coastLineSpritesList;
     Character *overWorldCharacters;
+
+    StaticSprite *backgroundSprites;
+    StaticSprite *mainSprites;
+    StaticSprite *foregroundSprites;
 
     Vector2 playerStartingPosition;
 } Map;

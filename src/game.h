@@ -13,6 +13,8 @@ typedef struct GameMetrics {
     f64 timeInInput;
     f64 timeInUpdate;
     f64 timeInDraw;
+    i64 totalSprites;
+    i64 drawnSprites;
 } GameMetrics;
 
 typedef struct Game {

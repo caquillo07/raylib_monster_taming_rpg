@@ -42,7 +42,7 @@ typedef struct Character {
 
 Character character_new(Vector2 centerPosition, TileMapID tileMapID, CharacterDirection direction);
 void character_init(Character *character, Vector2 position, TileMapID tileMapID);
-void character_free(Character *character);
+void character_free(const Character *character);
 void character_input(Character *character);
 void character_update(Character *character, f32 deltaTime);
 void character_draw(const Character *character);

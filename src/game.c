@@ -131,6 +131,7 @@ void game_draw() {
         shouldRenderFrame = false;
     }
     game.gameMetrics.timeInDraw = ((double) (clock() - now)) / (CLOCKS_PER_SEC / 1000);
+    game.gameMetrics.drawnSprites = 0;
 }
 
 static void game_draw_debug_screen() {
@@ -139,7 +140,7 @@ static void game_draw_debug_screen() {
     DrawFPS(10, 10);
 
     const i32 fontSize = 20;
-    const size_t textBufSize = 120;
+    const size_t textBufSize = 1024;
     char mousePosText[textBufSize];
     const Vector2 mousePos = GetScreenToWorld2D(GetMousePosition(), game.camera);
     snprintf(mousePosText, textBufSize, "Mouse %dx%d", (i32) mousePos.x, (i32) mousePos.y);
@@ -151,10 +152,12 @@ static void game_draw_debug_screen() {
         textBufSize * 3,
         "Time in input: %0.4f\n"
         "Time in update: %0.4f\n"
-        "Time in draw: %0.4f",
+        "Time in draw: %0.4f\n"
+        "Sprites Drawn: %lld/%lld",
         game.gameMetrics.timeInInput, // todo make this static variables inside the functions instead.
         game.gameMetrics.timeInUpdate,
-        game.gameMetrics.timeInDraw
+        game.gameMetrics.timeInDraw,
+        game.gameMetrics.drawnSprites, game.gameMetrics.totalSprites
     );
     const Vector2 textSize = MeasureTextEx(GetFontDefault(), gameMetricsText, (f32) fontSize, 1);
     DrawText(gameMetricsText, 12, (i32) (30.f + textSize.y), 20, DARKBLUE);

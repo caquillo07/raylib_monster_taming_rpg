@@ -3,12 +3,12 @@
 //
 
 #include "maps_manager.h"
+#include "array/array.h"
+#include "assets.h"
 #include "common.h"
 #include "memory/memory.h"
-#include "array/array.h"
-#include "sprites.h"
-#include "assets.h"
 #include "settings.h"
+#include "sprites.h"
 
 #include <raylib.h>
 #include <tmx.h>
@@ -16,7 +16,7 @@
 #include "game.h"
 
 #define maps_dir "./data/maps/"
-#define map_path(MAP_NAME) maps_dir#MAP_NAME
+#define map_path(MAP_NAME) maps_dir #MAP_NAME
 
 static MapInfo mapAtlas[MapIDMax] = {
     {
@@ -42,18 +42,18 @@ static void *map_alloc_callback(void *ptr, size_t len);
 static void map_free_callback(void *ptr);
 static void print_map_total_memory();
 static bool collidesWithCamera(Rectangle rect);
-
 static Color int_to_color(u32 color);
 
 static AnimatedTexturesSprite *init_water_sprites(const tmx_layer *layer);
 static AnimatedTiledSprite *init_coast_line_sprites(const tmx_layer *layer);
-static Sprite *init_monster_encounter_sprites(const tmx_layer *layer);
-
+static void init_monster_encounter_sprites(Map *map, const tmx_layer *layer);
+static void init_object_sprites(Map *map, const tmx_layer *layer);
+static void init_terrain_sprites(Map *map, const tmx_layer *layer);
 Character *init_over_world_characters(const tmx_layer *layer);
-static void draw_layer(const tmx_map *tmap, const tmx_layer *layer);
-static void draw_objects_layer(const tmx_map *tmap, const tmx_layer *layer);
-static void draw_water_sprites(AnimatedTexturesSprite *waterSprites);
-static void draw_coast_line_sprites(AnimatedTiledSprite *coastLineSprites);
+
+static void draw_static_sprites(StaticSprite *sprites);
+static void draw_animated_textures_sprites(AnimatedTexturesSprite *waterSprites);
+static void draw_animated_tiled_sprites(AnimatedTiledSprite *coastLineSprites);
 static void draw_tile(void *imageTexture2D, Rectangle sourceRec, Vector2 destination, f32 opacity);
 
 void maps_manager_init() {
@@ -82,6 +82,20 @@ static Color int_to_color(const u32 color) {
     // return *((Color*)&res);
 }
 
+static int compare_entities(const void *a, const void *b) {
+    const Entity entityA = *((Entity *) a);
+    const Entity entityB = *((Entity *) b);
+
+    if (entityA.ySort == entityB.ySort) {
+        return 0;
+    }
+    if (entityA.ySort < entityB.ySort) {
+        return -1;
+    }
+
+    return 1;
+}
+
 Map *load_map(const MapID mapID) {
     panicIf(!loaded, "maps_manager was initialize, forgot to call maps_manager_init()?");
     panicIf(mapID >= MapIDMax, "map ID provided is invalid");
@@ -91,47 +105,83 @@ Map *load_map(const MapID mapID) {
     panicIfNil(map, "failed to alloc map");
 
     map->id = mapID;
+    map->backgroundSprites = nil;
+    map->mainSprites = nil;
+    map->foregroundSprites = nil;
+
     map->tiledMap = tmx_load(mapInfo.mapFilePath);
     panicIfNil(map->tiledMap, "tmx_error: %s", tmx_strerr());
-
 
     // in a real game, this wouldn't work? The way the maps are set up, every map
     // has the same layers, so it works, in a real game, that may or may not
     // be the same. Depends on how I set it up
 
     // terrain
-    map->terrainLayer = tmx_find_layer_by_name(map->tiledMap, "Terrain");
-    panicIfNil(map->terrainLayer, "could not find the Terrain layer in tmx map");
+    const tmx_layer *terrainLayer = tmx_find_layer_by_name(map->tiledMap, "Terrain");
+    panicIfNil(terrainLayer, "could not find the Terrain layer in tmx map");
 
     // terrain top
-    map->terrainTopLayer = tmx_find_layer_by_name(map->tiledMap, "Terrain Top");
-    panicIfNil(map->terrainTopLayer, "could not find the Terrain Top layer in tmx map");
+    const tmx_layer *terrainTopLayer = tmx_find_layer_by_name(map->tiledMap, "Terrain Top");
+    panicIfNil(terrainTopLayer, "could not find the Terrain Top layer in tmx map");
 
     // grass for random ecounters
-    map->monsterEcounterLayer = tmx_find_layer_by_name(map->tiledMap, "Monsters");
-    panicIfNil(map->monsterEcounterLayer, "could not find the Monsters layer in tmx map");
+    const tmx_layer *monsterEcounterLayer = tmx_find_layer_by_name(map->tiledMap, "Monsters");
+    panicIfNil(monsterEcounterLayer, "could not find the Monsters layer in tmx map");
 
     // entities
-    map->entitiesLayer = tmx_find_layer_by_name(map->tiledMap, "Entities");
-    panicIfNil(map->entitiesLayer, "could not find the Entities layer in tmx map");
+    const tmx_layer *entitiesLayer = tmx_find_layer_by_name(map->tiledMap, "Entities");
+    panicIfNil(entitiesLayer, "could not find the Entities layer in tmx map");
 
     // objects
-    map->objectsLayer = tmx_find_layer_by_name(map->tiledMap, "Objects");
-    panicIfNil(map->objectsLayer, "could not find the Objects layer in the tmx map");
+    const tmx_layer *objectsLayer = tmx_find_layer_by_name(map->tiledMap, "Objects");
+    panicIfNil(objectsLayer, "could not find the Objects layer in the tmx map");
 
     // Water
-    map->waterLayer = tmx_find_layer_by_name(map->tiledMap, "Water");
-    panicIfNil(map->waterLayer, "could not find the Objects layer in the tmx map");
+    const tmx_layer *waterLayer = tmx_find_layer_by_name(map->tiledMap, "Water");
+    panicIfNil(waterLayer, "could not find the Objects layer in the tmx map");
 
     // Coast line
-    map->coastLineLayer = tmx_find_layer_by_name(map->tiledMap, "Coast");
-    panicIfNil(map->waterLayer, "could not find the Coast layer in the tmx map");
+    const tmx_layer *coastLineLayer = tmx_find_layer_by_name(map->tiledMap, "Coast");
+    panicIfNil(coastLineLayer, "could not find the Coast layer in the tmx map");
 
     // sprites
-    map->monsterEncounterSpritesList = init_monster_encounter_sprites(map->monsterEcounterLayer);
-    map->waterSpritesList = init_water_sprites(map->waterLayer);
-    map->coastLineSpritesList = init_coast_line_sprites(map->coastLineLayer);
-    map->overWorldCharacters = init_over_world_characters(map->entitiesLayer);
+    map->waterSpritesList = init_water_sprites(waterLayer);
+    map->coastLineSpritesList = init_coast_line_sprites(coastLineLayer);
+    map->overWorldCharacters = init_over_world_characters(entitiesLayer);
+
+    init_monster_encounter_sprites(map, monsterEcounterLayer);
+    init_terrain_sprites(map, terrainLayer);
+    init_terrain_sprites(map, terrainTopLayer);
+    init_object_sprites(map, objectsLayer);
+
+    // y-sort sprites
+    // (todo) - this is potentially bad, if the sprites structs change, this would
+    //  blow up and im too lazy to make generic structs
+    game.gameMetrics.totalSprites += array_length(map->waterSpritesList) +
+        array_length(map->coastLineSpritesList) +
+        array_length(map->overWorldCharacters) +
+        array_length(map->backgroundSprites) +
+        array_length(map->mainSprites) +
+        array_length(map->foregroundSprites);
+
+    qsort(
+        map->backgroundSprites,
+        array_length(map->backgroundSprites),
+        sizeof(map->backgroundSprites[0]),
+        compare_entities
+    );
+    qsort(
+        map->mainSprites,
+        array_length(map->mainSprites),
+        sizeof(map->mainSprites[0]),
+        compare_entities
+    );
+    qsort(
+        map->foregroundSprites,
+        array_length(map->foregroundSprites),
+        sizeof(map->foregroundSprites[0]),
+        compare_entities
+    );
 
     // get player starting position
     const tmx_object *housePlayerObject = tmx_find_object_by_id(map->tiledMap, mapInfo.startingPositionObjectID);
@@ -143,6 +193,11 @@ Map *load_map(const MapID mapID) {
 }
 
 void map_free(Map *map) {
+    // todo(hector) - free new generic sprites array
+    array_free(map->backgroundSprites);
+    array_free(map->mainSprites);
+    array_free(map->foregroundSprites);
+
     array_free(map->waterSpritesList);
     map->waterSpritesList = nil;
 
@@ -158,23 +213,14 @@ void map_free(Map *map) {
     array_free(map->overWorldCharacters);
     map->overWorldCharacters = nil;
 
-    array_free(map->monsterEncounterSpritesList);
-
     // LibTMX
     // todo - add to memory/memory.h
     tmx_map_free(map->tiledMap);
 
-    map->terrainLayer = nil;
-    map->terrainTopLayer = nil;
-    map->entitiesLayer = nil;
-    map->objectsLayer = nil;
-    map->waterLayer = nil;
-    map->monsterEcounterLayer = nil;
     mfree(map, sizeof(*map), MemoryTagGame);
 }
 
-static Sprite *init_monster_encounter_sprites(const tmx_layer *layer) {
-    Sprite *sprites = nil;
+static void init_monster_encounter_sprites(Map *map, const tmx_layer *layer) {
     const tmx_object *monsterTileH = layer->content.objgr->head;
     while (monsterTileH) {
         if (!monsterTileH->visible) {
@@ -196,26 +242,31 @@ static Sprite *init_monster_encounter_sprites(const tmx_layer *layer) {
         }
 
         const f32 yPos = monsterTileH->y - monsterTileH->width;
-        const Sprite s = {
-            .id = texture.id,
-            .texture = texture,
-            .position = {
-                .x = monsterTileH->x,
-                .y = yPos,
+        const StaticSprite s = {
+            .entity = {
+                .id = texture.id,
+                .layer = worldLayer,
+                .ySort = yPos - 40,
+                .position = {
+                    .x = monsterTileH->x,
+                    .y = yPos,
+                },
             },
+            .texture = texture,
             .width = monsterTileH->width,
             .height = monsterTileH->height,
             .sourceFrame = {
                 .height = monsterTileH->height,
                 .width = monsterTileH->width,
             },
-            .layer = worldLayer,
-            .ySort = yPos - 40,
         };
-        array_push(sprites, s);
+        if (worldLayer == WorldLayerMain) {
+            array_push(map->mainSprites, s);
+        } else if (worldLayer == WorldLayerBackground) {
+            array_push(map->backgroundSprites, s);
+        }
         monsterTileH = monsterTileH->next;
     }
-    return sprites;
 }
 
 static AnimatedTexturesSprite *init_water_sprites(const tmx_layer *layer) {
@@ -230,14 +281,17 @@ static AnimatedTexturesSprite *init_water_sprites(const tmx_layer *layer) {
         for (i32 x = (i32) waterTileH->x; x < waterTileH->x + waterTileH->width; x += TILE_SIZE) {
             for (i32 y = (i32) waterTileH->y; y < waterTileH->y + waterTileH->height; y += TILE_SIZE) {
                 const AnimatedTexturesSprite waterSprite = {
-                    .id = waterTileH->id,
-                    .position = {.x = (f32) x, .y = (f32) y},
+                    .entity = {
+                        .id = waterTileH->id,
+                        .position = {.x = (f32) x, .y = (f32) y},
+                        .layer = WorldLayerWater,
+                        .ySort = y,
+                    },
                     .textures = assets.waterTextures.texturesList,
                     .framesLen = 4,
                     .currentFrame = 0,
                     .frameTimer = 0.f,
                     .animationSpeed = settings.waterAnimationSpeed,
-                    .layer = WorldLayerWater,
                 };
                 array_push(animatedSprite, waterSprite);
             }
@@ -252,48 +306,47 @@ static AnimatedTexturesSprite *init_water_sprites(const tmx_layer *layer) {
 Character *init_over_world_characters(const tmx_layer *layer) {
     Character *characters = nil;
     const tmx_object *characterH = layer->content.objgr->head;
-    const i32 maxStringValSize = strlen("water_boss.png");
     while (characterH) {
-        if (!characterH->visible || strncmp(characterH->name, "Player", strlen("Player")) == 0) {
+        if (!characterH->visible || streq(characterH->name, "Player")) {
             characterH = characterH->next;
             continue;
         }
 
         const tmx_property *directionProp = tmx_get_property(characterH->properties, "direction");
-        //        tmx_property *posProp = tmx_get_property(characterH->properties, "pos");
+        // tmx_property *posProp = tmx_get_property(characterH->properties,"pos");
         const tmx_property *graphicProp = tmx_get_property(characterH->properties, "graphic");
 
-        TileMapID characterTiledMapID = -1;
-        if (strncmp(graphicProp->value.string, "blond", maxStringValSize) == 0) {
+        TileMapID characterTiledMapID;
+        if (streq(graphicProp->value.string, "blond")) {
             characterTiledMapID = TileMapIDBlondCharacter;
-        } else if (strncmp(graphicProp->value.string, "fire_boss", maxStringValSize) == 0) {
+        } else if (streq(graphicProp->value.string, "fire_boss")) {
             characterTiledMapID = TileMapIDFireBossCharacter;
-        } else if (strncmp(graphicProp->value.string, "grass_boss", maxStringValSize) == 0) {
+        } else if (streq(graphicProp->value.string, "grass_boss")) {
             characterTiledMapID = TileMapIDGrassBossCharacter;
-        } else if (strncmp(graphicProp->value.string, "hat_girl", maxStringValSize) == 0) {
+        } else if (streq(graphicProp->value.string, "hat_girl")) {
             characterTiledMapID = TileMapIDHatGirlCharacter;
-        } else if (strncmp(graphicProp->value.string, "purple_girl", maxStringValSize) == 0) {
+        } else if (streq(graphicProp->value.string, "purple_girl")) {
             characterTiledMapID = TileMapIDPurpleGirlCharacter;
-        } else if (strncmp(graphicProp->value.string, "straw", maxStringValSize) == 0) {
+        } else if (streq(graphicProp->value.string, "straw")) {
             characterTiledMapID = TileMapIDStrawCharacter;
-        } else if (strncmp(graphicProp->value.string, "water_boss", maxStringValSize) == 0) {
+        } else if (streq(graphicProp->value.string, "water_boss")) {
             characterTiledMapID = TileMapIDWaterBossCharacter;
-        } else if (strncmp(graphicProp->value.string, "young_girl", maxStringValSize) == 0) {
+        } else if (streq(graphicProp->value.string, "young_girl")) {
             characterTiledMapID = TileMapIDYoungGirlCharacter;
-        } else if (strncmp(graphicProp->value.string, "young_guy", maxStringValSize) == 0) {
+        } else if (streq(graphicProp->value.string, "young_guy")) {
             characterTiledMapID = TileMapIDYoungGuyCharacter;
         } else {
             panic("unexpected graphics property for entity %s", graphicProp->value.string);
         }
 
-        CharacterDirection direction = {0};
-        if (strncmp(directionProp->value.string, "down", maxStringValSize) == 0) {
+        CharacterDirection direction;
+        if (streq(directionProp->value.string, "down")) {
             direction = CharacterDirectionDown;
-        } else if (strncmp(directionProp->value.string, "up", maxStringValSize) == 0) {
+        } else if (streq(directionProp->value.string, "up")) {
             direction = CharacterDirectionUp;
-        } else if (strncmp(directionProp->value.string, "right", maxStringValSize) == 0) {
+        } else if (streq(directionProp->value.string, "right")) {
             direction = CharacterDirectionRight;
-        } else if (strncmp(directionProp->value.string, "left", maxStringValSize) == 0) {
+        } else if (streq(directionProp->value.string, "left")) {
             direction = CharacterDirectionLeft;
         } else {
             panic("unexpected direction property for entity: %s", directionProp->value.string);
@@ -393,15 +446,18 @@ static AnimatedTiledSprite *init_coast_line_sprites(const tmx_layer *layer) {
         array_push(sourceFrames, tile_map_get_frame_at(coastLineTileMap, firstFrameCol, firstFrameRow + 3 * 3));
 
         const AnimatedTiledSprite sprite = {
-            .id = coastLineH->id,
-            .position = {.x = (f32) coastLineH->x, .y = (f32) coastLineH->y},
+            .entity = {
+                .id = coastLineH->id,
+                .position = {.x = (f32) coastLineH->x, .y = (f32) coastLineH->y},
+                .ySort = coastLineH->y,
+                .layer = WorldLayerWater,
+            },
             .texture = coastLineTileMap.texture,
             .framesLen = 4,
             .currentFrame = 0,
             .frameTimer = 0.f,
             .animationSpeed = settings.coastLineAnimationSpeed,
             .sourceFrames = sourceFrames,
-            .ySort = WorldLayerWater
         };
 
         array_push(spritesList, sprite);
@@ -409,6 +465,129 @@ static AnimatedTiledSprite *init_coast_line_sprites(const tmx_layer *layer) {
     }
 
     return spritesList;
+}
+
+static void init_terrain_sprites(Map *map, const tmx_layer *layer) {
+    if (layer == nil || layer->name == nil) {
+        printf("no layer found\n");
+        return;
+    }
+
+    for (u64 i = 0; i < map->tiledMap->height; i++) {
+        for (u64 j = 0; j < map->tiledMap->width; j++) {
+            const u32 gid = (layer->content.gids[(i * map->tiledMap->width) + j]) & TMX_FLIP_BITS_REMOVAL;
+            if (map->tiledMap->tiles[gid] == NULL) {
+                continue;
+            }
+
+            const tmx_tileset *tileSet = map->tiledMap->tiles[gid]->tileset;
+            void *image = tileSet->image->resource_image;
+
+            if (map->tiledMap->tiles[gid]->image) {
+                image = map->tiledMap->tiles[gid]->image->resource_image;
+            }
+
+            // i32 flags = (layer->content.gids[(i * map->tiledMap->width) + j]) & ~TMX_FLIP_BITS_REMOVAL;
+            const Rectangle sourceRec = {
+                .x = (f32) map->tiledMap->tiles[gid]->ul_x,
+                .y = (f32) map->tiledMap->tiles[gid]->ul_y,
+                .width = (f32) tileSet->tile_width,
+                .height = (f32) tileSet->tile_height,
+            };
+            const Vector2 destination = {
+                .x = (f32) (j * tileSet->tile_width),
+                .y = (f32) (i * tileSet->tile_height),
+            };
+            const Rectangle boundingBox = {
+                .x = destination.x,
+                .y = destination.y,
+                .height = sourceRec.height,
+                .width = sourceRec.width,
+            };
+
+            const Texture2D texture = *(Texture2D *) image;
+            const StaticSprite s = {
+                .entity = {
+                    .id = texture.id,
+                    .position = destination,
+                    .layer = WorldLayerBackground,
+                    .ySort = destination.y,
+                },
+                .texture = texture,
+                .width = boundingBox.width,
+                .height = boundingBox.height,
+                .sourceFrame = sourceRec,
+            };
+
+            array_push(map->backgroundSprites, s);
+        }
+    }
+}
+
+static void init_object_sprites(Map *map, const tmx_layer *layer) {
+    if (layer == nil || layer->name == nil) {
+        printf("no layer objects found\n");
+        return;
+    }
+
+    const tmx_object *objectHead = layer->content.objgr->head;
+    while (objectHead) {
+        if (!objectHead->visible) {
+            objectHead = objectHead->next;
+            continue;
+        }
+
+        const i32 gid = objectHead->content.gid;
+        const tmx_tile *tile = map->tiledMap->tiles[gid];
+        panicIfNil(tile, "expected to find tileSet for object");
+        panicIfNil(tile->image, "object does contain image");
+        panicIfNil(tile->image->resource_image, "object does contain image data");
+
+        const Rectangle sourceRec = {
+            .x = (f32) tile->ul_x,
+            .y = (f32) tile->ul_y,
+            .width = (f32) objectHead->width,
+            .height = (f32) objectHead->height,
+        };
+        const Vector2 destination = {
+            .x = (f32) objectHead->x,
+            .y = (f32) objectHead->y - sourceRec.height,
+        };
+
+        const Rectangle boundingBox = {
+            .x = destination.x,
+            .y = destination.y,
+            .width = sourceRec.width,
+            .height = sourceRec.height,
+        };
+
+        WorldLayer worldLayer = WorldLayerMain;
+        if (objectHead->name != nil && streq(objectHead->name, "top")) {
+            worldLayer = WorldLayerTop;
+        }
+
+        const Texture2D texture = *(Texture2D *) tile->image->resource_image;
+        const StaticSprite s = {
+            .entity = {
+                .id = texture.id,
+                .position = destination,
+                .layer = worldLayer,
+                .ySort = destination.y,
+            },
+            .texture = texture,
+            .width = boundingBox.width,
+            .height = boundingBox.height,
+            .sourceFrame = sourceRec,
+        };
+
+        if (worldLayer == WorldLayerMain) {
+            array_push(map->mainSprites, s);
+        } else {
+            array_push(map->foregroundSprites, s);
+        }
+
+        objectHead = objectHead->next;
+    }
 }
 
 void map_update(const Map *map, const f32 dt) {
@@ -428,64 +607,19 @@ void map_update(const Map *map, const f32 dt) {
 void map_draw(const Map *map) {
     ClearBackground(int_to_color(map->tiledMap->backgroundcolor));
 
-    draw_layer(map->tiledMap, map->terrainLayer);
-    // todo(hector) - why is this again?
-    // draw_layer(map->tiledMap, map->terrainTopLayer);
-    draw_objects_layer(map->tiledMap, map->objectsLayer);
-    draw_water_sprites(map->waterSpritesList);
-    draw_coast_line_sprites(map->coastLineSpritesList);
+    // background sprites
+    draw_static_sprites(map->backgroundSprites);
+    draw_animated_textures_sprites(map->waterSpritesList);
+    draw_animated_tiled_sprites(map->coastLineSpritesList);
+
+    // main sprites
+    draw_static_sprites(map->mainSprites);
     array_range(map->overWorldCharacters, i) {
         character_draw(&map->overWorldCharacters[i]);
     }
-    array_range(map->monsterEncounterSpritesList, i) {
-        const Sprite s = map->monsterEncounterSpritesList[i];
-        DrawTextureRec(s.texture, s.sourceFrame, s.position, WHITE);
-    }
-}
 
-static void draw_layer(const tmx_map *tmap, const tmx_layer *layer) {
-    if (layer == nil || layer->name == nil) {
-        printf("no layer found\n");
-        return;
-    }
-    // todo(hector) - this shit is slow as it gets, 5ms spent on this
-    //  for main terrain layer
-    for (u64 i = 0; i < tmap->height; i++) {
-        for (u64 j = 0; j < tmap->width; j++) {
-            const u32 gid = (layer->content.gids[(i * tmap->width) + j]) & TMX_FLIP_BITS_REMOVAL;
-            if (tmap->tiles[gid] != NULL) {
-                const tmx_tileset *tileSet = tmap->tiles[gid]->tileset;
-                void *image = tileSet->image->resource_image;
-
-                if (tmap->tiles[gid]->image) {
-                    image = tmap->tiles[gid]->image->resource_image;
-                }
-
-                // i32 flags = (layer->content.gids[(i * tmap->width) + j]) & ~TMX_FLIP_BITS_REMOVAL;
-                const Rectangle sourceRec = {
-                    .x = (f32) tmap->tiles[gid]->ul_x,
-                    .y = (f32) tmap->tiles[gid]->ul_y,
-                    .width = (f32) tileSet->tile_width,
-                    .height = (f32) tileSet->tile_height,
-                };
-                const Vector2 destination = {
-                    .x = (f32) (j * tileSet->tile_width),
-                    .y = (f32) (i * tileSet->tile_height),
-                };
-                const Rectangle boundBox = {
-                    .x = destination.x,
-                    .y = destination.y,
-                    .height = sourceRec.height,
-                    .width = sourceRec.width,
-                };
-
-                if (!collidesWithCamera(boundBox)) {
-                    continue;
-                }
-                draw_tile(image, sourceRec, destination, layer->opacity);
-            }
-        }
-    }
+    // foreground sprites
+    draw_static_sprites(map->foregroundSprites);
 }
 
 static void draw_tile(void *imageTexture2D, const Rectangle sourceRec, const Vector2 destination, const f32 opacity) {
@@ -494,101 +628,44 @@ static void draw_tile(void *imageTexture2D, const Rectangle sourceRec, const Vec
     DrawTextureRec(*(Texture2D *) imageTexture2D, sourceRec, destination, tint);
 }
 
-static void draw_object_tile(const tmx_map *tmap, const tmx_object *object) {
-    if (tmap == nil || object == nil) {
-        slogw("tmap or object are nil in draw_object_tile");
-        return;
-    }
-
-    const i32 gid = object->content.gid;
-    const tmx_tile *tile = tmap->tiles[gid];
-    panicIfNil(tile, "expected to find tileSet for object");
-    panicIfNil(tile->image, "object does contain image");
-    panicIfNil(tile->image->resource_image, "object does contain image data");
-
-    const Rectangle sourceRec = {
-        .x = (f32) tile->ul_x,
-        .y = (f32) tile->ul_y,
-        .width = (f32) object->width,
-        .height = (f32) object->height,
-    };
-    const Vector2 destination = {
-        .x = (f32) object->x,
-        .y = (f32) object->y - sourceRec.height,
-    };
-
-    const Rectangle boundingBox = {
-        .x = destination.x,
-        .y = destination.y,
-        .width = sourceRec.width,
-        .height = sourceRec.height,
-    };
-    if (!collidesWithCamera(boundingBox)) {
-        return;
-    }
-
-    draw_tile(tile->image->resource_image, sourceRec, destination, 1.f); // todo opacity?
-
-    // draw debug frames
-    if (!game.isDebug) { return; }
-
-    const Rectangle tileFrame = {
-        .x = destination.x,
-        .y = destination.y,
-        .width = sourceRec.width,
-        .height = sourceRec.height,
-    };
-    DrawRectangleLinesEx(tileFrame, 3.f, RED);
-    DrawCircleV(destination, 5.f, RED);
-}
-
-static void draw_objects_layer(const tmx_map *tmap, const tmx_layer *layer) {
-    if (layer == nil || layer->name == nil) {
-        printf("no layer objects found\n");
-        return;
-    }
-
-    const tmx_object *objectHead = layer->content.objgr->head;
-    while (objectHead) {
-        if (!objectHead->visible) {
-            objectHead = objectHead->next;
-            continue;
-        }
-        switch (objectHead->obj_type) {
-            case OT_TILE:
-                draw_object_tile(tmap, objectHead);
-                break;
-            case OT_NONE:
-                panic("draw_object_tile->type == OT_NONE not implemented");
-            case OT_SQUARE:
-                panic("draw_object_tile->type == OT_SQUARE not implemented");
-            case OT_POLYGON:
-                panic("draw_object_tile->type == OT_POLYGON not implemented");
-            case OT_POLYLINE:
-                panic("draw_object_tile->type == OT_POLYLINE not implemented");
-            case OT_ELLIPSE:
-                panic("draw_object_tile->type == OT_ELLIPSE not implemented");
-            case OT_TEXT:
-                panic("draw_object_tile->type == OT_TEXT not implemented");
-            case OT_POINT:
-                panic("draw_object_tile->type == OT_POINT not implemented");
-        }
-        objectHead = objectHead->next;
-    }
-}
-
 static bool collidesWithCamera(const Rectangle rect) {
     return CheckCollisionRecs(game.cameraBoundingBox, rect);
 }
 
-static void draw_coast_line_sprites(AnimatedTiledSprite *coastLineSprites) {
+static void draw_static_sprites(StaticSprite *sprites) {
+    if (array_length(sprites) == 0) { return; }
+
+    array_range(sprites, i) {
+        const StaticSprite sprite = sprites[i];
+        const Rectangle spriteBoundingBox = {
+            .x = sprite.entity.position.x,
+            .y = sprite.entity.position.y,
+            .width = sprite.sourceFrame.width,
+            .height = sprite.sourceFrame.height,
+        };
+        if (!collidesWithCamera(spriteBoundingBox)) {
+            continue;
+        }
+
+        game.gameMetrics.drawnSprites++;
+        DrawTextureRec(sprite.texture, sprite.sourceFrame, sprite.entity.position, WHITE);
+
+        // draw debug frames
+        if (!game.isDebug) { continue; }
+
+        DrawRectangleLinesEx(spriteBoundingBox, 3.f, RED);
+        DrawCircleV(sprite.entity.position, 5.f, RED);
+    }
+}
+
+static void draw_animated_tiled_sprites(AnimatedTiledSprite *coastLineSprites) {
     if (array_length(coastLineSprites) == 0) { return; }
 
     array_range(coastLineSprites, i) {
         const AnimatedTiledSprite coastSprite = coastLineSprites[i];
         const Rectangle coastSpriteBoundingBox = {
-            .x = coastSprite.position.x,
-            .y = coastSprite.position.y,
+            .x = coastSprite.entity.position.x,
+            .y = coastSprite.entity.position.y,
             .width = coastSprite.sourceFrames[0].width,
             .height = coastSprite.sourceFrames[0].height,
         };
@@ -596,25 +673,27 @@ static void draw_coast_line_sprites(AnimatedTiledSprite *coastLineSprites) {
         if (!collidesWithCamera(coastSpriteBoundingBox)) {
             continue;
         }
+
+        game.gameMetrics.drawnSprites++;
         const Rectangle tileToDraw = coastSprite.sourceFrames[coastSprite.currentFrame];
-        draw_tile(&assets.tileMaps[TileMapIDCoastLine].texture, tileToDraw, coastSprite.position, 1.f);
+        draw_tile(&assets.tileMaps[TileMapIDCoastLine].texture, tileToDraw, coastSprite.entity.position, 1.f);
 
         // draw debug frames
         if (!game.isDebug) { continue; }
 
         DrawRectangleLinesEx(coastSpriteBoundingBox, 3.f, RED);
-        DrawCircleV(coastSprite.position, 5.f, RED);
+        DrawCircleV(coastSprite.entity.position, 5.f, RED);
     }
 }
 
-static void draw_water_sprites(AnimatedTexturesSprite *waterSprites) {
+static void draw_animated_textures_sprites(AnimatedTexturesSprite *waterSprites) {
     if (array_length(waterSprites) == 0) { return; }
 
     for (i32 i = 0; i < array_length(waterSprites); i++) {
         const AnimatedTexturesSprite waterSprite = waterSprites[i];
         const Rectangle sourceRec = {
-            .x = waterSprite.position.x,
-            .y = waterSprite.position.y,
+            .x = waterSprite.entity.position.x,
+            .y = waterSprite.entity.position.y,
             .height = (f32) waterSprite.textures[0].height,
             .width = (f32) waterSprite.textures[0].width,
         };
@@ -622,19 +701,15 @@ static void draw_water_sprites(AnimatedTexturesSprite *waterSprites) {
             continue;
         }
 
+        game.gameMetrics.drawnSprites++;
         Texture2D *frameToDraw = &waterSprite.textures[waterSprite.currentFrame];
-        draw_tile(
-            frameToDraw,
-            sourceRec,
-            waterSprite.position,
-            1.f
-        );
+        draw_tile(frameToDraw, sourceRec, waterSprite.entity.position, 1.f);
 
         // draw debug frames
         if (!game.isDebug) { continue; }
 
         DrawRectangleLinesEx(sourceRec, 3.f, RED);
-        DrawCircleV(waterSprite.position, 5.f, RED);
+        DrawCircleV(waterSprite.entity.position, 5.f, RED);
     }
 }
 
@@ -646,7 +721,7 @@ static void *texture_loader_callback(const char *path) {
 }
 
 static void texture_free_callback(void *ptr) {
-    Texture2D *text = (Texture2D *) ptr;
+    const Texture2D *text = (Texture2D *) ptr;
     slogi("unloading texture #%d", text->id);
     UnloadTexture(*text);
     mfree(ptr, sizeof(*text), MemoryTagTexture);

@@ -8,19 +8,23 @@
 #include "settings.h"
 #include "array/array.h"
 
-Character character_new(Vector2 centerPosition, TileMapID tileMapID, CharacterDirection direction) {
-    TileMap tm = assets.tileMaps[tileMapID];
+Character character_new(const Vector2 centerPosition, const TileMapID tileMapID, const CharacterDirection direction) {
+    const TileMap tm = assets.tileMaps[tileMapID];
 
-    i32 characterTileHeight = 128;
-    i32 characterTileWidth = 128;
+    const i32 characterTileHeight = 128;
+    const i32 characterTileWidth = 128;
+    const Vector2 position = {
+        .x = centerPosition.x - (f32) characterTileWidth / 2,
+        .y = centerPosition.y - (f32) characterTileHeight / 2,
+    };
     Character character = {
         .state = CharacterStateIdle,
         .direction = direction,
         .tileMapID = tileMapID,
         .velocity = {},
         .frame = {
-            .x = centerPosition.x - (f32)characterTileWidth/2,
-            .y = centerPosition.y - (f32)characterTileHeight/2,
+            .x = position.x,
+            .y = position.y,
             .height = 128,
             .width = 128,
         },
@@ -29,7 +33,12 @@ Character character_new(Vector2 centerPosition, TileMapID tileMapID, CharacterDi
             .width = 128.f,
         },
         .animatedSprite = {
-            .id = tm.texture.id,
+            .entity = {
+                .id = tm.texture.id,
+                .layer = WorldLayerMain,
+                .ySort = position.y,
+                .position = position,
+            },
             .texture = tm.texture,
             .framesLen = 4,
             .frameTimer = 0,
@@ -46,7 +55,7 @@ Character character_new(Vector2 centerPosition, TileMapID tileMapID, CharacterDi
     return character;
 }
 
-void character_free(Character *character) {
+void character_free(const Character *character) {
     array_free(character->animatedSprite.sourceFrames);
 }
 
@@ -54,12 +63,12 @@ void character_input(Character *character) {
     panic("unimplemented");
 }
 
-void character_move(Character *character, f32 deltaTime) {
+void character_move(Character *character, const f32 deltaTime) {
     character->frame.x += character->velocity.x * deltaTime;
     character->frame.y += character->velocity.y * deltaTime;
 }
 
-void character_update(Character *character, f32 deltaTime) {
+void character_update(Character *character, const f32 deltaTime) {
     character_move(character, deltaTime);
 
     character->state = CharacterStateIdle;
@@ -89,7 +98,7 @@ void character_update(Character *character, f32 deltaTime) {
             break;
         case CharacterDirectionMax:
         default:
-        panic("unknown character direction requested in draw");
+            panic("unknown character direction requested in draw");
     }
 #define colsPerRow 4
     for (i32 i = 0; i < colsPerRow; i++) {
@@ -107,18 +116,29 @@ void character_draw(const Character *character) {
         .x = character->frame.x,
         .y = character->frame.y,
     };
-
     const Rectangle frame = character->animatedSprite.sourceFrames[character->animatedSprite.currentFrame];
-    DrawTextureRec(character->animatedSprite.texture,frame,pos,WHITE);
+    const Rectangle boundingBox = {
+        .x = pos.x,
+        .y = pos.y,
+        .height = frame.height,
+        .width = frame.width,
+    };
+
+    if (!CheckCollisionRecs(game.cameraBoundingBox, boundingBox)) {
+        return;
+    }
+
+    game.gameMetrics.drawnSprites++;
+    DrawTextureRec(character->animatedSprite.texture, frame, pos, WHITE);
 
     if (!game.isDebug) { return; }
 
-    DrawRectangleLinesEx(frame, 3.f, RED);
+    DrawRectangleLinesEx(boundingBox, 3.f, RED);
     DrawCircleV(pos, 5.f, RED);
 }
 
 Vector2 character_get_center(const Character *character) {
-    return (Vector2) {
+    return (Vector2){
         .x = character->frame.x + character->frame.width / 2,
         .y = character->frame.y + character->frame.height / 2,
     };
@@ -147,7 +167,6 @@ const char *character_state_string(const CharacterState d) {
 }
 
 void character_set_center_at(Character *character, Vector2 center) {
-    character->frame.x = center.x - character->frame.width/2;
-    character->frame.y = center.y - character->frame.height/2;
+    character->frame.x = center.x - character->frame.width / 2;
+    character->frame.y = center.y - character->frame.height / 2;
 }
-
