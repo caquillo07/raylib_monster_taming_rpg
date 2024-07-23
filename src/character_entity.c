@@ -109,6 +109,7 @@ void character_update(Character *character, const f32 deltaTime) {
         );
     }
     update_animated_tiled_sprite(&character->animatedSprite, deltaTime);
+    character->animatedSprite.entity.ySort = character->frame.y + (character->frame.height/2);
 }
 
 void character_draw(const Character *character) {

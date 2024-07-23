@@ -37,8 +37,7 @@ void game_shutdown() {
     map_free(game.currentMap);
     game.currentMap = nil;
 
-    player_free(game.player);
-    game.player = nil;
+    player_free(&game.player);
 
     unload_textures();
 }
@@ -69,15 +68,15 @@ static void do_game_handle_input() {
     if (IsKeyPressed(KEY_F3) && game.currentMap->id != MapIDWorld) {
         map_free(game.currentMap);
         game.currentMap = load_map(MapIDWorld);
-        game.player->characterComponent.frame.x = game.currentMap->playerStartingPosition.x;
-        game.player->characterComponent.frame.y = game.currentMap->playerStartingPosition.y;
+        game.player.characterComponent.frame.x = game.currentMap->playerStartingPosition.x;
+        game.player.characterComponent.frame.y = game.currentMap->playerStartingPosition.y;
         return;
     }
     if (IsKeyPressed(KEY_F4) && game.currentMap->id != MapIDHospital) {
         map_free(game.currentMap);
         game.currentMap = load_map(MapIDHospital);
-        game.player->characterComponent.frame.x = game.currentMap->playerStartingPosition.x;
-        game.player->characterComponent.frame.y = game.currentMap->playerStartingPosition.y;
+        game.player.characterComponent.frame.x = game.currentMap->playerStartingPosition.x;
+        game.player.characterComponent.frame.y = game.currentMap->playerStartingPosition.y;
         return;
     }
 
@@ -85,7 +84,7 @@ static void do_game_handle_input() {
     //  we should instead hold a list of events on this frame and check them on each system
     //  instead. add the key press to the global event
     //  https://github.com/raysan5/raylib/blob/52f2a10db610d0e9f619fd7c521db08a876547d0/src/rcore.c#L297
-    player_input(game.player);
+    player_input(&game.player);
 }
 
 void game_handle_input() {
@@ -98,7 +97,7 @@ static void do_game_update(const f32 deltaTime) {
     if (frameStepMode && !shouldRenderFrame) {
         return;
     }
-    player_update(game.player, deltaTime);
+    player_update(&game.player, deltaTime);
     map_update(game.currentMap, deltaTime);
 
     update_camera();
@@ -120,7 +119,7 @@ void game_draw() {
         ClearBackground(DARKGRAY);
         BeginMode2D(game.camera); {
             map_draw(game.currentMap);
-            player_draw(game.player);
+            // player_draw(game.player);
             game_draw_debug_camera();
         }
         EndMode2D();
@@ -181,7 +180,7 @@ static void setup_game(const MapID mapID) {
 }
 
 static void update_camera() {
-    game.camera.target = player_get_center(game.player);
+    game.camera.target = player_get_center(&game.player);
     game.camera.offset = (Vector2){
         .x = ((f32) GetScreenWidth() / 2.0f),
         .y = ((f32) GetScreenHeight() / 2.0f),

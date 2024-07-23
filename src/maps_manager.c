@@ -617,6 +617,10 @@ void map_draw(const Map *map) {
     array_range(map->overWorldCharacters, i) {
         character_draw(&map->overWorldCharacters[i]);
     }
+    // todo(hector) - no me gusta, but its a quick hack that doesnt require refactoring the whole map system.
+    //  next time, just make the map global instead.
+    // todo(hector) - the player and the other characters need to be in the same list as the main sprites...
+    player_draw(&game.player);
 
     // foreground sprites
     draw_static_sprites(map->foregroundSprites);

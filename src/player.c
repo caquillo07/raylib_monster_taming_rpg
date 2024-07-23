@@ -8,27 +8,23 @@
 #include "memory/memory.h"
 #include "settings.h"
 #include "assets.h"
-#include "array/array.h"
 #include "character_entity.h"
 
 
-Player *player_new(Vector2 position) {
-    Player *player = mallocate(sizeof(*player), MemoryTagEntity);
-    panicIfNil(player, "failed to allocate player");
-
-    player->characterComponent = character_new(position, TileMapIDPlayer, CharacterDirectionDown);
+Player player_new(const Vector2 position) {
+    const Player player = {
+        .characterComponent = character_new(position, TileMapIDPlayer, CharacterDirectionDown),
+    };
     return player;
 }
 
 void player_free(Player *player) {
-    character_free(&player->characterComponent);
-    mfree(player, sizeof(*player), MemoryTagEntity);
 }
 
 void player_input(Player *player) {
-//    character_input(&player->characterComponent);
+    //    character_input(&player->characterComponent);
 
-    player->characterComponent.velocity = (Vector2) {};
+    player->characterComponent.velocity = (Vector2){};
     if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) {
         player->characterComponent.direction = CharacterDirectionUp;
         player->characterComponent.velocity.y -= settings.playerSpeed;
@@ -44,7 +40,7 @@ void player_input(Player *player) {
     }
 }
 
-void player_update(Player *player, f32 deltaTime) {
+void player_update(Player *player, const f32 deltaTime) {
     character_update(&player->characterComponent, deltaTime);
 }
 
@@ -52,13 +48,12 @@ void player_move(Player *player, f32 deltaTime) {
     panic("unimplemented");
 }
 
-void player_draw(Player *player) {
+void player_draw(const Player *player) {
     // ok because the characters and the player are the same exact structure.
     character_draw(&player->characterComponent);
 }
 
-Vector2 player_get_center(Player *player) {
+Vector2 player_get_center(const Player *player) {
     // ok because the characters and the player are the same exact structure.
     return character_get_center(&player->characterComponent);
 }
-

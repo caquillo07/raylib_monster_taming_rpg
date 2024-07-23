@@ -7,7 +7,6 @@
 
 #include "maps_manager.h"
 #include "player.h"
-#include "sprites.h"
 
 typedef struct GameMetrics {
     f64 timeInInput;
@@ -21,7 +20,7 @@ typedef struct Game {
     bool isDebug;
 
     Map *currentMap;
-    Player *player;
+    Player player;
     Camera2D camera;
     Rectangle cameraBoundingBox;
     GameMetrics gameMetrics;
