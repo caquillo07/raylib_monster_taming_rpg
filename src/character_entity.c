@@ -25,18 +25,18 @@ Character character_new(const Vector2 centerPosition, const TileMapID tileMapID,
         .frame = {
             .x = position.x,
             .y = position.y,
-            .height = 128,
-            .width = 128,
+            .height = characterTileHeight,
+            .width = characterTileWidth,
         },
         .bounds = {
-            .height = 128.f,
-            .width = 128.f,
+            .height = (float)characterTileHeight,
+            .width = (float)characterTileWidth,
         },
         .animatedSprite = {
             .entity = {
                 .id = tm.texture.id,
                 .layer = WorldLayerMain,
-                .ySort = position.y,
+                .ySort = position.y + (characterTileHeight/2),
                 .position = position,
             },
             .texture = tm.texture,
