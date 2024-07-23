@@ -41,6 +41,7 @@ typedef struct Assets {
     Texture2D grassTexture;
     Texture2D iceGrassTexture;
     Texture2D sandTexture;
+    Texture2D characterShadowTexture;
 } Assets;
 
 extern Assets assets;

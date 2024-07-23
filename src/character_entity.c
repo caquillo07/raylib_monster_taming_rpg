@@ -129,6 +129,19 @@ void character_draw(const Character *character) {
         return;
     }
 
+    const Vector2 shadowPos = {
+        .x = pos.x + 40,
+        .y = pos.y + 110,
+    };
+    const Rectangle shadowRect = {
+        .x = 0,
+        .y = 0,
+        .height = assets.characterShadowTexture.height,
+        .width = assets.characterShadowTexture.width,
+    };
+    game.gameMetrics.drawnSprites++;
+    DrawTextureRec(assets.characterShadowTexture, shadowRect, shadowPos, WHITE);
+
     game.gameMetrics.drawnSprites++;
     DrawTextureRec(character->animatedSprite.texture, frame, pos, WHITE);
 

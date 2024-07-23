@@ -14,7 +14,7 @@ typedef struct Player {
 } Player;
 
 Player player_new(Vector2 position);
-void player_free(Player *player);
+void player_free(const Player *player);
 void player_input(Player *player);
 void player_update(Player *player, f32 deltaTime);
 void player_draw(const Player *player);

@@ -18,7 +18,8 @@ Player player_new(const Vector2 position) {
     return player;
 }
 
-void player_free(Player *player) {
+void player_free(const Player *player) {
+    character_free(&player->characterComponent);
 }
 
 void player_input(Player *player) {

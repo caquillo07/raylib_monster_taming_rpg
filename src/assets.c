@@ -4,6 +4,9 @@
 
 #include <dirent.h>
 #include "assets.h"
+
+#include <assert.h>
+
 #include "common.h"
 #include "array/array.h"
 
@@ -36,6 +39,8 @@ void load_textures() {
     assets.grassTexture = LoadTexture("./graphics/objects/grass.png");
     assets.iceGrassTexture = LoadTexture("./graphics/objects/grass_ice.png");
     assets.sandTexture = LoadTexture("./graphics/objects/sand.png");
+
+    assets.characterShadowTexture = LoadTexture("./graphics/other/shadow.png");
 }
 
 void unload_textures() {
@@ -72,6 +77,8 @@ void unload_textures() {
     UnloadTexture(assets.grassTexture);
     UnloadTexture(assets.iceGrassTexture);
     UnloadTexture(assets.sandTexture);
+
+    UnloadTexture(assets.characterShadowTexture);
 }
 
 static Texture2D *import_textures_from_directory(char *dirPath) {
@@ -106,15 +113,15 @@ static Texture2D *import_textures_from_directory(char *dirPath) {
 }
 
 TileMap load_tile_map(const i32 cols, const i32 rows, const char *imagePath) {
-    Texture2D texture = LoadTexture(imagePath);
+    const Texture2D texture = LoadTexture(imagePath);
     panicIf(!IsTextureReady(texture), "failed to load texture");
 
     Rectangle *framesList = nil;
-    i32 cellWidth = texture.width / cols;
-    i32 cellHeight = texture.height / rows;
+    const i32 cellWidth = texture.width / cols;
+    const i32 cellHeight = texture.height / rows;
     for (i32 row = 0; row < rows; row++) {
         for (i32 col = 0; col < cols; col++) {
-            Rectangle frame = {
+            const Rectangle frame = {
                 .x = (f32) (col * cellWidth),
                 .y = (f32) (row * cellHeight),
                 .width = (f32) cellWidth,
@@ -123,7 +130,7 @@ TileMap load_tile_map(const i32 cols, const i32 rows, const char *imagePath) {
             array_push(framesList, frame);
         }
     }
-    TileMap tileMap = {
+    const TileMap tileMap = {
         .framesList = framesList,
         .rows = rows,
         .columns = cols,
@@ -133,8 +140,8 @@ TileMap load_tile_map(const i32 cols, const i32 rows, const char *imagePath) {
 }
 
 // returns a copy of the frame inside the tilemap
-Rectangle tile_map_get_frame_at(TileMap tm, i32 col, i32 row) {
-    i32 index = (tm.columns * row) + col;
+Rectangle tile_map_get_frame_at(const TileMap tm, const i32 col, const i32 row) {
+    const i32 index = (tm.columns * row) + col;
     panicIf((index > array_length(tm.framesList) - 1), "queried x,y is out of bounds");
     return tm.framesList[index];
 }
