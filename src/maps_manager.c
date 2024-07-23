@@ -51,7 +51,7 @@ static void init_object_sprites(Map *map, const tmx_layer *layer);
 static void init_terrain_sprites(Map *map, const tmx_layer *layer);
 Character *init_over_world_characters(const tmx_layer *layer);
 
-static void draw_static_sprites(StaticSprite *sprites);
+static void draw_static_sprite(StaticSprite sprite);
 static void draw_animated_textures_sprites(AnimatedTexturesSprite *waterSprites);
 static void draw_animated_tiled_sprites(AnimatedTiledSprite *coastLineSprites);
 static void draw_tile(void *imageTexture2D, Rectangle sourceRec, Vector2 destination, f32 opacity);
@@ -246,7 +246,7 @@ static void init_monster_encounter_sprites(Map *map, const tmx_layer *layer) {
             .entity = {
                 .id = texture.id,
                 .layer = worldLayer,
-                .ySort = yPos - 40,
+                .ySort = yPos + (monsterTileH->height / 2) - 20,
                 .position = {
                     .x = monsterTileH->x,
                     .y = yPos,
@@ -262,6 +262,7 @@ static void init_monster_encounter_sprites(Map *map, const tmx_layer *layer) {
         };
         if (worldLayer == WorldLayerMain) {
             array_push(map->mainSprites, s);
+            // ReSharper disable once CppDFAConstantConditions
         } else if (worldLayer == WorldLayerBackground) {
             array_push(map->backgroundSprites, s);
         }
@@ -511,7 +512,7 @@ static void init_terrain_sprites(Map *map, const tmx_layer *layer) {
                     .id = texture.id,
                     .position = destination,
                     .layer = WorldLayerBackground,
-                    .ySort = destination.y + (boundingBox.height/2),
+                    .ySort = destination.y + (boundingBox.height / 2),
                 },
                 .texture = texture,
                 .width = boundingBox.width,
@@ -572,7 +573,7 @@ static void init_object_sprites(Map *map, const tmx_layer *layer) {
                 .id = texture.id,
                 .position = destination,
                 .layer = worldLayer,
-                .ySort = destination.y + (boundingBox.height/2),
+                .ySort = destination.y + (boundingBox.height / 2),
             },
             .texture = texture,
             .width = boundingBox.width,
@@ -608,22 +609,34 @@ void map_draw(const Map *map) {
     ClearBackground(int_to_color(map->tiledMap->backgroundcolor));
 
     // background sprites
-    draw_static_sprites(map->backgroundSprites);
+    array_range(map->backgroundSprites, i) {
+        draw_static_sprite(map->backgroundSprites[i]);
+    }
+
     draw_animated_textures_sprites(map->waterSpritesList);
     draw_animated_tiled_sprites(map->coastLineSpritesList);
 
     // main sprites
-    draw_static_sprites(map->mainSprites);
+    bool playerDrawn = false;
+    array_range(map->mainSprites, i) {
+        const StaticSprite sprite = map->mainSprites[i];
+        // todo(hector) - no me gusta, but its a quick hack that doesnt require refactoring the whole map system.
+        if (!playerDrawn && sprite.entity.ySort > game.player.characterComponent.animatedSprite.entity.ySort) {
+            player_draw(&game.player);
+            playerDrawn = true;
+        }
+        draw_static_sprite(sprite);
+    }
+
+    // todo(hector) - the player and the other characters need to be in the same list as the main sprites...
     array_range(map->overWorldCharacters, i) {
         character_draw(&map->overWorldCharacters[i]);
     }
-    // todo(hector) - no me gusta, but its a quick hack that doesnt require refactoring the whole map system.
-    //  next time, just make the map global instead.
-    // todo(hector) - the player and the other characters need to be in the same list as the main sprites...
-    player_draw(&game.player);
 
     // foreground sprites
-    draw_static_sprites(map->foregroundSprites);
+    array_range(map->foregroundSprites, i) {
+        draw_static_sprite(map->foregroundSprites[i]);
+    }
 }
 
 static void draw_tile(void *imageTexture2D, const Rectangle sourceRec, const Vector2 destination, const f32 opacity) {
@@ -636,30 +649,25 @@ static bool collidesWithCamera(const Rectangle rect) {
     return CheckCollisionRecs(game.cameraBoundingBox, rect);
 }
 
-static void draw_static_sprites(StaticSprite *sprites) {
-    if (array_length(sprites) == 0) { return; }
-
-    array_range(sprites, i) {
-        const StaticSprite sprite = sprites[i];
-        const Rectangle spriteBoundingBox = {
-            .x = sprite.entity.position.x,
-            .y = sprite.entity.position.y,
-            .width = sprite.sourceFrame.width,
-            .height = sprite.sourceFrame.height,
-        };
-        if (!collidesWithCamera(spriteBoundingBox)) {
-            continue;
-        }
-
-        game.gameMetrics.drawnSprites++;
-        DrawTextureRec(sprite.texture, sprite.sourceFrame, sprite.entity.position, WHITE);
-
-        // draw debug frames
-        if (!game.isDebug) { continue; }
-
-        DrawRectangleLinesEx(spriteBoundingBox, 3.f, RED);
-        DrawCircleV(sprite.entity.position, 5.f, RED);
+static void draw_static_sprite(const StaticSprite sprite) {
+    const Rectangle spriteBoundingBox = {
+        .x = sprite.entity.position.x,
+        .y = sprite.entity.position.y,
+        .width = sprite.sourceFrame.width,
+        .height = sprite.sourceFrame.height,
+    };
+    if (!collidesWithCamera(spriteBoundingBox)) {
+        return;
     }
+
+    game.gameMetrics.drawnSprites++;
+    DrawTextureRec(sprite.texture, sprite.sourceFrame, sprite.entity.position, WHITE);
+
+    // draw debug frames
+    if (!game.isDebug) { return; }
+
+    DrawRectangleLinesEx(spriteBoundingBox, 3.f, RED);
+    DrawCircleV(sprite.entity.position, 5.f, RED);
 }
 
 static void draw_animated_tiled_sprites(AnimatedTiledSprite *coastLineSprites) {
