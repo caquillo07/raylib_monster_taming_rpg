@@ -62,8 +62,8 @@ void character_input(Character *character) {
 }
 
 void character_move(Character *character, const f32 deltaTime) {
-    character->frame.x += character->velocity.x * deltaTime;
-    character->frame.y += character->velocity.y * deltaTime;
+    character->frame.x += character->velocity.x * settings.playerSpeed * deltaTime;
+    character->frame.y += character->velocity.y * settings.playerSpeed * deltaTime;
 }
 
 void character_update(Character *character, const f32 deltaTime) {
