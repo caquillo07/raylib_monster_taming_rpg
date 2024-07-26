@@ -14,6 +14,7 @@
 #include <tmx.h>
 
 #include "game.h"
+#include "raylib_extras.h"
 
 #define maps_dir "./data/maps/"
 #define map_path(MAP_NAME) maps_dir #MAP_NAME
@@ -50,6 +51,7 @@ static void init_monster_encounter_sprites(Map *map, const tmx_layer *layer);
 static void init_object_sprites(Map *map, const tmx_layer *layer);
 static void init_terrain_sprites(Map *map, const tmx_layer *layer);
 Character *init_over_world_characters(const tmx_layer *layer);
+static void init_collision_sprites(Map *map, const tmx_layer *layer);
 
 static void draw_static_sprite(StaticSprite sprite);
 static void draw_animated_textures_sprites(AnimatedTexturesSprite *waterSprites);
@@ -136,6 +138,10 @@ Map *load_map(const MapID mapID) {
     const tmx_layer *objectsLayer = tmx_find_layer_by_name(map->tiledMap, "Objects");
     panicIfNil(objectsLayer, "could not find the Objects layer in the tmx map");
 
+    // collisions
+    const tmx_layer *collisionsLayer = tmx_find_layer_by_name(map->tiledMap, "Collisions");
+    panicIfNil(collisionsLayer, "could not find the Collissions layer in the tmx map");
+
     // Water
     const tmx_layer *waterLayer = tmx_find_layer_by_name(map->tiledMap, "Water");
     panicIfNil(waterLayer, "could not find the Objects layer in the tmx map");
@@ -153,10 +159,8 @@ Map *load_map(const MapID mapID) {
     init_terrain_sprites(map, terrainLayer);
     init_terrain_sprites(map, terrainTopLayer);
     init_object_sprites(map, objectsLayer);
+    init_collision_sprites(map, collisionsLayer);
 
-    // y-sort sprites
-    // (todo) - this is potentially bad, if the sprites structs change, this would
-    //  blow up and im too lazy to make generic structs
     game.gameMetrics.totalSprites += array_length(map->waterSpritesList) +
         array_length(map->coastLineSpritesList) +
         array_length(map->overWorldCharacters) +
@@ -164,6 +168,9 @@ Map *load_map(const MapID mapID) {
         array_length(map->mainSprites) +
         array_length(map->foregroundSprites);
 
+    // y-sort sprites
+    // (todo) - this is potentially bad, if the sprites structs change, this would
+    //  blow up and im too lazy to make generic structs
     qsort(
         map->backgroundSprites,
         array_length(map->backgroundSprites),
@@ -194,6 +201,7 @@ Map *load_map(const MapID mapID) {
 
 void map_free(Map *map) {
     // todo(hector) - free new generic sprites array
+    array_free(map->collisionBoxes);
     array_free(map->backgroundSprites);
     array_free(map->mainSprites);
     array_free(map->foregroundSprites);
@@ -525,6 +533,32 @@ static void init_terrain_sprites(Map *map, const tmx_layer *layer) {
     }
 }
 
+void init_collision_sprites(Map *map, const tmx_layer *layer) {
+    if (layer == nil || layer->name == nil) {
+        printf("no layer objects found\n");
+        return;
+    }
+
+    const tmx_object *objectHead = layer->content.objgr->head;
+    while (objectHead) {
+        if (!objectHead->visible) {
+            objectHead = objectHead->next;
+            continue;
+        }
+
+        const Rectangle boundingBox = {
+            .x = (f32) objectHead->x,
+            .y = (f32) objectHead->y,
+            .width = (f32) objectHead->width,
+            .height = (f32) objectHead->height,
+        };
+
+        array_push(map->collisionBoxes, boundingBox);
+
+        objectHead = objectHead->next;
+    }
+}
+
 static void init_object_sprites(Map *map, const tmx_layer *layer) {
     if (layer == nil || layer->name == nil) {
         printf("no layer objects found\n");
@@ -574,6 +608,8 @@ static void init_object_sprites(Map *map, const tmx_layer *layer) {
                 .position = destination,
                 .layer = worldLayer,
                 .ySort = destination.y + (boundingBox.height / 2),
+                .hitBox = rectangle_deflate(boundingBox, boundingBox.width * 0., boundingBox.height * 0.7),
+                .collideable = true,
             },
             .texture = texture,
             .width = boundingBox.width,
@@ -616,6 +652,11 @@ void map_draw(const Map *map) {
     draw_animated_textures_sprites(map->waterSpritesList);
     draw_animated_tiled_sprites(map->coastLineSpritesList);
 
+    // todo(hector) - the player and the other characters need to be in the same list as the main sprites...
+    array_range(map->overWorldCharacters, i) {
+        character_draw(&map->overWorldCharacters[i]);
+    }
+
     // main sprites
     bool playerDrawn = false;
     array_range(map->mainSprites, i) {
@@ -628,14 +669,16 @@ void map_draw(const Map *map) {
         draw_static_sprite(sprite);
     }
 
-    // todo(hector) - the player and the other characters need to be in the same list as the main sprites...
-    array_range(map->overWorldCharacters, i) {
-        character_draw(&map->overWorldCharacters[i]);
-    }
-
     // foreground sprites
     array_range(map->foregroundSprites, i) {
         draw_static_sprite(map->foregroundSprites[i]);
+    }
+
+    if (game.isDebug) {
+        // draw collision boxes
+        array_range(map->collisionBoxes, i) {
+            DrawRectangleLinesEx(map->collisionBoxes[i], 5.f, BLUE);
+        }
     }
 }
 

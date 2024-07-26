@@ -5,6 +5,7 @@
 #include "character_entity.h"
 #include "assets.h"
 #include "game.h"
+#include "raylib_extras.h"
 #include "settings.h"
 #include "array/array.h"
 
@@ -28,10 +29,6 @@ Character character_new(const Vector2 centerPosition, const TileMapID tileMapID,
             .height = characterTileHeight,
             .width = characterTileWidth,
         },
-        .bounds = {
-            .height = (float)characterTileHeight,
-            .width = (float)characterTileWidth,
-        },
         .animatedSprite = {
             .entity = {
                 .id = tm.texture.id,
@@ -46,6 +43,7 @@ Character character_new(const Vector2 centerPosition, const TileMapID tileMapID,
         },
     };
 
+    character.hitBox = rectangle_deflate(character.frame, character.frame.width/2, 60);
     character.animatedSprite.sourceFrames = array_hold(
         character.animatedSprite.sourceFrames,
         character.animatedSprite.framesLen,
@@ -110,6 +108,7 @@ void character_update(Character *character, const f32 deltaTime) {
     }
     update_animated_tiled_sprite(&character->animatedSprite, deltaTime);
     character->animatedSprite.entity.ySort = character->frame.y + (character->frame.height/2);
+    character->hitBox = rectangle_deflate(character->frame, character->frame.width/2, 60);
 }
 
 void character_draw(const Character *character) {
@@ -148,6 +147,7 @@ void character_draw(const Character *character) {
     if (!game.isDebug) { return; }
 
     DrawRectangleLinesEx(boundingBox, 3.f, RED);
+    DrawRectangleLinesEx(character->hitBox, 3.f, BLUE);
     DrawCircleV(pos, 5.f, RED);
 }
 
@@ -180,7 +180,7 @@ const char *character_state_string(const CharacterState d) {
     return CharacterStateStrings[d];
 }
 
-void character_set_center_at(Character *character, Vector2 center) {
+void character_set_center_at(Character *character, const Vector2 center) {
     character->frame.x = center.x - character->frame.width / 2;
     character->frame.y = center.y - character->frame.height / 2;
 }

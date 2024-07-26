@@ -38,6 +38,8 @@ typedef struct Map {
     StaticSprite *mainSprites;
     StaticSprite *foregroundSprites;
 
+    Rectangle *collisionBoxes;
+
     Vector2 playerStartingPosition;
 } Map;
 

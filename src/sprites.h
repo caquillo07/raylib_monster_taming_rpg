@@ -23,9 +23,12 @@ typedef struct Entity {
     f32 ySort;
     Vector2 position;
     WorldLayer layer;
+    Rectangle hitBox;
+    bool collideable;
 } Entity;
 
 typedef struct StaticSprite {
+    // todo - fix this with a union?
     Entity entity; // cannot be moved from 1st position
 
     Texture2D texture;

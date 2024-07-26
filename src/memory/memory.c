@@ -108,13 +108,13 @@ char *get_memory_usage_str() {
     snprintf(
         buffer + offset,
         bufferSize,
-        "\tTagged memory not freed: %.2f%c\n"
+        "\tTagged memory not freed: %.2f%c%s\n"
         "\tMemory currently allocated: %.2f%c\n"
         "\tTotal memory allocated: %.2f%c\n"
         "\tTotal memory allocations: %llu\n"
         "\tTotal memory frees: %llu\n"
         "",
-        normalize_memory_size(allocatedMemory), get_memory_unit_for_size(allocatedMemory),
+        normalize_memory_size(allocatedMemory), get_memory_unit_for_size(allocatedMemory), allocatedMemory > 0 ? "\t\t<==============" : "",
         normalize_memory_size(state.stats.currentlyAllocated), get_memory_unit_for_size(state.stats.currentlyAllocated),
         normalize_memory_size(state.stats.totalAllocated), get_memory_unit_for_size(state.stats.totalAllocated),
         state.stats.totalAllocations,

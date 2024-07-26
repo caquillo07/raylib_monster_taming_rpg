@@ -14,7 +14,7 @@ const u32 headerSize = (sizeof(int) * 3);
 
 void *array_hold(void *array, int count, int item_size) {
     if (array == nil) {
-        u32 rawSize = headerSize + (item_size * count);
+        const u32 rawSize = headerSize + (item_size * count);
         int *base = (int *) mallocate(rawSize, MemoryTagDynArray);
         base[0] = count;  // capacity
         base[1] = count;  // occupied

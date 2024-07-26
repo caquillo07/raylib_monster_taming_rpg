@@ -20,7 +20,3 @@ void initLogger() {
     slog_config_set(&cfg);
 }
 
-Size size_from_rectangle(Rectangle rect) {
-    Size result = {.height = rect.height, .width = rect.width};
-    return result;
-}

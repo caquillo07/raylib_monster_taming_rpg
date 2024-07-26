@@ -32,7 +32,7 @@ const char* character_direction_string(CharacterDirection d);
 
 typedef struct Character {
     Rectangle frame;
-    Rectangle bounds;
+    Rectangle hitBox;
     Vector2 velocity;
     AnimatedTiledSprite animatedSprite;
     CharacterDirection direction;

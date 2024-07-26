@@ -9,6 +9,8 @@
 #include "settings.h"
 #include "assets.h"
 #include "character_entity.h"
+#include "game.h"
+#include "array/array.h"
 
 
 Player player_new(const Vector2 position) {
@@ -29,20 +31,46 @@ void player_input(Player *player) {
     if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) {
         player->characterComponent.direction = CharacterDirectionUp;
         player->characterComponent.velocity.y -= settings.playerSpeed;
-    } else if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) {
+    } if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) {
         player->characterComponent.direction = CharacterDirectionDown;
         player->characterComponent.velocity.y += settings.playerSpeed;
-    } else if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) {
+    } if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) {
         player->characterComponent.direction = CharacterDirectionLeft;
         player->characterComponent.velocity.x -= settings.playerSpeed;
-    } else if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) {
+    } if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) {
         player->characterComponent.direction = CharacterDirectionRight;
         player->characterComponent.velocity.x += settings.playerSpeed;
     }
 }
 
 void player_update(Player *player, const f32 deltaTime) {
+    const Rectangle oldPlayerFrame = player->characterComponent.frame;
     character_update(&player->characterComponent, deltaTime);
+    // collisions
+    array_range(game.currentMap->collisionBoxes, i) {
+        const Rectangle box = game.currentMap->collisionBoxes[i];
+        if (CheckCollisionRecs(player->characterComponent.hitBox, box)) {
+            player->characterComponent.frame = oldPlayerFrame;
+            break;
+        }
+    }
+    array_range(game.currentMap->mainSprites, i) {
+        const Entity entity = game.currentMap->mainSprites[i].entity;
+        if (!entity.collideable) { continue; }
+
+        if (CheckCollisionRecs(player->characterComponent.hitBox, entity.hitBox)) {
+            game.player.characterComponent.frame = oldPlayerFrame;
+            break;
+        }
+    }
+    array_range(game.currentMap->overWorldCharacters, i) {
+        const Rectangle box = game.currentMap->overWorldCharacters[i].hitBox;
+
+        if (CheckCollisionRecs(player->characterComponent.hitBox, box)) {
+            game.player.characterComponent.frame = oldPlayerFrame;
+            break;
+        }
+    }
 }
 
 void player_move(Player *player, f32 deltaTime) {
