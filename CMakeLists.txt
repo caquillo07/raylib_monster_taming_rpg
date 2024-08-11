@@ -26,15 +26,17 @@ add_subdirectory(vendors/slog)
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/vendors/slog/src)
 target_link_libraries(${PROJECT_NAME} PRIVATE slog)
 
+# vcpkg
+
 # because of raylib - TODO(hector) - make this only for debug builds, figure out
 #  why this is even needed.
 if(APPLE)
     message("Building for macOS")
-    target_compile_options(${PROJECT_NAME} PRIVATE -g -O1 -fno-omit-frame-pointer -Wall -Wextra -fsanitize=address)
+    target_compile_options(${PROJECT_NAME} PRIVATE -g -fno-omit-frame-pointer -Wall -Wextra -fsanitize=address)
     target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address,undefined)
 elseif (UNIX AND NOT APPLE)
     message("Building for Linux")
-    target_compile_options(${PROJECT_NAME} PRIVATE -g3 -O0 -fno-omit-frame-pointer -Wall -Wextra -fsanitize=address,undefined)
+    target_compile_options(${PROJECT_NAME} PRIVATE -g3 -fno-omit-frame-pointer -Wall -Wextra -fsanitize=address,undefined)
     target_link_options(${PROJECT_NAME} PRIVATE -g -fsanitize=address,undefined)
 endif ()
 
@@ -43,3 +45,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
 
 find_package(raylib CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE raylib)
+
+find_package(cJSON CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE cjson)

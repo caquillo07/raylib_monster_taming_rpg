@@ -14,6 +14,7 @@
 #include <tmx.h>
 
 #include "game.h"
+#include "game_data.h"
 #include "raylib_extras.h"
 
 #define maps_dir "./data/maps/"
@@ -322,7 +323,7 @@ Character *init_over_world_characters(const tmx_layer *layer) {
         }
 
         const tmx_property *directionProp = tmx_get_property(characterH->properties, "direction");
-        // tmx_property *posProp = tmx_get_property(characterH->properties,"pos");
+        const tmx_property *characterIDProp = tmx_get_property(characterH->properties, "character_id");
         const tmx_property *graphicProp = tmx_get_property(characterH->properties, "graphic");
 
         TileMapID characterTiledMapID;
@@ -364,7 +365,8 @@ Character *init_over_world_characters(const tmx_layer *layer) {
         Character character = character_new(
             (Vector2){},
             characterTiledMapID,
-            direction
+            direction,
+            characterIDProp->value.string
         );
 
         character_set_center_at(&character, (Vector2){.x = (f32) characterH->x, .y = (f32) characterH->y});

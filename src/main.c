@@ -3,7 +3,6 @@
 #include "raylib.h"
 #include "common.h"
 #include "game.h"
-#include "maps_manager.h"
 #include "memory/memory.h"
 
 static void init() {
@@ -15,6 +14,7 @@ static void init() {
     SetWindowState(FLAG_WINDOW_RESIZABLE);
 
     SetTargetFPS(120);
+    SetTextLineSpacing(16);
 }
 
 int main() {

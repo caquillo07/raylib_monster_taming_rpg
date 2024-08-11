@@ -10,6 +10,7 @@
 #include <string.h>
 #include <time.h>
 #include <slog.h>
+#include <assert.h>
 
 // todo: make this env driven
 #define DEBUG 1
@@ -38,7 +39,7 @@ typedef ssize_t isize;
 #define TILE_SIZE 64
 #define BATTLE_OUTLINE_WIDTH 4
 
-#define panic(...) slogf(__VA_ARGS__); exit(EXIT_FAILURE);
+#define panic(...) slogf(__VA_ARGS__); assert(0);
 #define panicIf(condition, ...) if (condition) { panic(__VA_ARGS__); }
 #define panicIfNil(ptr, ...) if (ptr == nil) { panic( __VA_ARGS__); }
 

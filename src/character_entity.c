@@ -3,13 +3,24 @@
 //
 
 #include "character_entity.h"
+
+#include <raymath.h>
+
 #include "assets.h"
 #include "game.h"
 #include "raylib_extras.h"
 #include "settings.h"
 #include "array/array.h"
 
-Character character_new(const Vector2 centerPosition, const TileMapID tileMapID, const CharacterDirection direction) {
+static void character_animate(Character *c, f32 deltaTime);
+
+
+Character character_new(
+    const Vector2 centerPosition,
+    const TileMapID tileMapID,
+    const CharacterDirection direction,
+    const char *id
+) {
     const TileMap tm = assets.tileMaps[tileMapID];
 
     const i32 characterTileHeight = 128;
@@ -19,6 +30,7 @@ Character character_new(const Vector2 centerPosition, const TileMapID tileMapID,
         .y = centerPosition.y - (f32) characterTileHeight / 2,
     };
     Character character = {
+        .blocked = false,
         .state = CharacterStateIdle,
         .direction = direction,
         .tileMapID = tileMapID,
@@ -33,7 +45,7 @@ Character character_new(const Vector2 centerPosition, const TileMapID tileMapID,
             .entity = {
                 .id = tm.texture.id,
                 .layer = WorldLayerMain,
-                .ySort = position.y + (characterTileHeight/2),
+                .ySort = position.y + (characterTileHeight / 2),
                 .position = position,
             },
             .texture = tm.texture,
@@ -43,7 +55,10 @@ Character character_new(const Vector2 centerPosition, const TileMapID tileMapID,
         },
     };
 
-    character.hitBox = rectangle_deflate(character.frame, character.frame.width/2, 60);
+    // i happen to know there is nothing larger for this demo, wouldnt do in a
+    // real project
+    strncpy(character.id, id, 16);
+    character.hitBox = rectangle_deflate(character.frame, character.frame.width / 2, 60);
     character.animatedSprite.sourceFrames = array_hold(
         character.animatedSprite.sourceFrames,
         character.animatedSprite.framesLen,
@@ -53,70 +68,29 @@ Character character_new(const Vector2 centerPosition, const TileMapID tileMapID,
     return character;
 }
 
-void character_free(const Character *character) {
-    array_free(character->animatedSprite.sourceFrames);
+void character_free(const Character *c) {
+    array_free(c->animatedSprite.sourceFrames);
 }
 
-void character_input(Character *character) {
-    panic("unimplemented");
+void character_move(Character *c, const f32 deltaTime) {
+    c->frame.x += c->velocity.x * settings.playerSpeed * deltaTime;
+    c->frame.y += c->velocity.y * settings.playerSpeed * deltaTime;
 }
 
-void character_move(Character *character, const f32 deltaTime) {
-    character->frame.x += character->velocity.x * settings.playerSpeed * deltaTime;
-    character->frame.y += character->velocity.y * settings.playerSpeed * deltaTime;
+void character_update(Character *c, const f32 deltaTime) {
+    if (!c->blocked) {
+        character_move(c, deltaTime);
+    }
+
+    character_animate(c, deltaTime);
 }
 
-void character_update(Character *character, const f32 deltaTime) {
-    character_move(character, deltaTime);
-
-    character->state = CharacterStateIdle;
-    if (character->velocity.x != 0 || character->velocity.y != 0) {
-        character->state = CharacterStateWalking;
-    }
-
-    // update animation sprite before draw func
-    character->animatedSprite.framesLen = 1; // base case, idling
-    if (character->state == CharacterStateWalking) {
-        character->animatedSprite.framesLen = 4;
-    }
-
-    i32 row = 0;
-    switch (character->direction) {
-        case CharacterDirectionDown:
-            row = 0;
-            break;
-        case CharacterDirectionLeft:
-            row = 1;
-            break;
-        case CharacterDirectionRight:
-            row = 2;
-            break;
-        case CharacterDirectionUp:
-            row = 3;
-            break;
-        case CharacterDirectionMax:
-        default:
-            panic("unknown character direction requested in draw");
-    }
-#define colsPerRow 4
-    for (i32 i = 0; i < colsPerRow; i++) {
-        character->animatedSprite.sourceFrames[i] = tile_map_get_frame_at(
-            assets.tileMaps[character->tileMapID],
-            i,
-            row
-        );
-    }
-    update_animated_tiled_sprite(&character->animatedSprite, deltaTime);
-    character->animatedSprite.entity.ySort = character->frame.y + (character->frame.height/2);
-    character->hitBox = rectangle_deflate(character->frame, character->frame.width/2, 60);
-}
-
-void character_draw(const Character *character) {
+void character_draw(const Character *c) {
     const Vector2 pos = {
-        .x = character->frame.x,
-        .y = character->frame.y,
+        .x = c->frame.x,
+        .y = c->frame.y,
     };
-    const Rectangle frame = character->animatedSprite.sourceFrames[character->animatedSprite.currentFrame];
+    const Rectangle frame = c->animatedSprite.sourceFrames[c->animatedSprite.currentFrame];
     const Rectangle boundingBox = {
         .x = pos.x,
         .y = pos.y,
@@ -142,24 +116,106 @@ void character_draw(const Character *character) {
     DrawTextureRec(assets.characterShadowTexture, shadowRect, shadowPos, WHITE);
 
     game.gameMetrics.drawnSprites++;
-    DrawTextureRec(character->animatedSprite.texture, frame, pos, WHITE);
+    DrawTextureRec(c->animatedSprite.texture, frame, pos, WHITE);
 
     if (!game.isDebug) { return; }
 
     DrawRectangleLinesEx(boundingBox, 3.f, RED);
-    DrawRectangleLinesEx(character->hitBox, 3.f, BLUE);
+    DrawRectangleLinesEx(c->hitBox, 3.f, BLUE);
     DrawCircleV(pos, 5.f, RED);
 }
 
-Vector2 character_get_center(const Character *character) {
+void character_animate(Character *c, const f32 deltaTime) {
+    c->state = CharacterStateIdle;
+    if (c->velocity.x != 0 || c->velocity.y != 0) {
+        c->state = CharacterStateWalking;
+    }
+
+    // update animation sprite before draw func
+    c->animatedSprite.framesLen = 1; // base case, idling
+    if (c->state == CharacterStateWalking) {
+        c->animatedSprite.framesLen = 4;
+    }
+
+    i32 row = 0;
+    switch (c->direction) {
+        case CharacterDirectionDown:
+            row = 0;
+            break;
+        case CharacterDirectionLeft:
+            row = 1;
+            break;
+        case CharacterDirectionRight:
+            row = 2;
+            break;
+        case CharacterDirectionUp:
+            row = 3;
+            break;
+        case CharacterDirectionMax:
+        default:
+            panic("unknown character direction requested in draw");
+    }
+#define colsPerRow 4
+    for (i32 i = 0; i < colsPerRow; i++) {
+        c->animatedSprite.sourceFrames[i] = tile_map_get_frame_at(
+            assets.tileMaps[c->tileMapID],
+            i,
+            row
+        );
+    }
+    update_animated_tiled_sprite(&c->animatedSprite, deltaTime);
+    c->animatedSprite.entity.ySort = c->frame.y + (c->frame.height / 2);
+    c->hitBox = rectangle_deflate(c->frame, c->frame.width / 2, 60);
+}
+
+Vector2 character_get_center(const Character *c) {
     return (Vector2){
-        .x = character->frame.x + character->frame.width / 2,
-        .y = character->frame.y + character->frame.height / 2,
+        .x = c->frame.x + c->frame.width / 2,
+        .y = c->frame.y + c->frame.height / 2,
     };
+}
+
+void character_change_direction(Character *c, const Vector2 target) {
+    const f32 threshold = 30;
+    const Vector2 relationToTarget = Vector2Subtract(target, character_get_center(c));
+    if (fabsf(relationToTarget.y) < threshold) {
+        if (relationToTarget.x > 0) {
+            c->direction = CharacterDirectionRight;
+        } else {
+            c->direction = CharacterDirectionLeft;
+        }
+    } else {
+        if (relationToTarget.y > 0) {
+            c->direction = CharacterDirectionDown;
+        } else {
+            c->direction = CharacterDirectionUp;
+        }
+    }
+}
+
+void charager_get_dialog(const char *characterID, char **dialogArray, const u64 arrayLength) {
+    panicIf(arrayLength == 0, "dialog array cannot be zero");
+}
+
+CharacterDirection character_direction_from_str(const char *directionStr) {
+    if (streq(directionStr, "right")) {
+        return CharacterDirectionRight;
+    }
+    if (streq(directionStr, "left")) {
+        return CharacterDirectionLeft;
+    }
+    if (streq(directionStr, "up")) {
+        return CharacterDirectionUp;
+    }
+    if (streq(directionStr, "down")) {
+        return CharacterDirectionDown;
+    }
+    return CharacterDirectionNone;
 }
 
 const char *character_direction_string(const CharacterDirection d) {
     static const char *CharacterDirectionStrings[CharacterDirectionMax] = {
+        "CharacterDirectionNone",
         "CharacterDirectionDown",
         "CharacterDirectionLeft",
         "CharacterDirectionRight",
@@ -180,7 +236,7 @@ const char *character_state_string(const CharacterState d) {
     return CharacterStateStrings[d];
 }
 
-void character_set_center_at(Character *character, const Vector2 center) {
-    character->frame.x = center.x - character->frame.width / 2;
-    character->frame.y = center.y - character->frame.height / 2;
+void character_set_center_at(Character *c, const Vector2 center) {
+    c->frame.x = center.x - c->frame.width / 2;
+    c->frame.y = center.y - c->frame.height / 2;
 }

@@ -19,4 +19,3 @@ void initLogger() {
 
     slog_config_set(&cfg);
 }
-

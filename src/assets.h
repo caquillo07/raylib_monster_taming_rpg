@@ -42,12 +42,14 @@ typedef struct Assets {
     Texture2D iceGrassTexture;
     Texture2D sandTexture;
     Texture2D characterShadowTexture;
+
+    Font dialogFont;
 } Assets;
 
 extern Assets assets;
 
-void load_textures();
-void unload_textures();
+void load_assets();
+void unload_assets();
 
 Rectangle tile_map_get_frame_at(TileMap tm, i32 col, i32 row);
 

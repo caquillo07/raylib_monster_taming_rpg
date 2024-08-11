@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <memory.h>
 #include "array.h"
 #include "../memory/memory.h"
 
@@ -15,32 +14,32 @@ const u32 headerSize = (sizeof(int) * 3);
 void *array_hold(void *array, int count, int item_size) {
     if (array == nil) {
         const u32 rawSize = headerSize + (item_size * count);
-        int *base = (int *) mallocate(rawSize, MemoryTagDynArray);
+        int *base = mallocate(rawSize, MemoryTagDynArray);
         base[0] = count;  // capacity
         base[1] = count;  // occupied
         base[2] = item_size;  // each item size
         return base + 3;
-    } else if (ARRAY_OCCUPIED(array) + count <= ARRAY_CAPACITY(array)) {
+    }
+    if (ARRAY_OCCUPIED(array) + count <= ARRAY_CAPACITY(array)) {
         ARRAY_OCCUPIED(array) += count;
         return array;
-    } else {
-        int needed_size = ARRAY_OCCUPIED(array) + count;
-        int double_curr = ARRAY_CAPACITY(array) * 2;
-        int newCapacity = needed_size > double_curr ? needed_size : double_curr;
-        int occupied = needed_size;
-        u32 oldRawSize = headerSize + (ARRAY_CAPACITY(array) * ARRAY_ITEM_SIZE(array));
-        u32 newRawSize = headerSize + (item_size * newCapacity);
-
-        int *oldBase = ARRAY_RAW_DATA(array);
-        int *newBase = mallocate(newRawSize, MemoryTagDynArray);
-        mcopy_memory(newBase, oldBase, oldRawSize);
-        mfree(oldBase, oldRawSize, MemoryTagDynArray);
-
-        newBase[0] = newCapacity;
-        newBase[1] = occupied;
-        newBase[2] = item_size;
-        return newBase + 3;
     }
+    const int needed_size = ARRAY_OCCUPIED(array) + count;
+    const int double_curr = ARRAY_CAPACITY(array) * 2;
+    const int newCapacity = needed_size > double_curr ? needed_size : double_curr;
+    const int occupied = needed_size;
+    const u32 oldRawSize = headerSize + (ARRAY_CAPACITY(array) * ARRAY_ITEM_SIZE(array));
+    const u32 newRawSize = headerSize + (item_size * newCapacity);
+
+    int *oldBase = ARRAY_RAW_DATA(array);
+    int *newBase = mallocate(newRawSize, MemoryTagDynArray);
+    mcopy_memory(newBase, oldBase, oldRawSize);
+    mfree(oldBase, oldRawSize, MemoryTagDynArray);
+
+    newBase[0] = newCapacity;
+    newBase[1] = occupied;
+    newBase[2] = item_size;
+    return newBase + 3;
 }
 
 int array_length(void *array) {
@@ -53,7 +52,7 @@ int array_cap(void *array) {
 
 void array_free(void *array) {
     if (array != nil) {
-        u32 arraySize = headerSize + (ARRAY_ITEM_SIZE(array) * ARRAY_CAPACITY(array));
+        const u32 arraySize = headerSize + (ARRAY_ITEM_SIZE(array) * ARRAY_CAPACITY(array));
         mfree(ARRAY_RAW_DATA(array), arraySize, MemoryTagDynArray);
         return;
     }
@@ -61,10 +60,10 @@ void array_free(void *array) {
 }
 
 void array_remove(void *array, int index, int item_size) {
-    int count = ARRAY_OCCUPIED(array);
+    const int count = ARRAY_OCCUPIED(array);
     for (int i = index; i < count; i++) {
         char *dest = (char *) array + (i * item_size);
-        char *src = (char *) array + ((i + 1) * item_size);
+        const char *src = (char *) array + ((i + 1) * item_size);
         mcopy_memory(dest, src, item_size);
     }
     ARRAY_OCCUPIED(array) -= 1;

@@ -21,9 +21,15 @@ typedef enum memory_tag {
     MemoryTagMap,
     MemoryTagEntity,
     MemoryTagResource,
+    MemoryTagFile,
+    MemoryTagJSON,
 
     MemoryTagMaxTags
 } memory_tag;
+
+#define GiB  (1024 * 1024 * 1024)
+#define MiB  (1024 * 1024)
+#define KiB  (1024)
 
 void initialize_memory();
 void shutdown_memory();

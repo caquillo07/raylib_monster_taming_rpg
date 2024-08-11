@@ -16,7 +16,7 @@ static TileMap load_tile_map(i32 cols, i32 rows, const char *imagePath);
 
 Assets assets;
 
-void load_textures() {
+void load_assets() {
     assets = (Assets) {};
     assets.waterTextures.texturesList = import_textures_from_directory("./graphics/tilesets/water");
     assets.waterTextures.len = 4;
@@ -41,9 +41,11 @@ void load_textures() {
     assets.sandTexture = LoadTexture("./graphics/objects/sand.png");
 
     assets.characterShadowTexture = LoadTexture("./graphics/other/shadow.png");
+
+    assets.dialogFont = LoadFontEx("./graphics/fonts/PixeloidSans.ttf", 30, nil, 250);
 }
 
-void unload_textures() {
+void unload_assets() {
     array_range(assets.waterTextures.texturesList, i) {
         UnloadTexture(assets.waterTextures.texturesList[i]);
     }
@@ -79,6 +81,8 @@ void unload_textures() {
     UnloadTexture(assets.sandTexture);
 
     UnloadTexture(assets.characterShadowTexture);
+
+    UnloadFont(assets.dialogFont);
 }
 
 static Texture2D *import_textures_from_directory(char *dirPath) {

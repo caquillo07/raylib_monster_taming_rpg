@@ -46,7 +46,7 @@
 #include <windows.h>
 #endif
 
-#ifndef PTHREAD_MUTEX_RECURSIVE 
+#ifndef PTHREAD_MUTEX_RECURSIVE
 #define PTHREAD_MUTEX_RECURSIVE PTHREAD_MUTEX_RECURSIVE_NP
 #endif
 
@@ -86,7 +86,7 @@ static void slog_sync_init(slog_t *pSlog)
         pthread_mutex_init(&pSlog->mutex, &mutexAttr) ||
         pthread_mutexattr_destroy(&mutexAttr))
     {
-        printf("<%s:%d> %s: [ERROR] Can not initialize mutex: %d\n", 
+        printf("<%s:%d> %s: [ERROR] Can not initialize mutex: %d\n",
             __FILE__, __LINE__, __func__, errno);
 
         exit(EXIT_FAILURE);
@@ -97,7 +97,7 @@ static void slog_lock(slog_t *pSlog)
 {
     if (pSlog->nTdSafe && pthread_mutex_lock(&pSlog->mutex))
     {
-        printf("<%s:%d> %s: [ERROR] Can not lock mutex: %d\n", 
+        printf("<%s:%d> %s: [ERROR] Can not lock mutex: %d\n",
             __FILE__, __LINE__, __func__, errno);
 
         exit(EXIT_FAILURE);
@@ -108,9 +108,9 @@ static void slog_unlock(slog_t *pSlog)
 {
     if (pSlog->nTdSafe && pthread_mutex_unlock(&pSlog->mutex))
     {
-        printf("<%s:%d> %s: [ERROR] Can not unlock mutex: %d\n", 
+        printf("<%s:%d> %s: [ERROR] Can not unlock mutex: %d\n",
             __FILE__, __LINE__, __func__, errno);
-                
+
         exit(EXIT_FAILURE);
     }
 }
@@ -352,16 +352,15 @@ static int slog_create_info(const slog_context_t *pCtx, char* pOut, size_t nSize
 
 static void slog_display_heap(const slog_context_t *pCtx, va_list args)
 {
-    size_t nBytes = 0;
     char *pMessage = NULL;
     char sLogInfo[SLOG_INFO_MAX];
 
-    nBytes += vasprintf(&pMessage, pCtx->pFormat, args);
+    vasprintf(&pMessage, pCtx->pFormat, args);
     va_end(args);
 
     if (pMessage == NULL)
     {
-        printf("<%s:%d> %s<error>%s %s: Can not allocate memory for input: errno(%d)\n", 
+        printf("<%s:%d> %s<error>%s %s: Can not allocate memory for input: errno(%d)\n",
             __FILE__, __LINE__, SLOG_COLOR_RED, SLOG_COLOR_RESET, __func__, errno);
 
         return;

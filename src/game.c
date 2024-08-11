@@ -8,7 +8,7 @@
 #include "raylib.h"
 #include "maps_manager.h"
 #include "assets.h"
-#include "array/array.h"
+#include "game_data.h"
 
 //
 static void setup_game(MapID mapID);
@@ -29,7 +29,8 @@ Game game;
 void game_init() {
     game = (Game){};
     maps_manager_init();
-    load_textures();
+    load_assets();
+    game_data_init();
 
     setup_game(startingMap);
 }
@@ -40,7 +41,8 @@ void game_shutdown() {
 
     player_free(&game.player);
 
-    unload_textures();
+    unload_assets();
+    game_data_free();
 }
 
 static void do_game_handle_input() {
@@ -85,7 +87,9 @@ static void do_game_handle_input() {
     //  we should instead hold a list of events on this frame and check them on each system
     //  instead. add the key press to the global event
     //  https://github.com/raysan5/raylib/blob/52f2a10db610d0e9f619fd7c521db08a876547d0/src/rcore.c#L297
-    player_input(&game.player);
+    if (!game.player.characterComponent.blocked) {
+        player_input(&game.player);
+    }
 }
 
 void game_handle_input() {
@@ -108,10 +112,6 @@ void game_update(const f32 deltaTime) {
     const clock_t now = clock();
     do_game_update(deltaTime);
     game.gameMetrics.timeInUpdate = ((double) (clock() - now)) / (CLOCKS_PER_SEC / 1000);
-}
-
-static void do_game_draw() {
-    /* todo? */
 }
 
 void game_draw() {
@@ -154,10 +154,12 @@ static void game_draw_debug_screen() {
         "Time in update: %0.4f\n"
         "Time in draw: %0.4f\n"
         "Sprites Drawn: %lld/%lld",
-        game.gameMetrics.timeInInput, // todo make this static variables inside the functions instead.
+        game.gameMetrics.timeInInput,
+        // todo make this static variables inside the functions instead.
         game.gameMetrics.timeInUpdate,
         game.gameMetrics.timeInDraw,
-        game.gameMetrics.drawnSprites, game.gameMetrics.totalSprites
+        game.gameMetrics.drawnSprites,
+        game.gameMetrics.totalSprites
     );
     const Vector2 textSize = MeasureTextEx(GetFontDefault(), gameMetricsText, (f32) fontSize, 1);
     DrawText(gameMetricsText, 12, (i32) (30.f + textSize.y), 20, DARKBLUE);

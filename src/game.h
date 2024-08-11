@@ -5,6 +5,9 @@
 #ifndef RAYLIB_POKEMON_CLONE_GAME_H
 #define RAYLIB_POKEMON_CLONE_GAME_H
 
+#include <cjson/cJSON.h>
+
+#include "game_data.h"
 #include "maps_manager.h"
 #include "player.h"
 
@@ -24,7 +27,14 @@ typedef struct Game {
     Camera2D camera;
     Rectangle cameraBoundingBox;
     GameMetrics gameMetrics;
+
+    struct {
+        CharacterData *characterData;
+    } data;
 } Game;
+
+typedef struct DialogBox {
+} DialogBox;
 
 extern Game game;
 
@@ -33,5 +43,6 @@ void game_handle_input();
 void game_shutdown();
 void game_update(f32 deltaTime);
 void game_draw();
+
 
 #endif //RAYLIB_POKEMON_CLONE_GAME_H

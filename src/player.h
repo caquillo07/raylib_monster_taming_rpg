@@ -14,12 +14,12 @@ typedef struct Player {
 } Player;
 
 Player player_new(Vector2 position);
-void player_free(const Player *player);
-void player_input(Player *player);
-void player_update(Player *player, f32 deltaTime);
-void player_draw(const Player *player);
-void player_move(Player *player, f32 deltaTime);
-Vector2 player_get_center(const Player *player);
-
+void player_free(const Player *p);
+void player_input(Player *p);
+void player_update(Player *p, f32 deltaTime);
+void player_draw(const Player *p);
+Vector2 player_get_center(const Player *p);
+void player_block(Player *p);
+void player_unblock(Player *p);
 
 #endif //RAYLIB_POKEMON_CLONE_PLAYER_H
