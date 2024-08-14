@@ -13,6 +13,8 @@
 #include "array/array.h"
 
 static void character_animate(Character *c, f32 deltaTime);
+static bool line_intersects_rect(const Vector2 p1, const Vector2 p2, const Rectangle r);
+static bool character_has_line_of_sight(const Character *const c, const Rectangle *const rect);
 
 
 Character character_new(
@@ -30,7 +32,9 @@ Character character_new(
         .y = centerPosition.y - (f32) characterTileHeight / 2,
     };
     Character character = {
+        .radius = 0.f, // 0 means they dont fight?
         .blocked = false,
+        .canRotate = true,
         .state = CharacterStateIdle,
         .direction = direction,
         .tileMapID = tileMapID,
@@ -72,14 +76,37 @@ void character_free(const Character *c) {
     array_free(c->animatedSprite.sourceFrames);
 }
 
+void character_move_twoards(Character *c, const Vector2 point) {
+    // start to move the character twoards the player
+    // roundf here ensurces the line is always straight, and not slightly tilted.
+    c->velocity = Vector2Normalize(point);
+}
+
 void character_move(Character *c, const f32 deltaTime) {
-    c->frame.x += c->velocity.x * settings.playerSpeed * deltaTime;
-    c->frame.y += c->velocity.y * settings.playerSpeed * deltaTime;
+    c->frame.x += c->velocity.x * c->speed * deltaTime;
+    c->frame.y += c->velocity.y * c->speed * deltaTime;
 }
 
 void character_update(Character *c, const f32 deltaTime) {
-    if (!c->blocked) {
+    character_raycast(c);
+
+    if (c->isPlayer && !c->blocked) {
+        //player
         character_move(c, deltaTime);
+    }
+    if (!c->isPlayer && c->hasNoticed && !c->hasMoved) {
+        character_move(c, deltaTime);
+        if (CheckCollisionRecs(
+            rectangle_inflate(c->hitBox, 10, 10),
+            game.player.characterComponent.hitBox
+        )) {
+            printf("collides\n");
+            const Vector2 stop = {};
+            character_move_twoards(c, stop); // stop the character
+            c->hasMoved = true;
+
+            character_create_dialog(c);
+        }
     }
 
     character_animate(c, deltaTime);
@@ -168,7 +195,19 @@ void character_animate(Character *c, const f32 deltaTime) {
     c->hitBox = rectangle_deflate(c->frame, c->frame.width / 2, 60);
 }
 
-Vector2 character_get_center(const Character *c) {
+void character_create_dialog(const Character *character) {
+    game.dialogBubble.characterCenter = character_get_center(character);
+    game.dialogBubble.visible = true;
+    strncpy(game.dialogBubble.characterID, character->id, MAX_CHARACTER_ID_LENGTH);
+
+    printf(
+        "creating dialog at x=%.2f,y=%.2f\n",
+        game.dialogBubble.characterCenter.x,
+        game.dialogBubble.characterCenter.y
+    );
+}
+
+Vector2 character_get_center(const Character *const c) {
     return (Vector2){
         .x = c->frame.x + c->frame.width / 2,
         .y = c->frame.y + c->frame.height / 2,
@@ -193,10 +232,6 @@ void character_change_direction(Character *c, const Vector2 target) {
     }
 }
 
-void charager_get_dialog(const char *characterID, char **dialogArray, const u64 arrayLength) {
-    panicIf(arrayLength == 0, "dialog array cannot be zero");
-}
-
 CharacterDirection character_direction_from_str(const char *directionStr) {
     if (streq(directionStr, "right")) {
         return CharacterDirectionRight;
@@ -211,6 +246,98 @@ CharacterDirection character_direction_from_str(const char *directionStr) {
         return CharacterDirectionDown;
     }
     return CharacterDirectionNone;
+}
+
+
+// check if there is a character in the line of sight
+bool check_character_connection(const Character *const from, const Character *const to, const f32 radius) {
+    const Vector2 distFromCharToPlayer = Vector2Subtract(
+        character_get_center(to),
+        character_get_center(from)
+    );
+    if (Vector2Length(distFromCharToPlayer) < radius) {
+        const f32 tolerance = 30.f;
+        if (from->direction == CharacterDirectionLeft &&
+            // if the character is to the left of us
+            distFromCharToPlayer.x < 0 &&
+            // and we are in the same horizontal plane
+            fabsf(distFromCharToPlayer.y) < tolerance) {
+            return true;
+        }
+
+        if (from->direction == CharacterDirectionRight &&
+            // if the character is to the right of us
+            distFromCharToPlayer.x > 0 &&
+            // and we are in the same horizontal plane
+            fabsf(distFromCharToPlayer.y) < tolerance) {
+            return true;
+        }
+        if (from->direction == CharacterDirectionUp &&
+            // if the character is above us
+            distFromCharToPlayer.y < 0 &&
+            // and we are in the same vertical plane
+            fabsf(distFromCharToPlayer.x) < tolerance) {
+            return true;
+        }
+        if (from->direction == CharacterDirectionDown &&
+            // if the character is below us
+            distFromCharToPlayer.y > 0 &&
+            // and we are in the same vertical plane
+            fabsf(distFromCharToPlayer.x) < tolerance) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void character_raycast(Character *c) {
+    const bool hasConnection = check_character_connection(c, &game.player.characterComponent, c->radius);
+    if (hasConnection && character_has_line_of_sight(c, &game.player.characterComponent.frame) && !c->hasMoved) {
+        const Vector2 distFromCharToPlayer = Vector2Subtract(
+            character_get_center(&game.player.characterComponent),
+            character_get_center(c)
+        );
+        printf("%s found player: distance %0.2f/%0.2f\n", c->id, Vector2Length(distFromCharToPlayer), c->radius);
+        player_block(&game.player);
+
+        // make the player look at the character
+        character_change_direction(&game.player.characterComponent, (Vector2){c->frame.x, c->frame.y});
+        c->hasNoticed = true;
+
+        // start to move the character twoards the player
+        // roundf here ensurces the line is always straight, and not slightly tilted.
+        const Vector2 dest = {
+            .x = roundf(distFromCharToPlayer.x),
+            .y = roundf(distFromCharToPlayer.y),
+        };
+        character_move_twoards(c, dest);
+    }
+}
+
+// not the best, but works here. If need more performance, use Cohen-Sutherland algorithm
+// https://stackoverflow.com/a/23641016
+static bool line_intersects_rect(const Vector2 p1, const Vector2 p2, const Rectangle r) {
+    return CheckCollisionLines(p1, p2, (Vector2){r.x, r.y}, (Vector2){r.x + r.width, r.y}, nil) ||
+           CheckCollisionLines(p1, p2, (Vector2){r.x + r.width, r.y}, (Vector2){r.x + r.width, r.y + r.height}, nil) ||
+           CheckCollisionLines(p1, p2, (Vector2){r.x + r.width, r.y + r.height}, (Vector2){r.x, r.y + r.height}, nil) ||
+           CheckCollisionLines(p1, p2, (Vector2){r.x, r.y + r.height}, (Vector2){r.x, r.y}, nil) ||
+           (CheckCollisionPointRec(p1, r) && CheckCollisionPointRec(p2, r));
+}
+
+static bool character_has_line_of_sight(const Character *const c, const Rectangle *const rect) {
+    const Vector2 characterCenter = character_get_center(c);
+    const Vector2 rectPos = {.x = rect->x, .y = rect->y};
+    const f32 distance = Vector2Distance(characterCenter, rectPos);
+    if (distance < c->radius) {
+        array_range(game.currentMap->collisionBoxes, i) {
+            const Rectangle collisionRect = game.currentMap->collisionBoxes[i];
+            if (line_intersects_rect(characterCenter, rectPos, collisionRect)) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 const char *character_direction_string(const CharacterDirection d) {

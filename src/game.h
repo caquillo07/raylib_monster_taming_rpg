@@ -5,9 +5,6 @@
 #ifndef RAYLIB_POKEMON_CLONE_GAME_H
 #define RAYLIB_POKEMON_CLONE_GAME_H
 
-#include <cjson/cJSON.h>
-
-#include "game_data.h"
 #include "maps_manager.h"
 #include "player.h"
 
@@ -19,6 +16,13 @@ typedef struct GameMetrics {
     i64 drawnSprites;
 } GameMetrics;
 
+typedef struct DialogBubble {
+    i64 index;
+    bool visible;
+    char characterID[MAX_CHARACTER_ID_LENGTH];
+    Vector2 characterCenter;
+} DialogBubble;
+
 typedef struct Game {
     bool isDebug;
 
@@ -27,6 +31,7 @@ typedef struct Game {
     Camera2D camera;
     Rectangle cameraBoundingBox;
     GameMetrics gameMetrics;
+    DialogBubble dialogBubble;
 
     struct {
         CharacterData *characterData;

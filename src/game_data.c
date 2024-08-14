@@ -93,11 +93,7 @@ void init_character_data() {
             const cJSON *direction = cJSON_GetObjectItemCaseSensitive(characterData, "direction");
             panicIf(!cJSON_IsString(direction), "invalid direction field");
 
-            const cJSON *radius = cJSON_GetObjectItemCaseSensitive(characterData, "radius");
-            panicIf(!cJSON_IsNumber(radius), "invalid radius field");
-
             data.direction = character_direction_from_str(direction->valuestring);
-            data.radius = (u32) radius->valuedouble;
         } else {
             strncpy(data.biome, biome->valuestring, sizeof(data.biome) / sizeof(data.biome[0]));
         }

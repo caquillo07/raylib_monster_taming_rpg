@@ -240,7 +240,6 @@
   },
   "Nurse": {
     "direction": "down",
-    "radius": 0,
     "look_around": false,
     "dialog": {"default": ["Welcome to the hospital", "Your monsters have been healed"], "defeated": null},
     "directions": ["down"],

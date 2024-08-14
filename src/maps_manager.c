@@ -325,8 +325,9 @@ Character *init_over_world_characters(const tmx_layer *layer) {
         const tmx_property *directionProp = tmx_get_property(characterH->properties, "direction");
         const tmx_property *characterIDProp = tmx_get_property(characterH->properties, "character_id");
         const tmx_property *graphicProp = tmx_get_property(characterH->properties, "graphic");
+        const tmx_property *radiusProp = tmx_get_property(characterH->properties, "radius");
 
-        TileMapID characterTiledMapID;
+        TileMapID characterTiledMapID = TileMapIDMax;
         if (streq(graphicProp->value.string, "blond")) {
             characterTiledMapID = TileMapIDBlondCharacter;
         } else if (streq(graphicProp->value.string, "fire_boss")) {
@@ -345,11 +346,12 @@ Character *init_over_world_characters(const tmx_layer *layer) {
             characterTiledMapID = TileMapIDYoungGirlCharacter;
         } else if (streq(graphicProp->value.string, "young_guy")) {
             characterTiledMapID = TileMapIDYoungGuyCharacter;
-        } else {
+        }
+        if (characterTiledMapID == TileMapIDMax) {
             panic("unexpected graphics property for entity %s", graphicProp->value.string);
         }
 
-        CharacterDirection direction;
+        CharacterDirection direction = CharacterDirectionNone;
         if (streq(directionProp->value.string, "down")) {
             direction = CharacterDirectionDown;
         } else if (streq(directionProp->value.string, "up")) {
@@ -358,7 +360,8 @@ Character *init_over_world_characters(const tmx_layer *layer) {
             direction = CharacterDirectionRight;
         } else if (streq(directionProp->value.string, "left")) {
             direction = CharacterDirectionLeft;
-        } else {
+        }
+        if (direction == CharacterDirectionNone) {
             panic("unexpected direction property for entity: %s", directionProp->value.string);
         }
 
@@ -368,6 +371,14 @@ Character *init_over_world_characters(const tmx_layer *layer) {
             direction,
             characterIDProp->value.string
         );
+        character.speed = settings.charactersSpeed;
+
+        if (radiusProp != nil) {
+            const i32 radius = atoi(radiusProp->value.string);
+            if (radius > 0) {
+                character.radius = radius;
+            }
+        }
 
         character_set_center_at(&character, (Vector2){.x = (f32) characterH->x, .y = (f32) characterH->y});
         array_push(characters, character);

@@ -4,16 +4,21 @@
 
 #include <stdlib.h>
 #include "game.h"
+
+#include <tmx_utils.h>
+
 #include "common.h"
 #include "raylib.h"
 #include "maps_manager.h"
 #include "assets.h"
+#include "colors.h"
 #include "game_data.h"
 
 //
 static void setup_game(MapID mapID);
-static void game_draw_debug_camera();
 static void update_camera();
+static void game_draw_dialog_box();
+static void game_draw_debug_camera();
 static void game_draw_debug_screen();
 
 //
@@ -28,6 +33,7 @@ Game game;
 
 void game_init() {
     game = (Game){};
+
     maps_manager_init();
     load_assets();
     game_data_init();
@@ -87,9 +93,7 @@ static void do_game_handle_input() {
     //  we should instead hold a list of events on this frame and check them on each system
     //  instead. add the key press to the global event
     //  https://github.com/raysan5/raylib/blob/52f2a10db610d0e9f619fd7c521db08a876547d0/src/rcore.c#L297
-    if (!game.player.characterComponent.blocked) {
-        player_input(&game.player);
-    }
+    player_input(&game.player);
 }
 
 void game_handle_input() {
@@ -121,6 +125,7 @@ void game_draw() {
         BeginMode2D(game.camera); {
             map_draw(game.currentMap);
             // player_draw(game.player);
+            game_draw_dialog_box();
             game_draw_debug_camera();
         }
         EndMode2D();
@@ -172,6 +177,46 @@ static void game_draw_debug_camera() {
     DrawCircleV(game.camera.target, 5.f, BLUE);
 }
 
+static void game_draw_dialog_box() {
+    if (!game.dialogBubble.visible) {
+        return;
+    }
+    const CharacterData *data = game_data_for_character_id(game.dialogBubble.characterID);
+    panicIf(!data->defeated && game.dialogBubble.index >= MAX_REGULAR_DIALOG_ENTRIES);
+    panicIf(data->defeated && game.dialogBubble.index >= MAX_DEFEATED_DIALOG_ENTRIES);
+
+    const char *msg = data->defeated ?
+                          data->dialog.defeated[game.dialogBubble.index] :
+                          data->dialog.regular[game.dialogBubble.index];
+
+    const f32 fontSize = 33.f;
+    const f32 fontSpacing = 4.f;
+    const Vector2 textSize = MeasureTextEx(assets.dialogFont, msg, fontSize, fontSpacing);
+    const f32 textPadding = 20.f;
+    const f32 minWidth = 30.f;
+    const f32 bubbleWidth = textPadding * 2 + textSize.x;
+    const f32 bubbleHeight = textPadding * 2 + textSize.y;
+
+    const f32 radius = 0.3f;
+    const f32 padding = 70.f;
+    const Rectangle frame = {
+        .x = game.dialogBubble.characterCenter.x - (bubbleWidth / 2),
+        .y = game.dialogBubble.characterCenter.y - bubbleHeight - padding,
+        .height = max(bubbleHeight, minWidth),
+        .width = bubbleWidth,
+    };
+
+    DrawRectangleRounded(frame, radius, 0, gameColors[ColorsWhite]);
+    DrawTextEx(
+        assets.dialogFont,
+        msg,
+        (Vector2){frame.x + textPadding, frame.y + textPadding},
+        fontSize,
+        fontSpacing,
+        gameColors[ColorsBlack]
+    );
+}
+
 static void setup_game(const MapID mapID) {
     Map *map = load_map(mapID);
     game.currentMap = map;
@@ -180,6 +225,12 @@ static void setup_game(const MapID mapID) {
     // camera
     game.camera = (Camera2D){0};
     update_camera();
+
+    // dialog
+    const DialogBubble dialog = {
+        .visible = false,
+    };
+    game.dialogBubble = dialog;
 }
 
 static void update_camera() {

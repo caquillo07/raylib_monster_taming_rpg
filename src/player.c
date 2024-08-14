@@ -7,17 +7,19 @@
 #include "assets.h"
 #include "character_entity.h"
 #include "game.h"
+#include "game_data.h"
 #include "array/array.h"
 #include "raymath.h"
+#include "settings.h"
 
 static void player_handle_dialog(Player *p);
-static bool check_player_connection(const Player *p, const Character character, const f32 radius);
-void create_dialog(Player * p, const Character * character);
 
 Player player_new(const Vector2 position) {
-    const Player player = {
+    Player player = {
         .characterComponent = character_new(position, TileMapIDPlayer, CharacterDirectionDown, "player"),
     };
+    player.characterComponent.isPlayer = true; // todo - ugh
+    player.characterComponent.speed = settings.playerSpeed;
     return player;
 }
 
@@ -26,6 +28,14 @@ void player_free(const Player *p) {
 }
 
 void player_input(Player *p) {
+    if (IsKeyPressed(KEY_SPACE)) {
+        player_handle_dialog(p);
+    }
+
+    if (game.player.characterComponent.blocked) {
+        return;
+    }
+
     p->characterComponent.velocity = (Vector2){};
     if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) {
         p->characterComponent.direction = CharacterDirectionUp;
@@ -44,10 +54,6 @@ void player_input(Player *p) {
         p->characterComponent.velocity.x += 1;
     }
     p->characterComponent.velocity = Vector2Normalize(p->characterComponent.velocity);
-
-    if (IsKeyPressed(KEY_SPACE)) {
-        player_handle_dialog(p);
-    }
 }
 
 void player_update(Player *p, const f32 deltaTime) {
@@ -82,67 +88,41 @@ void player_update(Player *p, const f32 deltaTime) {
 }
 
 static void player_handle_dialog(Player *p) {
-    array_range(game.currentMap->overWorldCharacters, i) {
-        Character *character = &game.currentMap->overWorldCharacters[i];
+    if (!game.dialogBubble.visible) {
+        array_range(game.currentMap->overWorldCharacters, i) {
+            Character *character = &game.currentMap->overWorldCharacters[i];
 
-        if (check_player_connection(p, *character, 100.f)) {
-            printf("dialog with %s\n", character->id);
-            // block player input
-            player_block(p);
-            // entities face each other
-            character_change_direction(character, character_get_center(&p->characterComponent));
-            // create dialog
-            create_dialog(p, character);
+            if (check_character_connection(&p->characterComponent, character, 100.f)) {
+                printf("dialog with %s\n", character->id);
+                // block player input
+                player_block(p);
+                // entities face each other
+                character_change_direction(character, character_get_center(&p->characterComponent));
+                // create dialog
+                character_create_dialog(character);
+            }
         }
+        return;
+    }
+
+    game.dialogBubble.index++;
+    const CharacterData *data = game_data_for_character_id(game.dialogBubble.characterID);
+    const i32 maxDialogs = data->defeated ? MAX_DEFEATED_DIALOG_ENTRIES : MAX_REGULAR_DIALOG_ENTRIES;
+    const bool overflows = game.dialogBubble.index >= maxDialogs;
+    bool isEmptyEntry = false;
+    if (!overflows) {
+        isEmptyEntry = data->defeated ?
+                           streq(data->dialog.defeated[game.dialogBubble.index], "") :
+                           streq(data->dialog.regular[game.dialogBubble.index], "");
+    }
+
+    if (isEmptyEntry || overflows) {
+        player_unblock(p);
+        game.dialogBubble.visible = false;
+        game.dialogBubble.index = 0;
     }
 }
 
-// check if there is a character in the line of sight
-static bool check_player_connection(const Player *p, const Character character, const f32 radius) {
-    const Vector2 distFromCharToPlayer = Vector2Subtract(
-        character_get_center(&character),
-        character_get_center(&p->characterComponent)
-    );
-    if (Vector2Length(distFromCharToPlayer) < radius) {
-        const f32 tolerance = 30.f;
-        if (p->characterComponent.direction == CharacterDirectionLeft &&
-            // if the character is to the left of us
-            distFromCharToPlayer.x < 0 &&
-            // and we are in the same horizontal plane
-            fabsf(distFromCharToPlayer.y) < tolerance) {
-            return true;
-        }
-
-        if (p->characterComponent.direction == CharacterDirectionRight &&
-            // if the character is to the right of us
-            distFromCharToPlayer.x > 0 &&
-            // and we are in the same horizontal plane
-            fabsf(distFromCharToPlayer.y) < tolerance) {
-            return true;
-        }
-        if (p->characterComponent.direction == CharacterDirectionUp &&
-            // if the character is above us
-            distFromCharToPlayer.y < 0 &&
-            // and we are in the same vertical plane
-            fabsf(distFromCharToPlayer.x) < tolerance) {
-            return true;
-        }
-        if (p->characterComponent.direction == CharacterDirectionDown &&
-            // if the character is below us
-            distFromCharToPlayer.y > 0 &&
-            // and we are in the same vertical plane
-            fabsf(distFromCharToPlayer.x) < tolerance) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-void create_dialog(Player *p, const Character *character) {
-    const CharacterData *data = game_data_for_character_id(character->id);
-    printf("data: %s\n", data->id);
-}
 
 void player_draw(const Player *p) {
     // ok because the characters and the player are the same exact structure.

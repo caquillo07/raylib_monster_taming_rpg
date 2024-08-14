@@ -40,8 +40,16 @@ typedef struct Character {
     CharacterDirection direction;
     CharacterState state;
     TileMapID tileMapID;
+    f32 speed;
+
+    // todo remove - too lazy and im tired to think
+    bool isPlayer;
 
     bool blocked;
+    bool hasMoved;
+    bool canRotate;
+    bool hasNoticed;
+    f32 radius;
 } Character;
 
 #define MAX_CHARACTER_ID_LENGTH 128
@@ -70,7 +78,6 @@ typedef struct CharacterData {
     bool lookAround;
     bool defeated;
     char biome[64];
-    u32 radius;
 } CharacterData;
 
 
@@ -82,8 +89,10 @@ void character_move(Character *c, f32 deltaTime);
 void character_set_center_at(Character *c, Vector2 center);
 Vector2 character_get_center(const Character *c);
 void character_change_direction(Character *c, Vector2 target);
-void charager_get_dialog(const char *characterID, char **dialogArray, u64 arrayLength);
 CharacterDirection character_direction_from_str(const char *directionStr);
-
+void character_raycast(Character *c);
+bool check_character_connection(const Character *from, const Character *to, f32 radius);
+inline void character_move_twoards(Character *c, const Vector2 point);
+void character_create_dialog(const Character *character);
 
 #endif //RAYLIB_POKEMON_CLONE_CHARACTER_ENTITY_H
