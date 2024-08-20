@@ -127,6 +127,14 @@ static void player_handle_dialog(Player *p) {
 void player_draw(const Player *p) {
     // ok because the characters and the player are the same exact structure.
     character_draw(&p->characterComponent);
+    if (p->noticed) {
+        const f32 padding = 10;
+        const Vector2 exclamationPos = {
+            .x = p->characterComponent.frame.x + padding + padding,
+            .y = p->characterComponent.frame.y - assets.exclamationMarkTexture.height - padding,
+        };
+        DrawTextureV(assets.exclamationMarkTexture, exclamationPos, WHITE);
+    }
 }
 
 Vector2 player_get_center(const Player *p) {
@@ -141,4 +149,14 @@ void player_block(Player *p) {
 
 void player_unblock(Player *p) {
     p->characterComponent.blocked = false;
+}
+
+void player_set_noticed(Player *p) {
+    p->noticed = true;
+    timer_start(&p->noticedTimer, settings.playerNoticedTimerSec);
+}
+
+void player_unset_noticed(Player *p) {
+    p->noticed = false;
+    timer_stop(&p->noticedTimer);
 }

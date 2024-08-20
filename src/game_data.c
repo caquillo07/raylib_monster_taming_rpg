@@ -176,6 +176,7 @@ void init_character_data() {
             data.directions[count] = character_direction_from_str(entry->valuestring);
             count++;
         }
+        data.directionsLen = count;
         array_push(game.data.characterData, data);
     }
     cJSON_free(json);
@@ -205,5 +206,6 @@ CharacterData *game_data_for_character_id(const char *characterID) {
             return &game.data.characterData[i];
         }
     }
+    panic("unknown character ID %s\n", characterID);
     return nil;
 }

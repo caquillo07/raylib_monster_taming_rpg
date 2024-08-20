@@ -9,6 +9,7 @@
 #include "common.h"
 #include "sprites.h"
 #include "assets.h"
+#include "timer.h"
 
 typedef enum CharacterState {
     CharacterStateIdle,
@@ -31,6 +32,8 @@ typedef enum CharacterDirection {
 
 const char *character_direction_string(CharacterDirection d);
 
+// todo - The player is very similar, but different enough that keeping them
+// as one struct is annoying. I need to decouple this.
 typedef struct Character {
     char id[128];
     Rectangle frame;
@@ -45,11 +48,15 @@ typedef struct Character {
     // todo remove - too lazy and im tired to think
     bool isPlayer;
 
+    // todo this can be a bitmask instead, save swome space. Enums even?
     bool blocked;
     bool hasMoved;
-    bool canRotate;
+    bool canNoticePlayer;
     bool hasNoticed;
     f32 radius;
+
+    Timer patrolTimer;
+    u64 currentDirectionIndex;
 } Character;
 
 #define MAX_CHARACTER_ID_LENGTH 128
@@ -75,6 +82,7 @@ typedef struct CharacterData {
 
     CharacterDirection direction;
     CharacterDirection directions[MAX_DIRECTIONS_ENTRIES];
+    i8 directionsLen;
     bool lookAround;
     bool defeated;
     char biome[64];
@@ -92,7 +100,7 @@ void character_change_direction(Character *c, Vector2 target);
 CharacterDirection character_direction_from_str(const char *directionStr);
 void character_raycast(Character *c);
 bool check_character_connection(const Character *from, const Character *to, f32 radius);
-inline void character_move_twoards(Character *c, const Vector2 point);
+inline void character_move_twoards(Character *c, Vector2 point);
 void character_create_dialog(const Character *character);
 
 #endif //RAYLIB_POKEMON_CLONE_CHARACTER_ENTITY_H

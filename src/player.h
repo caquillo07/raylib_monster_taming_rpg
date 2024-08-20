@@ -11,6 +11,8 @@
 
 typedef struct Player {
     Character characterComponent;
+    Timer noticedTimer;
+    bool noticed;
 } Player;
 
 Player player_new(Vector2 position);
@@ -21,5 +23,7 @@ void player_draw(const Player *p);
 Vector2 player_get_center(const Player *p);
 void player_block(Player *p);
 void player_unblock(Player *p);
+void player_set_noticed(Player *p);
+void player_unset_noticed(Player *p);
 
 #endif //RAYLIB_POKEMON_CLONE_PLAYER_H

@@ -10,7 +10,7 @@
 #include "common.h"
 #include "array/array.h"
 
-static Texture2D *import_textures_from_directory(char *dir);
+static Texture2D *import_textures_from_directory(const char *dir);
 static int dir_entry_compare(const void *lhsp, const void *rhsp);
 static TileMap load_tile_map(i32 cols, i32 rows, const char *imagePath);
 
@@ -41,6 +41,7 @@ void load_assets() {
     assets.sandTexture = LoadTexture("./graphics/objects/sand.png");
 
     assets.characterShadowTexture = LoadTexture("./graphics/other/shadow.png");
+    assets.exclamationMarkTexture = LoadTexture("./graphics/ui/notice.png");
 
     assets.dialogFont = LoadFontEx("./graphics/fonts/PixeloidSans.ttf", 30, nil, 250);
 }
@@ -81,11 +82,12 @@ void unload_assets() {
     UnloadTexture(assets.sandTexture);
 
     UnloadTexture(assets.characterShadowTexture);
+    UnloadTexture(assets.exclamationMarkTexture);
 
     UnloadFont(assets.dialogFont);
 }
 
-static Texture2D *import_textures_from_directory(char *dirPath) {
+static Texture2D *import_textures_from_directory(const char *dirPath) {
     DIR *dir = opendir(dirPath);
     panicIfNil(dir, "failed to open directory %s for texture", dirPath);
 

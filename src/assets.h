@@ -42,6 +42,7 @@ typedef struct Assets {
     Texture2D iceGrassTexture;
     Texture2D sandTexture;
     Texture2D characterShadowTexture;
+    Texture2D exclamationMarkTexture;
 
     Font dialogFont;
 } Assets;
