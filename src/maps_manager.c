@@ -32,7 +32,37 @@ static MapInfo mapAtlas[MapIDMax] = {
         .name = "hospital",
         .mapFilePath = map_path(hospital.tmx),
         .startingPositionObjectID = 1,
-    }
+    },
+    {
+        .id = MapIDHouse,
+        .name = "house",
+        .mapFilePath = map_path(house.tmx),
+        .startingPositionObjectID = 1,
+    },
+    {
+        .id = MapIDArena,
+        .name = "arena",
+        .mapFilePath = map_path(arena.tmx),
+        .startingPositionObjectID = 854,
+    },
+    {
+        .id = MapIDFire,
+        .name = "fire",
+        .mapFilePath = map_path(fire.tmx),
+        .startingPositionObjectID = 854,
+    },
+    {
+        .id = MapIDPlant,
+        .name = "plant",
+        .mapFilePath = map_path(plant.tmx),
+        .startingPositionObjectID = 854,
+    },
+    {
+        .id = MapIDWater,
+        .name = "water",
+        .mapFilePath = map_path(water.tmx),
+        .startingPositionObjectID = 854,
+    },
 };
 
 static bool loaded = false;
@@ -54,6 +84,7 @@ static void init_terrain_sprites(Map *map, const tmx_layer *layer, bool isTopLay
 Character *init_over_world_characters(const tmx_layer *layer);
 static void init_collision_sprites(Map *map, const tmx_layer *layer);
 static void init_transition_sprites(Map *map, const tmx_layer *layer);
+static Vector2 find_player_position(const tmx_layer *layer);
 
 static void draw_static_sprite(StaticSprite sprite);
 static void draw_animated_textures_sprites(AnimatedTexturesSprite *waterSprites);
@@ -202,10 +233,12 @@ Map *load_map(const MapID mapID) {
 
     // get player starting position
     const tmx_object *startingPlayerObject = tmx_find_object_by_id(map->tiledMap, mapInfo.startingPositionObjectID);
+    panicIfNil(startingPlayerObject);
     map->playerStartingPosition = (Vector2){
         .x = (f32) startingPlayerObject->x,
         .y = (f32) startingPlayerObject->y,
     };
+    // map->playerStartingPosition = find_player_position(entitiesLayer);
     return map;
 }
 
@@ -240,7 +273,7 @@ void map_free(Map *map) {
 }
 
 MapID map_id_for_name(const char *name) {
-    for (i32 i = 0; i < static_array_len(mapAtlas); i++) {
+    for (u32 i = 0; i < static_array_len(mapAtlas); i++) {
         if (streq(name, mapAtlas[i].name)) {
             return mapAtlas[i].id;
         }
@@ -331,6 +364,18 @@ static AnimatedTexturesSprite *init_water_sprites(const tmx_layer *layer) {
     }
 
     return animatedSprite;
+}
+
+Vector2 find_player_position(const tmx_layer *layer) {
+    const tmx_object *characterH = layer->content.objgr->head;
+    while (characterH) {
+        if (streq(characterH->name, "Player")) {
+            return (Vector2){.x = (f32) characterH->x, .y = (f32) characterH->y};
+        }
+    }
+
+    panic("did not find the player position in layer");
+    return (Vector2){};
 }
 
 Character *init_over_world_characters(const tmx_layer *layer) {
@@ -625,7 +670,7 @@ void init_transition_sprites(Map *map, const tmx_layer *layer) {
             .width = (f32) objectHead->width,
             .height = (f32) objectHead->height,
         };
-        const TransitionSprite sprite = {
+        TransitionSprite sprite = {
             .box = boundingBox,
             .destination = "",
             .destinationPos = "",

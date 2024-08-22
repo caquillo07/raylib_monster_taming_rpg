@@ -15,10 +15,17 @@
 typedef enum MapID {
     MapIDWorld = 0,
     MapIDHospital = 1,
+    MapIDHouse = 2,
+    MapIDArena = 3,
+    MapIDFire = 4,
+    MapIDPlant = 5,
+    MapIDWater = 6,
+
     MapIDMax
 } MapID;
 
 #define  MAX_MAP_NAME_LEN 32
+
 typedef struct MapInfo {
     MapID id;
     char name[MAX_MAP_NAME_LEN];
@@ -27,6 +34,7 @@ typedef struct MapInfo {
 } MapInfo;
 
 #define MAX_TRASNSITION_DEST_LEN 32
+
 typedef struct TransitionSprite {
     Rectangle box;
     char destination[MAX_TRASNSITION_DEST_LEN];
