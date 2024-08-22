@@ -12,4 +12,5 @@ GameSettings settings = {
     .waterAnimationSpeed = 4,
     .coastLineAnimationSpeed = 4,
     .charactersPatrolIntervalSecs = 3,
+    .fadeTransitionSpeed =  600.f,
 };

@@ -43,9 +43,14 @@ typedef ssize_t isize;
 #define panicIf(condition, ...) if (condition) { panic(__VA_ARGS__); }
 #define panicIfNil(ptr, ...) if (ptr == nil) { panic( __VA_ARGS__); }
 
+#define printfln(str, ...) printf(str "\n", ##__VA_ARGS__)
+
 // cant forget the null character at the end of the string .-.
 #define streq(str, val) (strncmp(str, val, strlen(val)+1) == 0)
 
+#define static_array_len(arr) (arr != nil ? sizeof(arr)/sizeof(arr[0]) : 0)
+
 void initLogger();
+f32 clamp(f32 n, f32 mi, f32 ma);
 
 #endif //POKEMON_GAME_COMMON_H

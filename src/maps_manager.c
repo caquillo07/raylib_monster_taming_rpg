@@ -23,15 +23,15 @@
 static MapInfo mapAtlas[MapIDMax] = {
     {
         .id = MapIDWorld,
-        .name = "world_map",
+        .name = "world",
         .mapFilePath = map_path(world.tmx),
         .startingPositionObjectID = 12,
     },
     {
         .id = MapIDHospital,
-        .name = "hospital_map",
+        .name = "hospital",
         .mapFilePath = map_path(hospital.tmx),
-        .startingPositionObjectID = 12,
+        .startingPositionObjectID = 1,
     }
 };
 
@@ -50,9 +50,10 @@ static AnimatedTexturesSprite *init_water_sprites(const tmx_layer *layer);
 static AnimatedTiledSprite *init_coast_line_sprites(const tmx_layer *layer);
 static void init_monster_encounter_sprites(Map *map, const tmx_layer *layer);
 static void init_object_sprites(Map *map, const tmx_layer *layer);
-static void init_terrain_sprites(Map *map, const tmx_layer *layer);
+static void init_terrain_sprites(Map *map, const tmx_layer *layer, bool isTopLayer);
 Character *init_over_world_characters(const tmx_layer *layer);
 static void init_collision_sprites(Map *map, const tmx_layer *layer);
+static void init_transition_sprites(Map *map, const tmx_layer *layer);
 
 static void draw_static_sprite(StaticSprite sprite);
 static void draw_animated_textures_sprites(AnimatedTexturesSprite *waterSprites);
@@ -89,10 +90,12 @@ static int compare_entities(const void *a, const void *b) {
     const Entity entityA = *((Entity *) a);
     const Entity entityB = *((Entity *) b);
 
-    if (entityA.ySort == entityB.ySort) {
+    if (entityA.ySort == entityB.ySort && entityA.layer == entityB.layer) {
         return 0;
     }
-    if (entityA.ySort < entityB.ySort) {
+
+    // the layer check is a hack to make up for the inconsistent map design
+    if (entityA.ySort < entityB.ySort || entityA.layer < entityB.layer) {
         return -1;
     }
 
@@ -111,6 +114,7 @@ Map *load_map(const MapID mapID) {
     map->backgroundSprites = nil;
     map->mainSprites = nil;
     map->foregroundSprites = nil;
+    map->transitionBoxes = nil;
 
     map->tiledMap = tmx_load(mapInfo.mapFilePath);
     panicIfNil(map->tiledMap, "tmx_error: %s", tmx_strerr());
@@ -143,6 +147,10 @@ Map *load_map(const MapID mapID) {
     const tmx_layer *collisionsLayer = tmx_find_layer_by_name(map->tiledMap, "Collisions");
     panicIfNil(collisionsLayer, "could not find the Collissions layer in the tmx map");
 
+    // transitions
+    const tmx_layer *transitionsLayer = tmx_find_layer_by_name(map->tiledMap, "Transition");
+    panicIfNil(transitionsLayer, "could not find the Transition layer in the tmx map");
+
     // Water
     const tmx_layer *waterLayer = tmx_find_layer_by_name(map->tiledMap, "Water");
     panicIfNil(waterLayer, "could not find the Objects layer in the tmx map");
@@ -157,10 +165,11 @@ Map *load_map(const MapID mapID) {
     map->overWorldCharacters = init_over_world_characters(entitiesLayer);
 
     init_monster_encounter_sprites(map, monsterEcounterLayer);
-    init_terrain_sprites(map, terrainLayer);
-    init_terrain_sprites(map, terrainTopLayer);
+    init_terrain_sprites(map, terrainLayer, false);
+    init_terrain_sprites(map, terrainTopLayer, true);
     init_object_sprites(map, objectsLayer);
     init_collision_sprites(map, collisionsLayer);
+    init_transition_sprites(map, transitionsLayer);
 
     game.gameMetrics.totalSprites += array_length(map->waterSpritesList) +
         array_length(map->coastLineSpritesList) +
@@ -192,16 +201,17 @@ Map *load_map(const MapID mapID) {
     );
 
     // get player starting position
-    const tmx_object *housePlayerObject = tmx_find_object_by_id(map->tiledMap, mapInfo.startingPositionObjectID);
+    const tmx_object *startingPlayerObject = tmx_find_object_by_id(map->tiledMap, mapInfo.startingPositionObjectID);
     map->playerStartingPosition = (Vector2){
-        .x = (f32) housePlayerObject->x,
-        .y = (f32) housePlayerObject->y,
+        .x = (f32) startingPlayerObject->x,
+        .y = (f32) startingPlayerObject->y,
     };
     return map;
 }
 
 void map_free(Map *map) {
     // todo(hector) - free new generic sprites array
+    array_free(map->transitionBoxes);
     array_free(map->collisionBoxes);
     array_free(map->backgroundSprites);
     array_free(map->mainSprites);
@@ -229,6 +239,16 @@ void map_free(Map *map) {
     mfree(map, sizeof(*map), MemoryTagGame);
 }
 
+MapID map_id_for_name(const char *name) {
+    for (i32 i = 0; i < static_array_len(mapAtlas); i++) {
+        if (streq(name, mapAtlas[i].name)) {
+            return mapAtlas[i].id;
+        }
+    }
+    panic("invalid map requested \"%s\"", name);
+    return 0;
+}
+
 static void init_monster_encounter_sprites(Map *map, const tmx_layer *layer) {
     const tmx_object *monsterTileH = layer->content.objgr->head;
     while (monsterTileH) {
@@ -237,7 +257,7 @@ static void init_monster_encounter_sprites(Map *map, const tmx_layer *layer) {
             continue;
         }
         const tmx_property *biomeProp = tmx_get_property(monsterTileH->properties, "biome");
-        Texture2D texture;
+        Texture2D texture = {};
         WorldLayer worldLayer = WorldLayerMain;
         if (streq(biomeProp->value.string, "ice")) {
             texture = assets.iceGrassTexture;
@@ -496,7 +516,9 @@ static AnimatedTiledSprite *init_coast_line_sprites(const tmx_layer *layer) {
     return spritesList;
 }
 
-static void init_terrain_sprites(Map *map, const tmx_layer *layer) {
+// I hate the boolean, but i don't feel like changing the way the map is setup
+// for this test project
+static void init_terrain_sprites(Map *map, const tmx_layer *layer, bool isTopLayer) {
     if (layer == nil || layer->name == nil) {
         printf("no layer found\n");
         return;
@@ -539,7 +561,7 @@ static void init_terrain_sprites(Map *map, const tmx_layer *layer) {
                 .entity = {
                     .id = texture.id,
                     .position = destination,
-                    .layer = WorldLayerBackground,
+                    .layer = isTopLayer ? WorldLayerMain : WorldLayerBackground,
                     .ySort = destination.y + (boundingBox.height / 2),
                 },
                 .texture = texture,
@@ -553,7 +575,7 @@ static void init_terrain_sprites(Map *map, const tmx_layer *layer) {
     }
 }
 
-void init_collision_sprites(Map *map, const tmx_layer *layer) {
+static void init_collision_sprites(Map *map, const tmx_layer *layer) {
     if (layer == nil || layer->name == nil) {
         printf("no layer objects found\n");
         return;
@@ -575,6 +597,51 @@ void init_collision_sprites(Map *map, const tmx_layer *layer) {
 
         array_push(map->collisionBoxes, boundingBox);
 
+        objectHead = objectHead->next;
+    }
+}
+
+void init_transition_sprites(Map *map, const tmx_layer *layer) {
+    const tmx_object *objectHead = layer->content.objgr->head;
+    while (objectHead) {
+        if (!objectHead->visible) {
+            objectHead = objectHead->next;
+            continue;
+        }
+        const tmx_property *targetProp = tmx_get_property(objectHead->properties, "target");
+        panicIfNil(targetProp, "expected coast line object ot have 'target' property");
+
+        const tmx_property *posProp = tmx_get_property(objectHead->properties, "pos");
+        panicIfNil(posProp, "expected coast line object ot have 'pos' property");
+
+        usize len = strnlen(targetProp->value.string, MAX_TRASNSITION_DEST_LEN + 1);
+        panicIf(len == 0 || len >= MAX_TRASNSITION_DEST_LEN + 1, "found a bad string for 'target' property");
+        len = strnlen(posProp->value.string, MAX_TRASNSITION_DEST_LEN + 1);
+        panicIf(len == 0 || len >= MAX_TRASNSITION_DEST_LEN + 1, "found a bad string for 'pos' property");
+
+        const Rectangle boundingBox = {
+            .x = (f32) objectHead->x,
+            .y = (f32) objectHead->y,
+            .width = (f32) objectHead->width,
+            .height = (f32) objectHead->height,
+        };
+        const TransitionSprite sprite = {
+            .box = boundingBox,
+            .destination = "",
+            .destinationPos = "",
+        };
+        strncpy(
+            sprite.destination,
+            targetProp->value.string,
+            sizeof(sprite.destination) / sizeof(sprite.destination[0])
+        );
+        strncpy(
+            sprite.destinationPos,
+            posProp->value.string,
+            sizeof(sprite.destinationPos) / sizeof(sprite.destinationPos[0])
+        );
+
+        array_push(map->transitionBoxes, sprite);
         objectHead = objectHead->next;
     }
 }
@@ -683,11 +750,12 @@ void map_draw(const Map *map) {
         const StaticSprite sprite = map->mainSprites[i];
         // todo(hector) - no me gusta, but its a quick hack that doesnt require refactoring the whole map system.
         if (!playerDrawn && sprite.entity.ySort > game.player.characterComponent.animatedSprite.entity.ySort) {
-            player_draw(&game.player);
+            // player_draw(&game.player);
             playerDrawn = true;
         }
         draw_static_sprite(sprite);
     }
+    player_draw(&game.player);
 
     // foreground sprites
     array_range(map->foregroundSprites, i) {
@@ -699,10 +767,21 @@ void map_draw(const Map *map) {
         array_range(map->collisionBoxes, i) {
             DrawRectangleLinesEx(map->collisionBoxes[i], 5.f, BLUE);
         }
+        array_range(map->transitionBoxes, i) {
+            DrawRectangleLinesEx(map->transitionBoxes[i].box, 5.f, LIME);
+        }
+    }
+    array_range(map->transitionBoxes, i) {
+        DrawRectangleLinesEx(map->transitionBoxes[i].box, 5.f, LIME);
     }
 }
 
-static void draw_tile(void *imageTexture2D, const Rectangle sourceRec, const Vector2 destination, const f32 opacity) {
+static void draw_tile(
+    void *imageTexture2D,
+    const Rectangle sourceRec,
+    const Vector2 destination,
+    const f32 opacity
+) {
     const u8 c = (u8) opacity * 255;
     const Color tint = {c, c, c, c};
     DrawTextureRec(*(Texture2D *) imageTexture2D, sourceRec, destination, tint);
@@ -804,7 +883,7 @@ static void texture_free_callback(void *ptr) {
 
 static u64 totalMapMemoryAllocated = 0;
 
-void *map_alloc_callback(void *ptr, size_t len) {
+void *map_alloc_callback(void *ptr, const size_t len) {
     // TODO - what to do .-.
     totalMapMemoryAllocated += len;
     // slogi("allocating %d bytes for map, total: %d", len, totalMapMemoryAllocated);

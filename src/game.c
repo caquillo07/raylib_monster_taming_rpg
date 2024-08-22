@@ -13,6 +13,8 @@
 #include "assets.h"
 #include "colors.h"
 #include "game_data.h"
+#include "settings.h"
+#include "array/array.h"
 
 //
 static void setup_game(MapID mapID);
@@ -20,6 +22,10 @@ static void update_camera();
 static void game_draw_dialog_box();
 static void game_draw_debug_camera();
 static void game_draw_debug_screen();
+static void do_map_transition_check();
+static void handle_screen_transition(f32 dt);
+static void game_draw_fade_transition();
+static void game_load_map(MapID mapID);
 
 //
 MapID startingMap = MapIDWorld;
@@ -75,17 +81,11 @@ static void do_game_handle_input() {
     }
 
     if (IsKeyPressed(KEY_F3) && game.currentMap->id != MapIDWorld) {
-        map_free(game.currentMap);
-        game.currentMap = load_map(MapIDWorld);
-        game.player.characterComponent.frame.x = game.currentMap->playerStartingPosition.x;
-        game.player.characterComponent.frame.y = game.currentMap->playerStartingPosition.y;
+        game_load_map(MapIDWorld);
         return;
     }
     if (IsKeyPressed(KEY_F4) && game.currentMap->id != MapIDHospital) {
-        map_free(game.currentMap);
-        game.currentMap = load_map(MapIDHospital);
-        game.player.characterComponent.frame.x = game.currentMap->playerStartingPosition.x;
-        game.player.characterComponent.frame.y = game.currentMap->playerStartingPosition.y;
+        game_load_map(MapIDHospital);
         return;
     }
 
@@ -106,10 +106,15 @@ static void do_game_update(const f32 deltaTime) {
     if (frameStepMode && !shouldRenderFrame) {
         return;
     }
-    player_update(&game.player, deltaTime);
+    do_map_transition_check();
     map_update(game.currentMap, deltaTime);
+    player_update(&game.player, deltaTime);
+
+    // player pos x: 132.75, y: 542.70
+    // printfln("player pos x: %.2f, y: %.2f", game.player.characterComponent.frame.x, game.player.characterComponent.frame.y);
 
     update_camera();
+    handle_screen_transition(deltaTime);
 }
 
 void game_update(const f32 deltaTime) {
@@ -129,6 +134,10 @@ void game_draw() {
             game_draw_debug_camera();
         }
         EndMode2D();
+
+        game_draw_fade_transition();
+
+        // last thing we draw
         game_draw_debug_screen();
     }
     EndDrawing();
@@ -170,11 +179,75 @@ static void game_draw_debug_screen() {
     DrawText(gameMetricsText, 12, (i32) (30.f + textSize.y), 20, DARKBLUE);
 }
 
+static void do_map_transition_check() {
+    array_range(game.currentMap->transitionBoxes, i) {
+        TransitionSprite *transitionSprite = &game.currentMap->transitionBoxes[i];
+        const bool collides = CheckCollisionRecs(transitionSprite->box, game.player.characterComponent.hitBox);
+        if (collides && game.transition.target == nil) {
+            game.transition.target = transitionSprite;
+            game.transition.mode = TransitionModeFadeOut;
+            game.transition.progress = 0.f;
+            game.transition.speed = settings.fadeTransitionSpeed;
+        }
+    }
+}
+
+static void handle_screen_transition(const f32 dt) {
+    switch (game.transition.mode) {
+        case TransitionModeFadeOut:
+            panicIfNil(game.transition.target);
+            player_block(&game.player);
+            game.transition.progress += game.transition.speed * dt;
+            if (game.transition.progress >= 255) {
+                game.transition.mode = TransitionModeFadeIn;
+                const MapID nextMapID = map_id_for_name(game.transition.target->destination);
+                game_load_map(nextMapID);
+            }
+            break;
+        case TransitionModeFadeIn:
+            panicIfNil(game.transition.target);
+            game.transition.progress -= game.transition.speed * dt;
+            if (game.transition.progress <= 0) {
+                game.transition.mode = TransitionModeNone;
+                game.transition.target = nil;
+                player_unblock(&game.player);
+            }
+            break;
+
+        case TransitionModeNone: break;
+        default: panic("invalid tint mode while fading screen");
+    }
+}
+
 static void game_draw_debug_camera() {
     if (!game.isDebug) { return; }
 
     // Draw camera anchor
     DrawCircleV(game.camera.target, 5.f, BLUE);
+}
+
+static void game_draw_fade_transition() {
+    if (game.transition.target == nil) {
+        return;
+    }
+    const Rectangle screen = {
+        .x = 0,
+        .y = 0,
+        .height = GetScreenHeight(),
+        .width = GetScreenWidth(),
+    };
+    const f32 a = clamp(game.transition.progress, 0, 255);
+    printfln("progress: %.2f", a);
+    const Color c = {0, 0, 0, a};
+    DrawRectangleRec(screen, c);
+}
+
+void game_load_map(const MapID mapID) {
+    map_free(game.currentMap);
+    game.currentMap = load_map(mapID);
+    // game.player.characterComponent.frame.x = game.currentMap->playerStartingPosition.x;
+    // game.player.characterComponent.frame.y = game.currentMap->playerStartingPosition.y;
+    character_set_center_at(&game.player.characterComponent, game.currentMap->playerStartingPosition);
 }
 
 static void game_draw_dialog_box() {

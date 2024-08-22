@@ -19,3 +19,8 @@ void initLogger() {
 
     slog_config_set(&cfg);
 }
+
+f32 clamp(const f32 n, const f32 mi, const f32 ma) {
+    const double t = n < mi ? mi : n;
+    return t > ma ? ma : t;
+}

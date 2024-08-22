@@ -23,6 +23,14 @@ typedef struct DialogBubble {
     Vector2 characterCenter;
 } DialogBubble;
 
+typedef enum TransitionMode {
+    TransitionModeNone = 0,
+    TransitionModeFadeOut,
+    TransitionModeFadeIn,
+
+    TransitionModeCount,
+} TransitionMode;
+
 typedef struct Game {
     bool isDebug;
 
@@ -32,6 +40,14 @@ typedef struct Game {
     Rectangle cameraBoundingBox;
     GameMetrics gameMetrics;
     DialogBubble dialogBubble;
+
+    // transitions
+    struct {
+        TransitionSprite *target;
+        TransitionMode mode;
+        f32 progress;
+        f32 speed;
+    } transition;
 
     struct {
         CharacterData *characterData;
