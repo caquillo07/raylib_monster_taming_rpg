@@ -110,9 +110,6 @@ static void do_game_update(const f32 deltaTime) {
     map_update(game.currentMap, deltaTime);
     player_update(&game.player, deltaTime);
 
-    // player pos x: 132.75, y: 542.70
-    // printfln("player pos x: %.2f, y: %.2f", game.player.characterComponent.frame.x, game.player.characterComponent.frame.y);
-
     update_camera();
     handle_screen_transition(deltaTime);
 }
@@ -245,8 +242,6 @@ static void game_draw_fade_transition() {
 void game_load_map(const MapID mapID) {
     map_free(game.currentMap);
     game.currentMap = load_map(mapID);
-    // game.player.characterComponent.frame.x = game.currentMap->playerStartingPosition.x;
-    // game.player.characterComponent.frame.y = game.currentMap->playerStartingPosition.y;
     character_set_center_at(&game.player.characterComponent, game.currentMap->playerStartingPosition);
 }
 
