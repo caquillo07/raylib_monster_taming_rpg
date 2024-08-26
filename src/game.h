@@ -7,6 +7,7 @@
 
 #include "maps_manager.h"
 #include "player.h"
+#include "monsters.h"
 
 typedef struct GameMetrics {
     f64 timeInInput;
@@ -51,11 +52,9 @@ typedef struct Game {
 
     struct {
         CharacterData *characterData;
+        MonsterData *monsterData;
     } data;
 } Game;
-
-typedef struct DialogBox {
-} DialogBox;
 
 extern Game game;
 
@@ -64,6 +63,5 @@ void game_handle_input();
 void game_shutdown();
 void game_update(f32 deltaTime);
 void game_draw();
-
 
 #endif //RAYLIB_POKEMON_CLONE_GAME_H

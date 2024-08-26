@@ -1,7 +1,7 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include <slog.h>
 #include "array.h"
 #include "../memory/memory.h"
+#include "../common.h"
 
 // todo(hector) - make this header into a struct?
 #define ARRAY_RAW_DATA(array) ((int*)(array) - 3)

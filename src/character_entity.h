@@ -82,7 +82,7 @@ typedef struct CharacterData {
 
     CharacterDirection direction;
     CharacterDirection directions[MAX_DIRECTIONS_ENTRIES];
-    i8 directionsLen;
+    u8 directionsLen;
     bool lookAround;
     bool defeated;
     char biome[64];

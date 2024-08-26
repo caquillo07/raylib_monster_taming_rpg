@@ -11,7 +11,6 @@
 #include "sprites.h"
 #include "character_entity.h"
 
-
 typedef enum MapID {
     MapIDWorld = 0,
     MapIDHospital = 1,
