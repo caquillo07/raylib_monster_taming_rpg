@@ -6,10 +6,10 @@
 #include "game.h"
 #include "array/array.h"
 #include "colors.h"
-#include <ranlib.h>
+#include <raylib.h>
 
 void monster_index_state_init() {
-    MonsterIndexState state = {
+    const MonsterIndexState state = {
         .frame = {
             .height = (f32) GetScreenHeight(),
             .width = (f32) GetScreenWidth(),
