@@ -180,7 +180,7 @@ static void game_draw_debug_screen() {
         "Time in input: %0.4f\n"
         "Time in update: %0.4f\n"
         "Time in draw: %0.4f\n"
-        "Sprites Drawn: %lld/%lld",
+        "Sprites Drawn: %ld/%ld",
         game.gameMetrics.timeInInput,
         // todo make this static variables inside the functions instead.
         game.gameMetrics.timeInUpdate,

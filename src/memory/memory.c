@@ -128,8 +128,8 @@ char *get_memory_usage_str() {
         "\tTagged memory not freed: %.2f%c%s\n"
         "\tMemory currently allocated: %.2f%c\n"
         "\tTotal memory allocated: %.2f%c\n"
-        "\tTotal memory allocations: %llu\n"
-        "\tTotal memory frees: %llu\n"
+        "\tTotal memory allocations: %lu\n"
+        "\tTotal memory frees: %lu\n"
         "",
         normalize_memory_size(allocatedMemory),
         get_memory_unit_for_size1(allocatedMemory),

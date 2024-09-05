@@ -133,7 +133,7 @@ static Texture2D *import_textures_from_directory(const char *dirPath) {
 
     struct dirent *fileInfo;
     struct dirent *dynFileInfoList = nil;
-    while ((fileInfo = readdir(dir)) != 0) {
+    while ((fileInfo = readdir(dir)) != nil) {
         if (strncmp(".", fileInfo->d_name, 1) == 0 || strncmp("..", fileInfo->d_name, 2) == 0) {
             continue;
         }
