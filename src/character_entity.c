@@ -75,9 +75,8 @@ void character_free(const Character *c) {
     array_free(c->animatedSprite.sourceFrames);
 }
 
-void character_move_twoards(Character *c, const Vector2 point) {
-    // start to move the character twoards the player
-    // roundf here ensurces the line is always straight, and not slightly tilted.
+void character_move_towards(Character *c, const Vector2 point) {
+    // start to move the character towards the player
     c->velocity = Vector2Normalize(point);
 }
 
@@ -116,7 +115,7 @@ void character_update(Character *c, const f32 deltaTime) {
                 game.player.characterComponent.hitBox
             )) {
                 const Vector2 stop = {};
-                character_move_twoards(c, stop); // stop the character
+                character_move_towards(c, stop); // stop the character
                 c->hasMoved = true;
 
                 character_create_dialog(c);
@@ -329,7 +328,7 @@ void character_raycast(Character *c) {
             .x = roundf(distFromCharToPlayer.x),
             .y = roundf(distFromCharToPlayer.y),
         };
-        character_move_twoards(c, dest);
+        character_move_towards(c, dest);
     }
 }
 

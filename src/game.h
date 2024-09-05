@@ -8,6 +8,7 @@
 #include "maps_manager.h"
 #include "player.h"
 #include "monsters.h"
+#include "monster_index.h"
 
 typedef struct GameMetrics {
     f64 timeInInput;
@@ -32,11 +33,24 @@ typedef enum TransitionMode {
     TransitionModeCount,
 } TransitionMode;
 
+typedef enum GameModeState {
+    GameModeNone = 0,
+    GameModeLoading,
+    GameModePlaying,
+    GameModeMonsterIndex,
+    GameModeBattle,
+
+    GameModeCount,
+} GameModeState;
+
+#define MAX_PLAYER_MONSTERS_LEN 8
 typedef struct Game {
     bool isDebug;
+    GameModeState gameModeState;
 
     Map *currentMap;
     Player player;
+    Monster playerMonsters[MAX_PLAYER_MONSTERS_LEN];
     Camera2D camera;
     Rectangle cameraBoundingBox;
     GameMetrics gameMetrics;
@@ -49,6 +63,9 @@ typedef struct Game {
         f32 progress;
         f32 speed;
     } transition;
+
+    // monsters index
+    MonsterIndexState monsterIndex;
 
     struct {
         CharacterData *characterData;

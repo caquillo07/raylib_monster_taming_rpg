@@ -2,7 +2,6 @@
 // Created by Hector Mejia on 5/4/24.
 //
 
-#include <stdlib.h>
 #include "game.h"
 
 #include <tmx_utils.h>
@@ -38,7 +37,7 @@ static bool shouldRenderFrame = true;
 Game game;
 
 void game_init() {
-    game = (Game){};
+    game = (Game) {};
 
     maps_manager_init();
     load_assets();
@@ -80,20 +79,33 @@ static void do_game_handle_input() {
         return;
     }
 
-    if (IsKeyPressed(KEY_F3) && game.currentMap->id != MapIDWorld) {
-        game_load_map(MapIDWorld);
-        return;
-    }
-    if (IsKeyPressed(KEY_F4) && game.currentMap->id != MapIDHospital) {
-        game_load_map(MapIDHospital);
-        return;
+    switch (game.gameModeState) {
+            break;
+        case GameModeNone:
+            break;
+        case GameModeLoading:
+            break;
+        case GameModePlaying:
+            // todo if any of the events happens above, we never update the player input.
+            //  we should instead hold a list of events on this frame and check them on each system
+            //  instead. add the key press to the global event
+            //  https://github.com/raysan5/raylib/blob/52f2a10db610d0e9f619fd7c521db08a876547d0/src/rcore.c#L297
+            player_input(&game.player);
+            if (IsKeyPressed(KEY_ENTER)) {
+                game.gameModeState = GameModeMonsterIndex;
+                game.player.characterComponent.velocity = (Vector2){0,0};
+            }
+            break;
+        case GameModeMonsterIndex:
+            monster_index_handle_input();
+            break;
+        case GameModeBattle:
+            break;
+        case GameModeCount:
+            break;
+        default:
     }
 
-    // todo if any of the events happens above, we never update the player input.
-    //  we should instead hold a list of events on this frame and check them on each system
-    //  instead. add the key press to the global event
-    //  https://github.com/raysan5/raylib/blob/52f2a10db610d0e9f619fd7c521db08a876547d0/src/rcore.c#L297
-    player_input(&game.player);
 }
 
 void game_handle_input() {
@@ -109,6 +121,7 @@ static void do_game_update(const f32 deltaTime) {
     do_map_transition_check();
     map_update(game.currentMap, deltaTime);
     player_update(&game.player, deltaTime);
+    monster_index_update(deltaTime);
 
     update_camera();
     handle_screen_transition(deltaTime);
@@ -122,9 +135,11 @@ void game_update(const f32 deltaTime) {
 
 void game_draw() {
     const clock_t now = clock();
-    BeginDrawing(); {
+    BeginDrawing();
+    {
         ClearBackground(DARKGRAY);
-        BeginMode2D(game.camera); {
+        BeginMode2D(game.camera);
+        {
             map_draw(game.currentMap);
             // player_draw(game.player);
             game_draw_dialog_box();
@@ -133,6 +148,7 @@ void game_draw() {
         EndMode2D();
 
         game_draw_fade_transition();
+        monster_index_draw();
 
         // last thing we draw
         game_draw_debug_screen();
@@ -211,8 +227,10 @@ static void handle_screen_transition(const f32 dt) {
             }
             break;
 
-        case TransitionModeNone: break;
-        default: panic("invalid tint mode while fading screen");
+        case TransitionModeNone:
+            break;
+        default:
+        panic("invalid tint mode while fading screen");
     }
 }
 
@@ -230,12 +248,12 @@ static void game_draw_fade_transition() {
     const Rectangle screen = {
         .x = 0,
         .y = 0,
-        .height = GetScreenHeight(),
-        .width = GetScreenWidth(),
+        .height = (f32) GetScreenHeight(),
+        .width = (f32) GetScreenWidth(),
     };
     const f32 a = clamp(game.transition.progress, 0, 255);
     printfln("progress: %.2f", a);
-    const Color c = {0, 0, 0, a};
+    const Color c = {0, 0, 0, (u8) a};
     DrawRectangleRec(screen, c);
 }
 
@@ -254,8 +272,8 @@ static void game_draw_dialog_box() {
     panicIf(data->defeated && game.dialogBubble.index >= MAX_DEFEATED_DIALOG_ENTRIES);
 
     const char *msg = data->defeated ?
-                          data->dialog.defeated[game.dialogBubble.index] :
-                          data->dialog.regular[game.dialogBubble.index];
+                      data->dialog.defeated[game.dialogBubble.index] :
+                      data->dialog.regular[game.dialogBubble.index];
 
     const f32 fontSize = 33.f;
     const f32 fontSpacing = 4.f;
@@ -278,7 +296,7 @@ static void game_draw_dialog_box() {
     DrawTextEx(
         assets.dialogFont,
         msg,
-        (Vector2){frame.x + textPadding, frame.y + textPadding},
+        (Vector2) {frame.x + textPadding, frame.y + textPadding},
         fontSize,
         fontSpacing,
         gameColors[ColorsBlack]
@@ -287,11 +305,20 @@ static void game_draw_dialog_box() {
 
 static void setup_game(const MapID mapID) {
     Map *map = load_map(mapID);
+    game.gameModeState = GameModeLoading;
     game.currentMap = map;
     game.player = player_new(map->playerStartingPosition);
+    game.playerMonsters[0] = monster_new(MonsterNameCharmadillo, 30);
+    game.playerMonsters[1] = monster_new(MonsterNameFriolera, 29);
+    game.playerMonsters[2] = monster_new(MonsterNameLarvea, 3);
+    game.playerMonsters[3] = monster_new(MonsterNameAtrox, 24);
+    game.playerMonsters[4] = monster_new(MonsterNameSparchu, 24);
+    game.playerMonsters[5] = monster_new(MonsterNameGulfin, 24);
+    game.playerMonsters[6] = monster_new(MonsterNameJacana, 2);
+    game.playerMonsters[7] = monster_new(MonsterNamePouch, 3);
 
     // camera
-    game.camera = (Camera2D){0};
+    game.camera = (Camera2D) {0};
     update_camera();
 
     // dialog
@@ -299,21 +326,27 @@ static void setup_game(const MapID mapID) {
         .visible = false,
     };
     game.dialogBubble = dialog;
+
+    // index
+    monster_index_state_init();
+
+    // start the game;
+    game.gameModeState = GameModePlaying;
 }
 
 static void update_camera() {
     game.camera.target = player_get_center(&game.player);
-    game.camera.offset = (Vector2){
+    game.camera.offset = (Vector2) {
         .x = ((f32) GetScreenWidth() / 2.0f),
         .y = ((f32) GetScreenHeight() / 2.0f),
     };
     game.camera.zoom = (f32) GetScreenHeight() / PixelWindowHeight;
     game.camera.rotation = 0.0f;
 
-    game.cameraBoundingBox = (Rectangle){
+    game.cameraBoundingBox = (Rectangle) {
         game.camera.target.x - game.camera.offset.x / game.camera.zoom,
         game.camera.target.y - game.camera.offset.y / game.camera.zoom,
-        GetScreenWidth() / game.camera.zoom,
-        GetScreenHeight() / game.camera.zoom
+        (f32) GetScreenWidth() / game.camera.zoom,
+        (f32) GetScreenHeight() / game.camera.zoom
     };
 }

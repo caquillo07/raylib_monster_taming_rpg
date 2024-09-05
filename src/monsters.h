@@ -59,7 +59,6 @@ typedef enum MonsterName {
 } MonsterID;
 
 typedef struct MonsterStats {
-    MonsterType element;
     f32 maxHealth;
     f32 maxEnergy;
     f32 attack;
@@ -74,6 +73,7 @@ typedef struct MonsterStats {
 typedef struct MonsterData {
     MonsterID id;
     char name[MAX_MONSTER_NAME_LEN];
+    MonsterType element;
     MonsterStats stats;
 
     struct {
@@ -89,9 +89,14 @@ typedef struct MonsterData {
 } MonsterData;
 
 typedef struct Monster {
-
+    MonsterID id;
+    char name[MAX_MONSTER_NAME_LEN];
+    u8 level;
+    MonsterType type;
+    MonsterStats stats;
 } Monster;
 
+Monster monster_new(MonsterID id, u8 level);
 MonsterType monster_type_from_str(const char *name);
 MonsterAbility monster_ability_from_str(const char *name);
 MonsterID monster_name_from_str(const char *name);

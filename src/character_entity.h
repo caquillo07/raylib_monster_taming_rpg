@@ -100,7 +100,7 @@ void character_change_direction(Character *c, Vector2 target);
 CharacterDirection character_direction_from_str(const char *directionStr);
 void character_raycast(Character *c);
 bool check_character_connection(const Character *from, const Character *to, f32 radius);
-inline void character_move_twoards(Character *c, Vector2 point);
+inline void character_move_towards(Character *c, const Vector2 point);
 void character_create_dialog(const Character *character);
 
 #endif //RAYLIB_POKEMON_CLONE_CHARACTER_ENTITY_H

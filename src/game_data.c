@@ -78,8 +78,8 @@ static cJSON *load_json_for_data(const char *fileName) {
             panic("failed to parse character data: %s\n", error);
         }
     }
-    // allocating and free back to back like this is very inneficient, but
-    // for a toy game is fine. In a more serious project, i would probably find
+    // allocating and free back to back like this is very inefficient, but
+    // for a toy game is fine. In a more serious project, I would probably find
     // a nicer way to reuse this buffer, or use an arena instead.
     mfree(fileData, fileLength + 1, MemoryTagFile);
     fileData = nil;
@@ -224,8 +224,8 @@ static void init_monster_data() {
 
         MonsterData data = {
             .id = monster_name_from_str(monsterData->string),
+            .element = monster_type_from_str(get_string(statsJSON, "element")->valuestring),
             .stats = {
-                .element = monster_type_from_str(get_string(statsJSON, "element")->valuestring),
                 .maxHealth = (f32) get_number(statsJSON, "max_health")->valuedouble,
                 .maxEnergy = (f32) get_number(statsJSON, "max_energy")->valuedouble,
                 .attack = (f32) get_number(statsJSON, "attack")->valuedouble,
@@ -285,10 +285,9 @@ CharacterData *game_data_for_character_id(const char *characterID) {
         }
     }
     panic("unknown character ID %s\n", characterID);
-    return nil;
 }
 
-MonsterData * game_data_for_monster_id(MonsterID monsterID) {
+MonsterData *game_data_for_monster_id(MonsterID monsterID) {
     array_range(game.data.monsterData, i) {
         const MonsterData data = game.data.monsterData[i];
         if (data.id == monsterID) {
@@ -296,5 +295,4 @@ MonsterData * game_data_for_monster_id(MonsterID monsterID) {
         }
     }
     panic("unknown monster ID %d\n", monsterID);
-    return nil;
 }

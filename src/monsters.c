@@ -3,6 +3,7 @@
 //
 
 #include "monsters.h"
+#include "game_data.h"
 
 MonsterType monster_type_from_str(const char *name) {
     if (streq(name, "plant")) {
@@ -39,7 +40,7 @@ MonsterAbility monster_ability_from_str(const char *name) {
         return MonsterAbilityAnnihilate;
     }
     if (streq(name, "splash")) {
-        return MonsterAbilitySpark;
+        return MonsterAbilitySplash;
     }
     if (streq(name, "ice")) {
         return MonsterAbilityIce;
@@ -110,5 +111,16 @@ MonsterID monster_name_from_str(const char *name) {
     }
 
     panic("unknown name \"%s\" provided", name);
-    return MonsterNameNone;
+}
+
+Monster monster_new(MonsterID id, u8 level) {
+    MonsterData *data = game_data_for_monster_id(id);
+    Monster m = {
+        .id = id,
+        .level = level,
+        .type = data->element,
+        .stats = data->stats,
+    };
+    strncpy(m.name, data->name, MAX_MONSTER_NAME_LEN);
+    return m;
 }

@@ -45,6 +45,28 @@ typedef struct Assets {
     Texture2D exclamationMarkTexture;
 
     Font dialogFont;
+    Font regularFont;
+    Font smallFont;
+    Font boldFont;
+
+    struct {
+        Texture2D atrox;
+        Texture2D charmadillo;
+        Texture2D cindrill;
+        Texture2D cleaf;
+        Texture2D draem;
+        Texture2D finiette;
+        Texture2D finsta;
+        Texture2D friolera;
+        Texture2D gulfin;
+        Texture2D ivieron;
+        Texture2D jacana;
+        Texture2D larvea;
+        Texture2D pluma;
+        Texture2D plumette;
+        Texture2D pouch;
+        Texture2D sparchu;
+    } monsters;
 } Assets;
 
 extern Assets assets;

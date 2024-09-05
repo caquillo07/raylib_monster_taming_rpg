@@ -36,6 +36,23 @@ void load_assets() {
     assets.tileMaps[TileMapIDYoungGirlCharacter] = load_tile_map(4, 4, ("./graphics/characters/young_girl.png"));
     assets.tileMaps[TileMapIDYoungGuyCharacter] = load_tile_map(4, 4, ("./graphics/characters/young_guy.png"));
 
+    assets.monsters.atrox = LoadTexture("./graphics/icons/Atrox.png");
+    assets.monsters.charmadillo = LoadTexture("./graphics/icons/Charmadillo.png");
+    assets.monsters.cindrill = LoadTexture("./graphics/icons/Cindrill.png");
+    assets.monsters.cleaf = LoadTexture("./graphics/icons/Cleaf.png");
+    assets.monsters.draem = LoadTexture("./graphics/icons/Draem.png");
+    assets.monsters.finiette = LoadTexture("./graphics/icons/Finiette.png");
+    assets.monsters.finsta = LoadTexture("./graphics/icons/Finsta.png");
+    assets.monsters.friolera = LoadTexture("./graphics/icons/Friolera.png");
+    assets.monsters.gulfin = LoadTexture("./graphics/icons/Gulfin.png");
+    assets.monsters.ivieron = LoadTexture("./graphics/icons/Ivieron.png");
+    assets.monsters.jacana = LoadTexture("./graphics/icons/Jacana.png");
+    assets.monsters.larvea = LoadTexture("./graphics/icons/Larvea.png");
+    assets.monsters.pluma = LoadTexture("./graphics/icons/Pluma.png");
+    assets.monsters.plumette = LoadTexture("./graphics/icons/Plumette.png");
+    assets.monsters.pouch = LoadTexture("./graphics/icons/Pouch.png");
+    assets.monsters.sparchu = LoadTexture("./graphics/icons/Sparchu.png");
+
     assets.grassTexture = LoadTexture("./graphics/objects/grass.png");
     assets.iceGrassTexture = LoadTexture("./graphics/objects/grass_ice.png");
     assets.sandTexture = LoadTexture("./graphics/objects/sand.png");
@@ -44,6 +61,9 @@ void load_assets() {
     assets.exclamationMarkTexture = LoadTexture("./graphics/ui/notice.png");
 
     assets.dialogFont = LoadFontEx("./graphics/fonts/PixeloidSans.ttf", 30, nil, 250);
+    assets.regularFont = LoadFontEx("./graphics/fonts/PixeloidSans.ttf", 18, nil, 250);
+    assets.smallFont = LoadFontEx("./graphics/fonts/PixeloidSans.ttf", 14, nil, 250);
+    assets.boldFont = LoadFontEx("./graphics/fonts/dogicapixelbold.otf", 20, nil, 250);
 }
 
 void unload_assets() {
@@ -84,7 +104,27 @@ void unload_assets() {
     UnloadTexture(assets.characterShadowTexture);
     UnloadTexture(assets.exclamationMarkTexture);
 
+    UnloadTexture(assets.monsters.atrox);
+    UnloadTexture(assets.monsters.charmadillo);
+    UnloadTexture(assets.monsters.cindrill);
+    UnloadTexture(assets.monsters.cleaf);
+    UnloadTexture(assets.monsters.draem);
+    UnloadTexture(assets.monsters.finiette);
+    UnloadTexture(assets.monsters.finsta);
+    UnloadTexture(assets.monsters.friolera);
+    UnloadTexture(assets.monsters.gulfin);
+    UnloadTexture(assets.monsters.ivieron);
+    UnloadTexture(assets.monsters.jacana);
+    UnloadTexture(assets.monsters.larvea);
+    UnloadTexture(assets.monsters.pluma);
+    UnloadTexture(assets.monsters.plumette);
+    UnloadTexture(assets.monsters.pouch);
+    UnloadTexture(assets.monsters.sparchu);
+
     UnloadFont(assets.dialogFont);
+    UnloadFont(assets.regularFont);
+    UnloadFont(assets.smallFont);
+    UnloadFont(assets.boldFont);
 }
 
 static Texture2D *import_textures_from_directory(const char *dirPath) {
