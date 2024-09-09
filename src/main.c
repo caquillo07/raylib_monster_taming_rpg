@@ -4,6 +4,8 @@
 #include "game.h"
 #include "memory/memory.h"
 
+#define DUAL_SCREENS true
+
 static void init() {
     initialize_memory();
     initLogger();
@@ -11,6 +13,12 @@ static void init() {
     panicIf(!IsWindowReady(), "Window failed to initialize");
 
     SetWindowState(FLAG_WINDOW_RESIZABLE);
+#ifdef DUAL_SCREENS
+    SetWindowMonitor(1);
+    SetWindowSize(GetMonitorWidth(1), GetMonitorHeight(1));
+//    SetWindowState(FLAG_FULLSCREEN_MODE);
+//    ToggleFullscreen();
+#endif
 
     SetTargetFPS(120);
     SetTextLineSpacing(16);

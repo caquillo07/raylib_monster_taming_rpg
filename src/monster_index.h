@@ -8,10 +8,14 @@
 #include "common.h"
 #include "raylib.h"
 
-typedef struct MonsterIndexState {
-    Rectangle frame;
-    i32 currentIndex;
-} MonsterIndexState;
+typedef struct MonsterIndex {
+	Rectangle frame;
+	struct {
+
+		i32 currentIndex;
+		i32 selectedIndex;
+	} state;
+} MonsterIndex;
 
 void monster_index_state_init();
 void monster_index_handle_input();

@@ -80,9 +80,7 @@ static void do_game_handle_input() {
     }
 
     switch (game.gameModeState) {
-            break;
         case GameModeNone:
-            break;
         case GameModeLoading:
             break;
         case GameModePlaying:
@@ -100,7 +98,6 @@ static void do_game_handle_input() {
             monster_index_handle_input();
             break;
         case GameModeBattle:
-            break;
         case GameModeCount:
             break;
         default:
@@ -180,7 +177,7 @@ static void game_draw_debug_screen() {
         "Time in input: %0.4f\n"
         "Time in update: %0.4f\n"
         "Time in draw: %0.4f\n"
-        "Sprites Drawn: %ld/%ld",
+        "Sprites Drawn: %lld/%lld",
         game.gameMetrics.timeInInput,
         // todo make this static variables inside the functions instead.
         game.gameMetrics.timeInUpdate,

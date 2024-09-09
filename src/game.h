@@ -65,7 +65,7 @@ typedef struct Game {
     } transition;
 
     // monsters index
-    MonsterIndexState monsterIndex;
+    MonsterIndex monsterIndex;
 
     struct {
         CharacterData *characterData;
