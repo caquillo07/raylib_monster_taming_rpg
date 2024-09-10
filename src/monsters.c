@@ -5,6 +5,12 @@
 #include "monsters.h"
 #include "game_data.h"
 
+const char* monsterTypeStr[MonsterTypeCount] = {
+	[MonsterTypePlant] = "Plant",
+	[MonsterTypeWater] = "Water",
+	[MonsterTypeFire] = "Fire",
+};
+
 MonsterType monster_type_from_str(const char *name) {
     if (streq(name, "plant")) {
         return MonsterTypePlant;
@@ -62,52 +68,52 @@ MonsterAbility monster_ability_from_str(const char *name) {
 // of file database I can read into memory, and be editable from the outside.
 MonsterID monster_name_from_str(const char *name) {
     if (streq(name, "Plumette")) {
-        return MonsterNamePlumette;
+        return MonsterIDPlumette;
     }
     if (streq(name, "Ivieron")) {
-        return MonsterNameIvieron;
+        return MonsterIDIvieron;
     }
     if (streq(name, "Pluma")) {
-        return MonsterNamePluma;
+        return MonsterIDPluma;
     }
     if (streq(name, "Sparchu")) {
-        return MonsterNameSparchu;
+        return MonsterIDSparchu;
     }
     if (streq(name, "Cindrill")) {
-        return MonsterNameCindrill;
+        return MonsterIDCindrill;
     }
     if (streq(name, "Charmadillo")) {
-        return MonsterNameCharmadillo;
+        return MonsterIDCharmadillo;
     }
     if (streq(name, "Finsta")) {
-        return MonsterNameFinsta;
+        return MonsterIDFinsta;
     }
     if (streq(name, "Gulfin")) {
-        return MonsterNameGulfin;
+        return MonsterIDGulfin;
     }
     if (streq(name, "Finiette")) {
-        return MonsterNameFiniette;
+        return MonsterIDFiniette;
     }
     if (streq(name, "Atrox")) {
-        return MonsterNameAtrox;
+        return MonsterIDAtrox;
     }
     if (streq(name, "Pouch")) {
-        return MonsterNamePouch;
+        return MonsterIDPouch;
     }
     if (streq(name, "Draem")) {
-        return MonsterNameDraem;
+        return MonsterIDDraem;
     }
     if (streq(name, "Larvea")) {
-        return MonsterNameLarvea;
+        return MonsterIDLarvea;
     }
     if (streq(name, "Cleaf")) {
-        return MonsterNameCleaf;
+        return MonsterIDCleaf;
     }
     if (streq(name, "Jacana")) {
-        return MonsterNameJacana;
+        return MonsterIDJacana;
     }
     if (streq(name, "Friolera")) {
-        return MonsterNameFriolera;
+        return MonsterIDFriolera;
     }
 
     panic("unknown name \"%s\" provided", name);

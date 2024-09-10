@@ -81,4 +81,7 @@ void game_shutdown();
 void game_update(f32 deltaTime);
 void game_draw();
 
+// general stuff
+i32 player_party_length();
+
 #endif //RAYLIB_POKEMON_CLONE_GAME_H

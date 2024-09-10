@@ -8,14 +8,15 @@
 #include "common.h"
 
 typedef struct GameSettings {
-    f32 playerSpeed;
-    f32 charactersSpeed;
-    f32 playerAnimationSpeed;
-    f32 waterAnimationSpeed;
-    f32 coastLineAnimationSpeed;
-    f32 charactersPatrolIntervalSecs;
-    f32 playerNoticedTimerSec;
-    f32 fadeTransitionSpeed;
+	f32 playerSpeed;
+	f32 charactersSpeed;
+	f32 playerAnimationSpeed;
+	f32 waterAnimationSpeed;
+	f32 coastLineAnimationSpeed;
+	f32 charactersPatrolIntervalSecs;
+	f32 playerNoticedTimerSec;
+	f32 fadeTransitionSpeed;
+	f32 monsterAnimationSpeed;
 } GameSettings;
 
 extern GameSettings settings;

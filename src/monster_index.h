@@ -7,13 +7,15 @@
 
 #include "common.h"
 #include "raylib.h"
+#include "sprites.h"
 
 typedef struct MonsterIndex {
 	Rectangle frame;
 	struct {
-
 		i32 currentIndex;
 		i32 selectedIndex;
+		i32 partyLength;
+		AnimatedTiledSprite animatedMonster;
 	} state;
 } MonsterIndex;
 

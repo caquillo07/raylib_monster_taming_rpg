@@ -7,6 +7,7 @@
 
 #include "raylib.h"
 #include "common.h"
+#include "monsters.h"
 
 typedef struct TileMap {
     i32 columns;
@@ -66,7 +67,9 @@ typedef struct Assets {
         Texture2D plumette;
         Texture2D pouch;
         Texture2D sparchu;
-    } monsters;
+    } monsterIcons;
+
+	TileMap monsterTileMaps[MonsterIDCount];
 } Assets;
 
 extern Assets assets;

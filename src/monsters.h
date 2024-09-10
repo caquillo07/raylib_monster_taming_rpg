@@ -36,26 +36,26 @@ typedef enum MonsterAbility {
     MonsterAbilityCount,
 } MonsterAbility;
 
-typedef enum MonsterName {
-    MonsterNameNone = 0,
-    MonsterNamePlumette = 1,
-    MonsterNameIvieron = 2,
-    MonsterNamePluma = 3,
-    MonsterNameSparchu = 4,
-    MonsterNameCindrill = 5,
-    MonsterNameCharmadillo = 6,
-    MonsterNameFinsta = 7,
-    MonsterNameGulfin = 8,
-    MonsterNameFiniette = 9,
-    MonsterNameAtrox = 10,
-    MonsterNamePouch = 11,
-    MonsterNameDraem = 12,
-    MonsterNameLarvea = 13,
-    MonsterNameCleaf = 14,
-    MonsterNameJacana = 15,
-    MonsterNameFriolera = 16,
+typedef enum MonsterID {
+    MonsterIDNone = 0,
+    MonsterIDPlumette = 1,
+    MonsterIDIvieron = 2,
+    MonsterIDPluma = 3,
+    MonsterIDSparchu = 4,
+    MonsterIDCindrill = 5,
+    MonsterIDCharmadillo = 6,
+    MonsterIDFinsta = 7,
+    MonsterIDGulfin = 8,
+    MonsterIDFiniette = 9,
+    MonsterIDAtrox = 10,
+    MonsterIDPouch = 11,
+    MonsterIDDraem = 12,
+    MonsterIDLarvea = 13,
+    MonsterIDCleaf = 14,
+    MonsterIDJacana = 15,
+    MonsterIDFriolera = 16,
 
-    MonsterNameCount,
+    MonsterIDCount,
 } MonsterID;
 
 typedef struct MonsterStats {
@@ -95,6 +95,8 @@ typedef struct Monster {
     MonsterType type;
     MonsterStats stats;
 } Monster;
+
+extern const char* monsterTypeStr[MonsterTypeCount];
 
 Monster monster_new(MonsterID id, u8 level);
 MonsterType monster_type_from_str(const char *name);

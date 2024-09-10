@@ -348,7 +348,7 @@ static AnimatedTexturesSprite *init_water_sprites(const tmx_layer *layer) {
                         .id = waterTileH->id,
                         .position = {.x = (f32) x, .y = (f32) y},
                         .layer = WorldLayerWater,
-                        .ySort = y,
+                        .ySort = (f32)y,
                     },
                     .textures = assets.waterTextures.texturesList,
                     .framesLen = 4,
