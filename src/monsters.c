@@ -5,10 +5,10 @@
 #include "monsters.h"
 #include "game_data.h"
 
-const char* monsterTypeStr[MonsterTypeCount] = {
-	[MonsterTypePlant] = "Plant",
-	[MonsterTypeWater] = "Water",
-	[MonsterTypeFire] = "Fire",
+const char *monsterTypeStr[MonsterTypeCount] = {
+    [MonsterTypePlant] = "Plant",
+    [MonsterTypeWater] = "Water",
+    [MonsterTypeFire] = "Fire",
 };
 
 MonsterType monster_type_from_str(const char *name) {
@@ -121,11 +121,15 @@ MonsterID monster_name_from_str(const char *name) {
 
 Monster monster_new(MonsterID id, u8 level) {
     MonsterData *data = game_data_for_monster_id(id);
+    i32 levelUp = level * 150;
+    i32 currentXP = (i32)random() % levelUp; // todo - remove, just some test data
     Monster m = {
         .id = id,
         .level = level,
         .type = data->element,
         .stats = data->stats,
+        .xp = currentXP,
+        .levelUp = level * 150,
     };
     strncpy(m.name, data->name, MAX_MONSTER_NAME_LEN);
     return m;

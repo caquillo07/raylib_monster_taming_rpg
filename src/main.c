@@ -7,6 +7,8 @@
 #define DUAL_SCREENS true
 
 static void init() {
+    srand(time(nil));
+
     initialize_memory();
     initLogger();
     InitWindow(ScreenWidth, ScreenHeight, "Monster Taming RPG");
