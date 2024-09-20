@@ -96,6 +96,7 @@ typedef struct Monster {
     MonsterStats stats;
     i32 xp;
     i32 levelUp;
+	f32 health;
 } Monster;
 
 extern const char* monsterTypeStr[MonsterTypeCount];

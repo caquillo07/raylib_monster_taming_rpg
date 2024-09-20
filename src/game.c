@@ -78,6 +78,7 @@ static void do_game_handle_input() {
 	if (frameStepMode && !shouldRenderFrame) {
 		return;
 	}
+    static bool debugMenu = true;
 
 	switch (game.gameModeState) {
 		case GameModeNone:
@@ -88,7 +89,8 @@ static void do_game_handle_input() {
 			//  instead. add the key press to the global event
 			//  https://github.com/raysan5/raylib/blob/52f2a10db610d0e9f619fd7c521db08a876547d0/src/rcore.c#L297
 			player_input(&game.player);
-			if (IsKeyPressed(KEY_ENTER)) {
+			if (IsKeyPressed(KEY_ENTER) || debugMenu) {
+                debugMenu = false;
 				game.gameModeState = GameModeMonsterIndex;
 				game.monsterIndex.state.partyLength = player_party_length();
 
