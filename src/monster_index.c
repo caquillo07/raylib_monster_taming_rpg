@@ -103,9 +103,7 @@ static const u8 visibleItems = 6;
 
 // todo(hector) make text size dynamic for different screen sizes
 static void draw_monsters_list(Rectangle *menuRect, const f32 listWidth, const f32 itemHeight, const f32 tableOffset) {
-	for (
-		i32 i = 0; i < game.monsterIndex.state.partyLength; i++
-		) {
+	for (i32 i = 0; i < max(6,game.monsterIndex.state.partyLength); i++) {
 		const f32 top = roundf((*menuRect).y + (f32)i * itemHeight + tableOffset);
 		Rectangle menuItemRect = {
 			.x = (*menuRect).x,
@@ -125,7 +123,6 @@ static void draw_monsters_list(Rectangle *menuRect, const f32 listWidth, const f
 		}
 		if (CheckCollisionRecs(menuItemRect, (*menuRect))) {
 			const Monster monster = game.playerMonsters[i];
-			if (monster.id == MonsterIDNone) { continue; } // empty slots
 
 			// monster box
 			const f32 menuItemRectMidLeft = menuItemRect.y + (menuItemRect.height / 2);
@@ -181,6 +178,8 @@ static void draw_monsters_list(Rectangle *menuRect, const f32 listWidth, const f
 				DrawRectangleRec(menuItemRect, backgroundColor);
 			}
 
+			if (monster.id == MonsterIDNone) { continue; } // empty slots
+
 			// text
 			const f32 textPadding = 90.f;
 			const Vector2 textSize = MeasureTextEx(assets.regularFont, monster.name, 18, 1);
@@ -215,9 +214,7 @@ static void draw_monsters_list(Rectangle *menuRect, const f32 listWidth, const f
 	}
 
 	const i32 linesMax = min(visibleItems, game.monsterIndex.state.partyLength);
-	for (
-		i32 i = 1; i < linesMax; i++
-		) {
+	for (i32 i = 1; i < linesMax; i++) {
 		const f32 y = menuRect->y + itemHeight * (f32)i;
 		Vector2 start = {.x = menuRect->x, .y = y};
 		Vector2 end = {.x = menuRect->x + listWidth, .y = y};
@@ -584,8 +581,6 @@ void monster_index_draw() {
 			gameColors[ColorsWhite]
 		);
 	}
-
-	// monster stats
 
 	// monster abilities
 }
