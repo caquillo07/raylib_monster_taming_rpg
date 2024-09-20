@@ -122,10 +122,12 @@ Monster monster_new(MonsterID id, u8 level) {
 	i32 levelUp = level * 150;
 	i32 currentXP = (i32)random() % levelUp; // todo - remove, just some test data
 	i32 currentHP = (i32)random() % (i32)(data->stats.maxHealth * (f32)level); // todo - remove, just some test data
+	i32 currentEnergy = (i32)random() % (i32)(data->stats.maxEnergy * (f32)level); // todo - remove, just some test data
 	Monster m = {
 		.id = id,
 		.level = level,
 		.health = max(currentHP, 10),
+		.energy = currentEnergy,
 		.type = data->element,
 		.stats = data->stats,
 		.xp = currentXP,

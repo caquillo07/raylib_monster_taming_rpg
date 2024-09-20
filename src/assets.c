@@ -54,6 +54,25 @@ void load_assets() {
 	assets.monsterIcons.pouch = LoadTexture("./graphics/icons/Pouch.png");
 	assets.monsterIcons.sparchu = LoadTexture("./graphics/icons/Sparchu.png");
 
+
+	assets.uiIcons.arrows = LoadTexture("./graphics/ui/arrows.png");
+	assets.uiIcons.cross = LoadTexture("./graphics/ui/cross.png");
+	assets.uiIcons.hand = LoadTexture("./graphics/ui/hand.png");
+	assets.uiIcons.notice = LoadTexture("./graphics/ui/notice.png");
+	assets.uiIcons.shieldHighlight = LoadTexture("./graphics/ui/shield_highlight.png");
+	assets.uiIcons.sword = LoadTexture("./graphics/ui/sword.png");
+	assets.uiIcons.arrowsHighlight = LoadTexture("./graphics/ui/arrows_highlight.png");
+	assets.uiIcons.defense = LoadTexture("./graphics/ui/defense.png");
+	assets.uiIcons.handHighlight = LoadTexture("./graphics/ui/hand_highlight.png");
+	assets.uiIcons.recovery = LoadTexture("./graphics/ui/recovery.png");
+	assets.uiIcons.speed = LoadTexture("./graphics/ui/speed.png");
+	assets.uiIcons.swordHighlight = LoadTexture("./graphics/ui/sword_highlight.png");
+	assets.uiIcons.attack = LoadTexture("./graphics/ui/attack.png");
+	assets.uiIcons.energy = LoadTexture("./graphics/ui/energy.png");
+	assets.uiIcons.health = LoadTexture("./graphics/ui/health.png");
+	assets.uiIcons.shield = LoadTexture("./graphics/ui/shield.png");
+	assets.uiIcons.star = LoadTexture("./graphics/ui/star.png");
+
 	assets.monsterTileMaps[MonsterIDAtrox] = load_tile_map(4, 2, "./graphics/monsters/Atrox.png");
 	assets.monsterTileMaps[MonsterIDCharmadillo] = load_tile_map(4, 2, "./graphics/monsters/Charmadillo.png");
 	assets.monsterTileMaps[MonsterIDCindrill] = load_tile_map(4, 2, "./graphics/monsters/Cindrill.png");
@@ -138,6 +157,24 @@ void unload_assets() {
 	UnloadTexture(assets.monsterIcons.plumette);
 	UnloadTexture(assets.monsterIcons.pouch);
 	UnloadTexture(assets.monsterIcons.sparchu);
+
+	UnloadTexture(assets.uiIcons.arrows);
+	UnloadTexture(assets.uiIcons.cross);
+	UnloadTexture(assets.uiIcons.hand);
+	UnloadTexture(assets.uiIcons.notice);
+	UnloadTexture(assets.uiIcons.shieldHighlight);
+	UnloadTexture(assets.uiIcons.sword);
+	UnloadTexture(assets.uiIcons.arrowsHighlight);
+	UnloadTexture(assets.uiIcons.defense);
+	UnloadTexture(assets.uiIcons.handHighlight);
+	UnloadTexture(assets.uiIcons.recovery);
+	UnloadTexture(assets.uiIcons.speed);
+	UnloadTexture(assets.uiIcons.swordHighlight);
+	UnloadTexture(assets.uiIcons.attack);
+	UnloadTexture(assets.uiIcons.energy);
+	UnloadTexture(assets.uiIcons.health);
+	UnloadTexture(assets.uiIcons.shield);
+	UnloadTexture(assets.uiIcons.star);
 
 	UnloadTexture(assets.monsterTileMaps[MonsterIDAtrox].texture);
 	array_free(assets.monsterTileMaps[MonsterIDAtrox].framesList);

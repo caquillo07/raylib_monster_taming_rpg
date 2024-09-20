@@ -69,6 +69,8 @@ void monster_index_update(f32 dt) {
 	if (game.gameModeState != GameModeMonsterIndex) {
 		return;
 	}
+	game.monsterIndex.frame.height = (f32)GetScreenHeight();
+	game.monsterIndex.frame.width = (f32)GetScreenWidth();
 	update_animated_tiled_sprite(&game.monsterIndex.state.animatedMonster, dt);
 }
 
@@ -99,6 +101,7 @@ static Texture2D monster_icon_texture_for_id(MonsterID id) {
 
 static const u8 visibleItems = 6;
 
+// todo(hector) make text size dynamic for different screen sizes
 static void draw_monsters_list(Rectangle *menuRect, const f32 listWidth, const f32 itemHeight, const f32 tableOffset) {
 	for (
 		i32 i = 0; i < game.monsterIndex.state.partyLength; i++
@@ -195,6 +198,7 @@ static void draw_monsters_list(Rectangle *menuRect, const f32 listWidth, const f
 			);
 
 			// monster icon
+			// todo(hector) make size dynamic for different screen sizes
 			const f32 monsterIconPadding = 45.f;
 			Texture2D monsterIconTexture = monster_icon_texture_for_id(monster.id);
 			const Rectangle monsterIconFrame = {
@@ -331,14 +335,23 @@ void monster_index_draw() {
 	game.monsterIndex.state.animatedMonster.texture = assets.monsterTileMaps[currentMonster.id].texture;
 	const AnimatedTiledSprite *animatedSprite = &game.monsterIndex.state.animatedMonster;
 	const Rectangle animationFrame = animatedSprite->sourceFrames[animatedSprite->currentFrame];
+	const f32 monsterToRectHeight = monsterDisplayRect.height * 0.7f;
 	const Vector2 monsterPosition = (Vector2){
-		.x = monsterDisplayRect.x + monsterDisplayRect.width / 2 - animationFrame.width / 2,
-		.y = monsterDisplayRect.y + monsterDisplayRect.height / 2 - animationFrame.height / 2,
+		.x = monsterDisplayRect.x + monsterDisplayRect.width / 2 - monsterToRectHeight / 2,
+		.y = monsterDisplayRect.y + monsterDisplayRect.height / 2 - monsterToRectHeight / 2,
 	};
-	DrawTextureRec(
+	Rectangle monsterDestRec = {
+		.x = monsterPosition.x,
+		.y = monsterPosition.y,
+		.height = monsterToRectHeight,
+		.width = monsterToRectHeight,
+	};
+	DrawTexturePro(
 		animatedSprite->texture,
 		animationFrame,
-		monsterPosition,
+		monsterDestRec,
+		(Vector2){0, 0},
+		0.f,
 		WHITE
 	);
 
@@ -426,7 +439,7 @@ void monster_index_draw() {
 	const f32 maxHealth = currentMonster.stats.maxHealth * (f32)currentMonster.level;
 	ui_draw_progress_bar(
 		healthBarRect,
-		currentMonster.health,
+		(f32)currentMonster.health,
 		maxHealth,
 		gameColors[ColorsRed],
 		gameColors[ColorsBlack],
@@ -435,19 +448,144 @@ void monster_index_draw() {
 
 	// HP Text
 	const f32 hpTextFontSize = 18;
-	const char* hpText = TextFormat("HP: %d/%d", (i32)currentMonster.health, (i32)maxHealth);
-	const Vector2 textSize = MeasureTextEx(assets.regularFont, hpText, hpTextFontSize, 1);
-	const f32 hpTextPadding = healthBarRect.height/2 - textSize.y/2;
-	const Vector2 pos = {
+	const char *hpText = TextFormat("HP: %d/%d", (i32)currentMonster.health, (i32)maxHealth);
+	const Vector2 hpTextSize = MeasureTextEx(assets.regularFont, hpText, hpTextFontSize, 1);
+	const f32 hpTextPadding = healthBarRect.height / 2 - hpTextSize.y / 2;
+	const Vector2 hpTextPos = {
 		.x = healthBarRect.x + hpTextPadding,
 		.y = healthBarRect.y + hpTextPadding,
 	};
 	DrawTextEx(
 		assets.regularFont,
 		hpText,
-		pos,
+		hpTextPos,
 		hpTextFontSize,
 		1,
 		gameColors[ColorsWhite]
 	);
+
+	// energy rectangle
+	const f32 energyBarPadding = 15.f;
+	const Rectangle energyBarRect = {
+		.x = (detailRec.x + detailRec.width - shadowBorder.width) - healthBarRect.width - energyBarPadding,
+		.y = monsterDisplayRect.y + monsterDisplayRect.height + energyBarPadding,
+		.width = healthBarRect.width,
+		.height = 30,
+	};
+	const f32 maxEnergy = currentMonster.stats.maxEnergy * (f32)currentMonster.level;
+	ui_draw_progress_bar(
+		energyBarRect,
+		(f32)currentMonster.energy,
+		maxEnergy,
+		gameColors[ColorsBlue],
+		gameColors[ColorsBlack],
+		0.5f
+	);
+
+	// energy Text
+	const f32 energyTextFontSize = 18;
+	const char *energyText = TextFormat("EP: %d/%d", (i32)currentMonster.energy, (i32)maxEnergy);
+	const Vector2 energyTextSize = MeasureTextEx(assets.regularFont, energyText, energyTextFontSize, 1);
+	const f32 energyTextPadding = healthBarRect.height / 2 - energyTextSize.y / 2;
+	const Vector2 energyPos = {
+		.x = energyBarRect.x + energyTextPadding,
+		.y = energyBarRect.y + energyTextPadding,
+	};
+	DrawTextEx(
+		assets.regularFont,
+		energyText,
+		energyPos,
+		energyTextFontSize,
+		1,
+		gameColors[ColorsWhite]
+	);
+
+	// monster info
+	const f32 statsRectVerticalPadding = 30.f;
+	const Rectangle statsRect = {
+		.x = healthBarRect.x,
+		.y = healthBarRect.y + healthBarRect.height + statsRectVerticalPadding,
+		.width = healthBarRect.width,
+		.height = (menuRect.y + menuRect.height) -
+				  (healthBarRect.y + healthBarRect.height) -
+				  statsRectVerticalPadding * 2,
+	};
+
+	const f32 statsTextFontSize = 18;
+	const char *statsText = "Stats";
+	const Vector2 statsTextSize = MeasureTextEx(assets.regularFont, statsText, statsTextFontSize, 1);
+	const Vector2 statsPos = {
+		.x = statsRect.x,
+		.y = statsRect.y - statsTextSize.y,
+	};
+	DrawTextEx(
+		assets.regularFont,
+		statsText,
+		statsPos,
+		statsTextFontSize,
+		1,
+		gameColors[ColorsWhite]
+	);
+
+	// draw stats
+#define MONSTER_STATS_LEN 6
+	// not ideal, but meh
+	const f32 statHeight = statsRect.height / MONSTER_STATS_LEN;
+
+	// I think the way is done in the tutorial is silly because there is no such thing as
+	// "max stat", so having a progress bar to indicate is sort of useless. So I chose to just
+	// display the value and call it a day.
+	const char *statNames[MONSTER_STATS_LEN] = {
+		TextFormat("Energy: %.2f", currentMonster.stats.maxEnergy),
+		TextFormat("Health: %.2f", currentMonster.stats.maxHealth),
+		TextFormat("Attack: %.2f", currentMonster.stats.attack),
+		TextFormat("Defense: %.2f", currentMonster.stats.defense),
+		TextFormat("Recovery: %.2f", currentMonster.stats.recovery),
+		TextFormat("Speed: %.2f", currentMonster.stats.speed),
+	};
+	const Texture2D statIcons[MONSTER_STATS_LEN] = {
+		assets.uiIcons.energy,
+		assets.uiIcons.health,
+		assets.uiIcons.attack,
+		assets.uiIcons.defense,
+		assets.uiIcons.recovery,
+		assets.uiIcons.speed,
+	};
+	const f32 singleStatFontSize = 18;
+	for (usize i = 0; i < MONSTER_STATS_LEN; i++) {
+		const Rectangle singleStatRect = {
+			.x = statsRect.x,
+			.y = statsRect.y + ((f32)i * statHeight),
+			.width = statsRect.width,
+			.height = statHeight,
+		};
+
+		const f32 singleStatTextPadding = 5;
+		const f32 iconHeight = (f32)statIcons[i].height;
+		const Rectangle iconRect = {
+			.x = singleStatRect.x + singleStatTextPadding,
+			.y = singleStatRect.y + (singleStatRect.height - iconHeight) / 2,
+			.height = (f32)statIcons[i].height,
+			.width = (f32)statIcons[i].width,
+		};
+		DrawTextureV(statIcons[i], (Vector2){iconRect.x, iconRect.y}, WHITE);
+
+		const Vector2 singleStatSize = MeasureTextEx(assets.regularFont, statNames[i], singleStatFontSize, 1);
+		const Vector2 singleStatTextPos = {
+			.x = iconRect.x + iconRect.width + singleStatTextPadding,
+			.y = singleStatRect.y + (singleStatRect.height - singleStatSize.y) / 2,
+		};
+		DrawTextEx(
+			assets.regularFont,
+			statNames[i],
+			singleStatTextPos,
+			energyTextFontSize,
+			1,
+			gameColors[ColorsWhite]
+		);
+	}
+
+	// monster stats
+
+	// monster abilities
 }

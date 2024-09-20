@@ -10,64 +10,84 @@
 #include "monsters.h"
 
 typedef struct TileMap {
-    i32 columns;
-    i32 rows;
-    Texture2D texture;
-    Rectangle *framesList;
+	i32 columns;
+	i32 rows;
+	Texture2D texture;
+	Rectangle *framesList;
 } TileMap;
 
 typedef enum TileMapID {
-    TileMapIDCoastLine = 0,
-    TileMapIDPlayer,
-    TileMapIDBlondCharacter,
-    TileMapIDFireBossCharacter,
-    TileMapIDGrassBossCharacter,
-    TileMapIDHatGirlCharacter,
-    TileMapIDPurpleGirlCharacter,
-    TileMapIDStrawCharacter,
-    TileMapIDWaterBossCharacter,
-    TileMapIDYoungGirlCharacter,
-    TileMapIDYoungGuyCharacter,
+	TileMapIDCoastLine = 0,
+	TileMapIDPlayer,
+	TileMapIDBlondCharacter,
+	TileMapIDFireBossCharacter,
+	TileMapIDGrassBossCharacter,
+	TileMapIDHatGirlCharacter,
+	TileMapIDPurpleGirlCharacter,
+	TileMapIDStrawCharacter,
+	TileMapIDWaterBossCharacter,
+	TileMapIDYoungGirlCharacter,
+	TileMapIDYoungGuyCharacter,
 
-    TileMapIDMax,
+	TileMapIDMax,
 } TileMapID;
 
 typedef struct Assets {
-    struct {
-        i32 len;
-        Texture2D *texturesList;
-    } waterTextures;
+	struct {
+		i32 len;
+		Texture2D *texturesList;
+	} waterTextures;
 
-    TileMap tileMaps[TileMapIDMax];
-    Texture2D grassTexture;
-    Texture2D iceGrassTexture;
-    Texture2D sandTexture;
-    Texture2D characterShadowTexture;
-    Texture2D exclamationMarkTexture;
+	TileMap tileMaps[TileMapIDMax];
+	Texture2D grassTexture;
+	Texture2D iceGrassTexture;
+	Texture2D sandTexture;
+	Texture2D characterShadowTexture;
+	Texture2D exclamationMarkTexture;
 
-    Font dialogFont;
-    Font regularFont;
-    Font smallFont;
-    Font boldFont;
+	Font dialogFont;
+	Font regularFont;
+	Font smallFont;
+	Font boldFont;
 
-    struct {
-        Texture2D atrox;
-        Texture2D charmadillo;
-        Texture2D cindrill;
-        Texture2D cleaf;
-        Texture2D draem;
-        Texture2D finiette;
-        Texture2D finsta;
-        Texture2D friolera;
-        Texture2D gulfin;
-        Texture2D ivieron;
-        Texture2D jacana;
-        Texture2D larvea;
-        Texture2D pluma;
-        Texture2D plumette;
-        Texture2D pouch;
-        Texture2D sparchu;
-    } monsterIcons;
+	struct {
+		Texture2D atrox;
+		Texture2D charmadillo;
+		Texture2D cindrill;
+		Texture2D cleaf;
+		Texture2D draem;
+		Texture2D finiette;
+		Texture2D finsta;
+		Texture2D friolera;
+		Texture2D gulfin;
+		Texture2D ivieron;
+		Texture2D jacana;
+		Texture2D larvea;
+		Texture2D pluma;
+		Texture2D plumette;
+		Texture2D pouch;
+		Texture2D sparchu;
+	} monsterIcons;
+
+	struct {
+		Texture2D arrows;
+		Texture2D cross;
+		Texture2D hand;
+		Texture2D notice;
+		Texture2D shieldHighlight;
+		Texture2D sword;
+		Texture2D arrowsHighlight;
+		Texture2D defense;
+		Texture2D handHighlight;
+		Texture2D recovery;
+		Texture2D speed;
+		Texture2D swordHighlight;
+		Texture2D attack;
+		Texture2D energy;
+		Texture2D health;
+		Texture2D shield;
+		Texture2D star;
+	} uiIcons;
 
 	TileMap monsterTileMaps[MonsterIDCount];
 } Assets;
