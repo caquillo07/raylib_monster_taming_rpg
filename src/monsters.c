@@ -4,11 +4,26 @@
 
 #include "monsters.h"
 #include "game_data.h"
+#include "colors.h"
 
 const char *monsterTypeStr[MonsterTypeCount] = {
 	[MonsterTypePlant] = "Plant",
 	[MonsterTypeWater] = "Water",
 	[MonsterTypeFire] = "Fire",
+};
+
+const char *monsterAbilityStr[MonsterAbilityCount] = {
+	[MonsterAbilityNone] = "None",
+	[MonsterAbilityScratch] = "Scratch",
+	[MonsterAbilitySpark] = "Spark",
+	[MonsterAbilityFire] = "Fire",
+	[MonsterAbilityBattleCry] = "Battle Cry",
+	[MonsterAbilityExplosion] = "Explosion",
+	[MonsterAbilityAnnihilate] = "Annihilate",
+	[MonsterAbilitySplash] = "Splash",
+	[MonsterAbilityIce] = "Ice",
+	[MonsterAbilityHeal] = "Heal",
+	[MonsterAbilityBurn] = "Burn",
 };
 
 MonsterType monster_type_from_str(const char *name) {
@@ -135,4 +150,15 @@ Monster monster_new(MonsterID id, u8 level) {
 	};
 	strncpy(m.name, data->name, MAX_MONSTER_NAME_LEN);
 	return m;
+}
+
+Color monster_type_color(MonsterType type) {
+	switch (type) {
+		case MonsterTypePlant: return gameColors[ColorsPlant];
+		case MonsterTypeWater: return gameColors[ColorsWater];
+		case MonsterTypeFire: return gameColors[ColorsFire];
+		case MonsterTypeCount:
+		case MonsterTypeNone:
+		default: panic("invalid monster type");
+	}
 }

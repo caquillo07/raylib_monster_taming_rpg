@@ -6,6 +6,7 @@
 #include "game.h"
 #include "colors.h"
 #include "ui.h"
+#include "game_data.h"
 #include <raylib.h>
 #include <math.h>
 
@@ -103,7 +104,7 @@ static const u8 visibleItems = 6;
 
 // todo(hector) make text size dynamic for different screen sizes
 static void draw_monsters_list(Rectangle *menuRect, const f32 listWidth, const f32 itemHeight, const f32 tableOffset) {
-	for (i32 i = 0; i < max(6,game.monsterIndex.state.partyLength); i++) {
+	for (i32 i = 0; i < max(6, game.monsterIndex.state.partyLength); i++) {
 		const f32 top = roundf((*menuRect).y + (f32)i * itemHeight + tableOffset);
 		Rectangle menuItemRect = {
 			.x = (*menuRect).x,
@@ -296,18 +297,7 @@ void monster_index_draw() {
 
 	// monster display
 	const Monster currentSelectedMonster = game.playerMonsters[game.monsterIndex.state.currentIndex];
-	Color monsterBGColor;
-	switch (currentSelectedMonster.type) {
-		case MonsterTypePlant: monsterBGColor = gameColors[ColorsPlant];
-			break;
-		case MonsterTypeWater: monsterBGColor = gameColors[ColorsWater];
-			break;
-		case MonsterTypeFire: monsterBGColor = gameColors[ColorsFire];
-			break;
-		case MonsterTypeCount:
-		case MonsterTypeNone:
-		default: panic("invalid monster type");
-	}
+	const Color monsterBGColor = monster_type_color(currentSelectedMonster.type);
 	const Rectangle monsterDisplayRect = {
 		.x = detailRec.x,
 		.y = detailRec.y,
@@ -426,10 +416,10 @@ void monster_index_draw() {
 	);
 
 	// main part - monster stats
-	const f32 healthBarPadding = 15.f;
+	const f32 menuRectEdgePadding = 15.f;
 	const Rectangle healthBarRect = {
-		.x = detailRec.x + healthBarPadding - shadowBorder.width,
-		.y = monsterDisplayRect.y + monsterDisplayRect.height + healthBarPadding,
+		.x = detailRec.x + menuRectEdgePadding - shadowBorder.width,
+		.y = monsterDisplayRect.y + monsterDisplayRect.height + menuRectEdgePadding,
 		.width = detailRec.width * 0.45f,
 		.height = 30,
 	};
@@ -583,4 +573,57 @@ void monster_index_draw() {
 	}
 
 	// monster abilities
+	Rectangle abilitiesRect = statsRect;
+	abilitiesRect.x = energyBarRect.x;
+
+	const char *abilitiesText = "Abilities";
+	const Vector2 abilitiesTextSize = MeasureTextEx(assets.regularFont, abilitiesText, statsTextFontSize, 1);
+	const Vector2 abilitiesPos = {
+		.x = abilitiesRect.x,
+		.y = abilitiesRect.y - abilitiesTextSize.y,
+	};
+	DrawTextEx(
+		assets.regularFont,
+		abilitiesText,
+		abilitiesPos,
+		statsTextFontSize,
+		1,
+		gameColors[ColorsWhite]
+	);
+
+	const MonsterData *currentMonsterData = game_data_for_monster_id(currentMonster.id);
+	for (i32 i = 0; i < currentMonsterData->abilitiesLen; i++) {
+		if (currentMonster.level < currentMonsterData->abilities[i].level) {
+			continue;
+		}
+		const char *abilityText = monsterAbilityStr[currentMonsterData->abilities[i].ability];
+
+		const f32 abilityOffset = 20.f;
+		const f32 abilityRectInnerPadding = 10.f;
+		const f32 abilityFontSize = 15.f;
+		const Vector2 singleAbilitySize = MeasureTextEx(assets.regularFont, abilityText, abilityFontSize, 1);
+		const f32 abilityRectHeight = singleAbilitySize.y + abilityRectInnerPadding * 2;
+		const Rectangle abilityRect = {
+			.x = abilitiesRect.x + (f32)(i % 2) * abilitiesRect.width / 2,
+			.y = abilityOffset + abilitiesRect.y + (f32)((i32)(i / 2)) * (abilityRectHeight + abilityOffset),
+			.height = abilityRectHeight,
+			.width = singleAbilitySize.x + abilityRectInnerPadding * 2,
+		};
+		const Vector2 abilityPos = {
+			.x = abilityRect.x + abilityRectInnerPadding,
+			.y = abilityRect.y + abilityRectInnerPadding,
+		};
+
+		// todo
+		// const Color abilityBGColor = monster_type_color(ability)
+		DrawRectangleRounded(abilityRect, 0.4f, 1, gameColors[ColorsWhite]);
+		DrawTextEx(
+			assets.regularFont,
+			abilityText,
+			abilityPos,
+			abilityFontSize,
+			1,
+			gameColors[ColorsBlack]
+		);
+	}
 }

@@ -5,6 +5,7 @@
 #ifndef MONSTERS_H
 #define MONSTERS_H
 
+#include <raylib.h>
 #include "common.h"
 
 // this seems like a nice way to do this faster
@@ -101,10 +102,12 @@ typedef struct Monster {
 } Monster;
 
 extern const char* monsterTypeStr[MonsterTypeCount];
+extern const char* monsterAbilityStr[MonsterAbilityCount];
 
 Monster monster_new(MonsterID id, u8 level);
 MonsterType monster_type_from_str(const char *name);
 MonsterAbility monster_ability_from_str(const char *name);
 MonsterID monster_name_from_str(const char *name);
+Color monster_type_color(MonsterType type);
 
 #endif //MONSTERS_H
