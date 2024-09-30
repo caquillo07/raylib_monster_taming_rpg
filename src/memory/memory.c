@@ -116,7 +116,7 @@ char *get_memory_usage_str() {
         //  for now, we only count all the non JSON allocs since our mfree is
         //  not compatible with the one inside cJSON... Zig or Odin would of
         //  been nice here
-        // KNOWN SAFE AMMOUNT: 45.60KiB
+        // KNOWN SAFE AMOUNT: 68.03KiB
         if (i == MemoryTagJSON) {
             continue;
         }

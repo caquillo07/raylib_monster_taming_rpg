@@ -596,7 +596,8 @@ void monster_index_draw() {
 		if (currentMonster.level < currentMonsterData->abilities[i].level) {
 			continue;
 		}
-		const char *abilityText = monsterAbilityStr[currentMonsterData->abilities[i].ability];
+		MonsterAbilityID abilityID = currentMonsterData->abilities[i].ability;
+		const char *abilityText = monsterAbilityStr[abilityID];
 
 		const f32 abilityOffset = 20.f;
 		const f32 abilityRectInnerPadding = 10.f;
@@ -615,8 +616,10 @@ void monster_index_draw() {
 		};
 
 		// todo
-		// const Color abilityBGColor = monster_type_color(ability)
-		DrawRectangleRounded(abilityRect, 0.4f, 1, gameColors[ColorsWhite]);
+
+		const MonsterAbilityData *attackData = game_data_for_monster_attack_id(abilityID);
+		const Color abilityBGColor = monster_type_color(attackData->element);
+		DrawRectangleRounded(abilityRect, 0.4f, 1, abilityBGColor);
 		DrawTextEx(
 			assets.regularFont,
 			abilityText,

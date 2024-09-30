@@ -10,6 +10,7 @@ const char *monsterTypeStr[MonsterTypeCount] = {
 	[MonsterTypePlant] = "Plant",
 	[MonsterTypeWater] = "Water",
 	[MonsterTypeFire] = "Fire",
+	[MonsterTypeNormal] = "Normal",
 };
 
 const char *monsterAbilityStr[MonsterAbilityCount] = {
@@ -36,11 +37,14 @@ MonsterType monster_type_from_str(const char *name) {
 	if (streq(name, "water")) {
 		return MonsterTypeWater;
 	}
+	if (streq(name, "normal")) {
+		return MonsterTypeNormal;
+	}
 
 	panic("unknown type \"%s\" provided", name);
 }
 
-MonsterAbility monster_ability_from_str(const char *name) {
+MonsterAbilityID monster_ability_from_str(const char *name) {
 	if (streq(name, "scratch")) {
 		return MonsterAbilityScratch;
 	}
@@ -132,6 +136,17 @@ MonsterID monster_name_from_str(const char *name) {
 	panic("unknown name \"%s\" provided", name);
 }
 
+
+MonsterAbilityTarget monster_target_from_str(const char *name) {
+	if (streq(name, "opponent")) {
+		return MonsterAbilityTargetOpponent;
+	}
+	if (streq(name, "player")) {
+		return MonsterAbilityTargetPlayer;
+	}
+	panic("unknown name \"%s\" provided", name)
+}
+
 Monster monster_new(MonsterID id, u8 level) {
 	MonsterData *data = game_data_for_monster_id(id);
 	i32 levelUp = level * 150;
@@ -157,8 +172,10 @@ Color monster_type_color(MonsterType type) {
 		case MonsterTypePlant: return gameColors[ColorsPlant];
 		case MonsterTypeWater: return gameColors[ColorsWater];
 		case MonsterTypeFire: return gameColors[ColorsFire];
+		case MonsterTypeNormal: return gameColors[ColorsNormal];
 		case MonsterTypeCount:
 		case MonsterTypeNone:
-		default: panic("invalid monster type");
+		default: panic("invalid monster type %d", type);
 	}
 }
+

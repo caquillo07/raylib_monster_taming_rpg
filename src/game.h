@@ -70,6 +70,7 @@ typedef struct Game {
     struct {
         CharacterData *characterData;
         MonsterData *monsterData;
+		MonsterAbilityData *attackData;
     } data;
 } Game;
 
