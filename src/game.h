@@ -11,67 +11,68 @@
 #include "monster_index.h"
 
 typedef struct GameMetrics {
-    f64 timeInInput;
-    f64 timeInUpdate;
-    f64 timeInDraw;
-    i64 totalSprites;
-    i64 drawnSprites;
+	f64 timeInInput;
+	f64 timeInUpdate;
+	f64 timeInDraw;
+	i64 totalSprites;
+	i64 drawnSprites;
 } GameMetrics;
 
 typedef struct DialogBubble {
-    i64 index;
-    bool visible;
-    char characterID[MAX_CHARACTER_ID_LENGTH];
-    Vector2 characterCenter;
+	i64 index;
+	bool visible;
+	char characterID[MAX_CHARACTER_ID_LENGTH];
+	Vector2 characterCenter;
 } DialogBubble;
 
 typedef enum TransitionMode {
-    TransitionModeNone = 0,
-    TransitionModeFadeOut,
-    TransitionModeFadeIn,
+	TransitionModeNone = 0,
+	TransitionModeFadeOut,
+	TransitionModeFadeIn,
 
-    TransitionModeCount,
+	TransitionModeCount,
 } TransitionMode;
 
 typedef enum GameModeState {
-    GameModeNone = 0,
-    GameModeLoading,
-    GameModePlaying,
-    GameModeMonsterIndex,
-    GameModeBattle,
+	GameModeNone = 0,
+	GameModeLoading,
+	GameModePlaying,
+	GameModeMonsterIndex,
+	GameModeBattle,
 
-    GameModeCount,
+	GameModeCount,
 } GameModeState;
 
 #define MAX_PLAYER_MONSTERS_LEN 8
 typedef struct Game {
-    bool isDebug;
-    GameModeState gameModeState;
+	bool isDebug;
+	GameModeState gameModeState;
 
-    Map *currentMap;
-    Player player;
-    Monster playerMonsters[MAX_PLAYER_MONSTERS_LEN];
-    Camera2D camera;
-    Rectangle cameraBoundingBox;
-    GameMetrics gameMetrics;
-    DialogBubble dialogBubble;
+	Map *currentMap;
+	Player player;
+	Monster playerMonsters[MAX_PLAYER_MONSTERS_LEN];
+	Monster dummyMonsters[MAX_PLAYER_MONSTERS_LEN];
+	Camera2D camera;
+	Rectangle cameraBoundingBox;
+	GameMetrics gameMetrics;
+	DialogBubble dialogBubble;
 
-    // transitions
-    struct {
-        TransitionSprite *target;
-        TransitionMode mode;
-        f32 progress;
-        f32 speed;
-    } transition;
+	// transitions
+	struct {
+		TransitionSprite *target;
+		TransitionMode mode;
+		f32 progress;
+		f32 speed;
+	} transition;
 
-    // monsters index
-    MonsterIndex monsterIndex;
+	// monsters index
+	MonsterIndex monsterIndex;
 
-    struct {
-        CharacterData *characterData;
-        MonsterData *monsterData;
+	struct {
+		CharacterData *characterData;
+		MonsterData *monsterData;
 		MonsterAbilityData *attackData;
-    } data;
+	} data;
 } Game;
 
 extern Game game;

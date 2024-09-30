@@ -14,6 +14,7 @@
 #include "game_data.h"
 #include "settings.h"
 #include "array/array.h"
+#include "monster_battle.h"
 
 //
 static void setup_game(MapID mapID);
@@ -78,19 +79,17 @@ static void do_game_handle_input() {
 	if (frameStepMode && !shouldRenderFrame) {
 		return;
 	}
-    static bool debugMenu = true;
 
 	switch (game.gameModeState) {
 		case GameModeNone:
-		case GameModeLoading:break;
-		case GameModePlaying:
+		case GameModeLoading: break;
+		case GameModePlaying: {
 			// todo if any of the events happens above, we never update the player input.
 			//  we should instead hold a list of events on this frame and check them on each system
 			//  instead. add the key press to the global event
 			//  https://github.com/raysan5/raylib/blob/52f2a10db610d0e9f619fd7c521db08a876547d0/src/rcore.c#L297
 			player_input(&game.player);
-			if (IsKeyPressed(KEY_ENTER) || debugMenu) {
-                debugMenu = false;
+			if (IsKeyPressed(KEY_ENTER)) {
 				game.gameModeState = GameModeMonsterIndex;
 				game.monsterIndex.state.partyLength = player_party_length();
 
@@ -131,13 +130,18 @@ static void do_game_handle_input() {
 				game.player.characterComponent.velocity = (Vector2){0, 0};
 			}
 			break;
-		case GameModeMonsterIndex:monster_index_handle_input();
+		}
+		case GameModeMonsterIndex: {
+			monster_index_handle_input();
 			break;
-		case GameModeBattle:
-		case GameModeCount:break;
-		default:
+		}
+		case GameModeBattle: {
+			monster_battle_input();
+			break;
+		}
+		case GameModeCount:
+		default: panic("invalid game mode state: %d", game.gameModeState);
 	}
-
 }
 
 void game_handle_input() {
@@ -154,6 +158,7 @@ static void do_game_update(const f32 deltaTime) {
 	map_update(game.currentMap, deltaTime);
 	player_update(&game.player, deltaTime);
 	monster_index_update(deltaTime);
+	monster_battle_update(deltaTime);
 
 	update_camera();
 	handle_screen_transition(deltaTime);
@@ -181,6 +186,7 @@ void game_draw() {
 
 		game_draw_fade_transition();
 		monster_index_draw();
+		monster_battle_draw();
 
 		// last thing we draw
 		game_draw_debug_screen();
@@ -250,7 +256,8 @@ static void do_map_transition_check() {
 
 static void handle_screen_transition(const f32 dt) {
 	switch (game.transition.mode) {
-		case TransitionModeFadeOut:panicIfNil(game.transition.target);
+		case TransitionModeFadeOut: {
+			panicIfNil(game.transition.target);
 			player_block(&game.player);
 			game.transition.progress += game.transition.speed * dt;
 			if (game.transition.progress >= 255) {
@@ -259,7 +266,9 @@ static void handle_screen_transition(const f32 dt) {
 				game_load_map(nextMapID);
 			}
 			break;
-		case TransitionModeFadeIn:panicIfNil(game.transition.target);
+		}
+		case TransitionModeFadeIn: {
+			panicIfNil(game.transition.target);
 			game.transition.progress -= game.transition.speed * dt;
 			if (game.transition.progress <= 0) {
 				game.transition.mode = TransitionModeNone;
@@ -267,9 +276,10 @@ static void handle_screen_transition(const f32 dt) {
 				player_unblock(&game.player);
 			}
 			break;
+		}
 
-		case TransitionModeNone:break;
-		default:panic("invalid tint mode while fading screen");
+		case TransitionModeNone: break;
+		default: panic("invalid tint mode while fading screen");
 	}
 }
 
@@ -355,6 +365,12 @@ static void setup_game(const MapID mapID) {
 	game.playerMonsters[5] = monster_new(MonsterIDGulfin, 24);
 	game.playerMonsters[6] = monster_new(MonsterIDJacana, 2);
 	game.playerMonsters[7] = monster_new(MonsterIDPouch, 3);
+
+	game.dummyMonsters[0] = monster_new(MonsterIDLarvea, 13);
+	game.dummyMonsters[1] = monster_new(MonsterIDAtrox, 14);
+	game.dummyMonsters[2] = monster_new(MonsterIDSparchu, 25);
+	game.dummyMonsters[3] = monster_new(MonsterIDGulfin, 14);
+	game.dummyMonsters[4] = monster_new(MonsterIDJacana, 12);
 
 	// camera
 	game.camera = (Camera2D){0};
