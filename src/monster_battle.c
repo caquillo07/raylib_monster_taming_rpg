@@ -6,8 +6,10 @@
 #include "game.h"
 #include "settings.h"
 #include "colors.h"
+#include "ui.h"
 
 static void draw_monster(const Monster *monster, const AnimatedTiledSprite *sprite, Vector2 pos, bool flipped);
+static void draw_monster_stat_bar(Vector2 textPos, f32 barWidth, i32 value, i32 maxValue, Colors barColor);
 
 struct monsterPosition_ {
 	Vector2 top;
@@ -73,6 +75,9 @@ void monster_battle_update(f32 dt) {
 	}
 }
 
+// normally you would want to add some sort of sprite + z-value for draw order,
+// but since this scene is fairly basic, and stuff won't dynamically change their
+// z ordering; we will just manually draw them in the correct order.
 void monster_battle_draw() {
 	if (game.gameModeState != GameModeBattle) { return; }
 
@@ -123,26 +128,16 @@ void monster_battle_draw() {
 static void draw_monster(const Monster *monster, const AnimatedTiledSprite *sprite, Vector2 pos, bool flipped) {
 	Rectangle animationFrame = animated_tiled_sprite_current_frame(sprite);
 	Rectangle monsterDestRec = {
-		.x = pos.x,
-		.y = pos.y,
+		.x = pos.x - animationFrame.width / 2,
+		.y = pos.y - animationFrame.height / 2,
 		.height = animationFrame.height,
 		.width = animationFrame.width,
 	};
 	animationFrame.width *= (f32)(flipped ? -1 : 1);
-	DrawTexturePro(
-		sprite->texture,
-		animationFrame,
-		monsterDestRec,
-		(Vector2){0, 0},
-		0.f,
-		WHITE
-	);
-
 	// monster name/level box
 	const char *monsterName = monster->name;
-	const f32 monsterNameFontSize = 15.f;
-	const f32 monsterNamePadding = 20.f;
-	const Vector2 monsterNameSize = MeasureTextEx(assets.regularFont, monsterName, 15.f, 1.0f);
+	const f32 monsterNamePadding = 10.f;
+	const Vector2 monsterNameSize = MeasureTextEx(assets.regularFont.font, monsterName, assets.regularFont.size, 1.0f);
 	Rectangle monsterNameRect = {
 		.height = monsterNameSize.y + monsterNamePadding * 2,
 		.width = monsterNameSize.x + monsterNamePadding * 2,
@@ -160,5 +155,152 @@ static void draw_monster(const Monster *monster, const AnimatedTiledSprite *spri
 		.y = monsterNameRect.y + monsterNamePadding,
 	};
 	DrawRectangleRec(monsterNameRect, gameColors[ColorsWhite]);
-	DrawTextEx(assets.regularFont, monsterName, monsterNamePos, monsterNameFontSize, 1.0f, gameColors[ColorsBlack]);
+	DrawTextEx(
+		assets.regularFont.font,
+		monsterName,
+		monsterNamePos,
+		assets.regularFont.size,
+		1.0f,
+		gameColors[ColorsBlack]
+	);
+	const f32 xpBarHeight = 2.f;
+	const Rectangle xpBarRect = {
+		.x = monsterNameRect.x,
+		.y = monsterNameRect.y + monsterNameRect.height - xpBarHeight,
+		.height = xpBarHeight,
+		.width = monsterNameRect.width,
+	};
+	if (flipped) {
+		// only draw for player
+		ui_draw_progress_bar(
+			xpBarRect,
+			(f32)monster->xp,
+			(f32)monster->levelUp,
+			gameColors[ColorsBlack],
+			gameColors[ColorsWhite],
+			0
+		);
+	}
+
+	// Monster level
+	const char *monsterLevelText = TextFormat("Lv. %d", monster->level);
+	const f32 monsterLevelPadding = 10.f;
+	Rectangle monsterLevelRect = {
+		.width = 60,
+		.height = 26,
+	};
+	if (flipped) {
+		// player
+		monsterLevelRect.x = monsterNameRect.x;
+		monsterLevelRect.y = monsterNameRect.y + monsterNameRect.height;
+	} else {
+		monsterLevelRect.x = monsterNameRect.x + monsterNameRect.width - monsterLevelRect.width;
+		monsterLevelRect.y = monsterNameRect.y + monsterNameRect.height;
+	}
+	const Vector2 monsterLevelPos = {
+		.x = monsterLevelRect.x + monsterLevelPadding,
+		.y = monsterLevelRect.y + monsterLevelPadding / 2,
+	};
+
+	DrawRectangleRec(monsterLevelRect, gameColors[ColorsWhite]);
+	DrawTextEx(
+		assets.smallFont.font,
+		monsterLevelText,
+		monsterLevelPos,
+		assets.smallFont.size,
+		1.0f,
+		gameColors[ColorsBlack]
+	);
+
+	// draw the monster AFTER the name/level
+	DrawTexturePro(
+		sprite->texture,
+		animationFrame,
+		monsterDestRec,
+		(Vector2){0, 0},
+		0.f,
+		WHITE
+	);
+
+	// monster stats
+	Rectangle monsterStatsRect = {
+		.width = 150,
+		.height = 48,
+	};
+	// we want the mid-top of the stats to be at the mid-bottom of the monster
+	// sprite, plus a 20 px padding
+	monsterStatsRect.x = monsterDestRec.x + (monsterDestRec.width - monsterStatsRect.width) / 2;
+	monsterStatsRect.y = monsterDestRec.y + monsterDestRec.height + 20 - monsterStatsRect.height;
+
+	DrawRectangleRec(monsterStatsRect, gameColors[ColorsWhite]);
+
+	// health and energy (probably abstracted too soon here...?
+	const f32 barWidth = monsterStatsRect.width * 0.9f;
+	Vector2 statPosition = {
+		.x = monsterStatsRect.x + (monsterStatsRect.width * 0.05f),
+		.y = monsterStatsRect.y,
+	};
+	draw_monster_stat_bar(
+		statPosition,
+		barWidth,
+		(i32)monster->health,
+		(i32)monster->stats.maxHealth,
+		ColorsRed
+	);
+	statPosition.y = monsterStatsRect.y + (monsterStatsRect.height / 2);
+	draw_monster_stat_bar(
+		statPosition,
+		barWidth,
+		(i32)monster->health,
+		(i32)monster->stats.maxHealth,
+		ColorsBlue
+	);
+	const f32 initiativeBarHeight = 2.f;
+	const Rectangle initiativeRect = {
+		.x = monsterStatsRect.x,
+		.y = monsterStatsRect.y + monsterStatsRect.height - initiativeBarHeight,
+		.width = monsterStatsRect.width,
+		.height = initiativeBarHeight,
+	};
+	ui_draw_progress_bar(
+		initiativeRect,
+		(f32)monster->initiative,
+		(f32)MonsterMaxInitiative,
+		gameColors[ColorsBlack],
+		gameColors[ColorsWhite],
+		0
+	);
+}
+
+static void draw_monster_stat_bar(Vector2 textPos, f32 barWidth, i32 value, i32 maxValue, Colors barColor) {
+	const char *barText = TextFormat("%d/%d", value, maxValue);
+	const Vector2 barTextSize = MeasureTextEx(assets.smallFont.font, barText, assets.regularFont.size, 1.f);
+	const Rectangle barTextRect = {
+		.x = textPos.x,
+		.y = textPos.y,
+		.width = barTextSize.x,
+		.height = barTextSize.y,
+	};
+	DrawTextEx(
+		assets.smallFont.font,
+		barText,
+		(Vector2){barTextRect.x, barTextRect.y},
+		assets.smallFont.size,
+		1.0f,
+		gameColors[ColorsBlack]
+	);
+	const Rectangle progressBarRect = {
+		.x = barTextRect.x,
+		.y = barTextRect.y + barTextRect.height - 2.f,
+		.width = barWidth,
+		.height = 4.f,
+	};
+	ui_draw_progress_bar(
+		progressBarRect,
+		(f32)value,
+		(f32)maxValue,
+		gameColors[barColor],
+		gameColors[ColorsBlack],
+		2
+	);
 }

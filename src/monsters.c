@@ -7,6 +7,8 @@
 #include "colors.h"
 #include "settings.h"
 
+const i32 MonsterMaxInitiative = 100;
+
 const char *monsterTypeStr[MonsterTypeCount] = {
 	[MonsterTypePlant] = "Plant",
 	[MonsterTypeWater] = "Water",
@@ -149,20 +151,32 @@ MonsterAbilityTarget monster_target_from_str(const char *name) {
 }
 
 Monster monster_new(MonsterID id, u8 level) {
-	MonsterData *data = game_data_for_monster_id(id);
+	const MonsterData *data = game_data_for_monster_id(id);
+	// we make a copy because we don't want to update the underlying data.
+	MonsterStats stats = data->stats;
+	stats.maxHealth *= (f32)level;
+	stats.maxEnergy *= (f32)level;
+	stats.attack *= (f32)level;
+	stats.defense *= (f32)level;
+	stats.recovery *= (f32)level;
+	stats.speed *= (f32)level;
+
 	i32 levelUp = level * 150;
 	i32 currentXP = (i32)random() % levelUp; // todo - remove, just some test data
-	i32 currentHP = (i32)random() % (i32)(data->stats.maxHealth * (f32)level); // todo - remove, just some test data
-	i32 currentEnergy = (i32)random() % (i32)(data->stats.maxEnergy * (f32)level); // todo - remove, just some test data
+	i32 currentHP = (i32)random() % (i32)(stats.maxHealth); // todo - remove, just some test data
+	i32 currentEnergy = (i32)random() % (i32)(data->stats.maxEnergy); // todo - remove, just some test data
+	i32 initiative = (i32)random() % MonsterMaxInitiative; // todo - remove, just some test data
+
 	Monster m = {
 		.id = id,
 		.level = level,
 		.health = max(currentHP, 10),
 		.energy = currentEnergy,
 		.type = data->element,
-		.stats = data->stats,
+		.stats = stats,
 		.xp = currentXP,
 		.levelUp = level * 150,
+		.initiative = initiative,
 	};
 	strncpy(m.name, data->name, MAX_MONSTER_NAME_LEN);
 	return m;

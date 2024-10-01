@@ -112,6 +112,13 @@ static void do_game_handle_input() {
 }
 
 void game_handle_input() {
+	static i32 screenHeight = 0;
+	static i32 screenWidth = 0;
+	if (GetScreenHeight() != screenHeight || GetScreenWidth() != screenWidth) {
+		screenHeight = GetScreenHeight();
+		screenWidth = GetScreenWidth();
+		printf("screen size changed to %dx%d\n", screenWidth, screenHeight);
+	}
 	const clock_t now = clock();
 	do_game_handle_input();
 	game.gameMetrics.timeInInput = ((double)(clock() - now)) / (CLOCKS_PER_SEC / 1000);
@@ -293,7 +300,7 @@ static void game_draw_dialog_box() {
 
 	const f32 fontSize = 33.f;
 	const f32 fontSpacing = 4.f;
-	const Vector2 textSize = MeasureTextEx(assets.dialogFont, msg, fontSize, fontSpacing);
+	const Vector2 textSize = MeasureTextEx(assets.dialogFont.font, msg, fontSize, fontSpacing);
 	const f32 textPadding = 20.f;
 	const f32 minWidth = 30.f;
 	const f32 bubbleWidth = textPadding * 2 + textSize.x;
@@ -310,7 +317,7 @@ static void game_draw_dialog_box() {
 
 	DrawRectangleRounded(frame, radius, 0, gameColors[ColorsWhite]);
 	DrawTextEx(
-		assets.dialogFont,
+		assets.dialogFont.font,
 		msg,
 		(Vector2){frame.x + textPadding, frame.y + textPadding},
 		fontSize,

@@ -32,6 +32,11 @@ typedef enum TileMapID {
 	TileMapIDMax,
 } TileMapID;
 
+typedef struct GameFont {
+	Font font;
+	f32 size;
+} GameFont;
+
 typedef struct Assets {
 	struct {
 		i32 len;
@@ -45,10 +50,10 @@ typedef struct Assets {
 	Texture2D characterShadowTexture;
 	Texture2D exclamationMarkTexture;
 
-	Font dialogFont;
-	Font regularFont;
-	Font smallFont;
-	Font boldFont;
+	GameFont dialogFont;
+	GameFont regularFont;
+	GameFont smallFont;
+	GameFont boldFont;
 
 	struct {
 		Texture2D atrox;

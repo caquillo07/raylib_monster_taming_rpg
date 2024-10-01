@@ -106,6 +106,8 @@ typedef struct MonsterAbilityData {
 //	animation; ???
 } MonsterAbilityData;
 
+extern const i32 MonsterMaxInitiative;
+
 typedef struct Monster {
 	MonsterID id;
 	char name[MAX_MONSTER_NAME_LEN];
@@ -116,6 +118,7 @@ typedef struct Monster {
 	i32 levelUp;
 	i32 health;
 	i32 energy;
+	i32 initiative;
 } Monster;
 
 extern const char *monsterTypeStr[MonsterTypeCount];

@@ -102,10 +102,14 @@ void load_assets() {
 	assets.characterShadowTexture = LoadTexture("./graphics/other/shadow.png");
 	assets.exclamationMarkTexture = LoadTexture("./graphics/ui/notice.png");
 
-	assets.dialogFont = LoadFontEx("./graphics/fonts/PixeloidSans.ttf", 30, nil, 250);
-	assets.regularFont = LoadFontEx("./graphics/fonts/PixeloidSans.ttf", 18, nil, 250);
-	assets.smallFont = LoadFontEx("./graphics/fonts/PixeloidSans.ttf", 14, nil, 250);
-	assets.boldFont = LoadFontEx("./graphics/fonts/dogicapixelbold.otf", 20, nil, 250);
+	assets.dialogFont.size = 30;
+	assets.dialogFont.font = LoadFontEx("./graphics/fonts/PixeloidSans.ttf", (i32)assets.dialogFont.size, nil, 250);
+	assets.regularFont.size = 18;
+	assets.regularFont.font = LoadFontEx("./graphics/fonts/PixeloidSans.ttf", (i32)assets.regularFont.size, nil, 250);
+	assets.smallFont.size = 14;
+	assets.smallFont.font = LoadFontEx("./graphics/fonts/PixeloidSans.ttf", (i32)assets.smallFont.size, nil, 250);
+	assets.boldFont.size = 20;
+	assets.boldFont.font = LoadFontEx("./graphics/fonts/dogicapixelbold.otf", (i32)assets.boldFont.size, nil, 250);
 }
 
 void unload_assets() {
@@ -218,10 +222,10 @@ void unload_assets() {
 	UnloadTexture(assets.monsterTileMaps[MonsterIDSparchu].texture);
 	array_free(assets.monsterTileMaps[MonsterIDSparchu].framesList);
 
-	UnloadFont(assets.dialogFont);
-	UnloadFont(assets.regularFont);
-	UnloadFont(assets.smallFont);
-	UnloadFont(assets.boldFont);
+	UnloadFont(assets.dialogFont.font);
+	UnloadFont(assets.regularFont.font);
+	UnloadFont(assets.smallFont.font);
+	UnloadFont(assets.boldFont.font);
 }
 
 static Texture2D *import_textures_from_directory(const char *dirPath) {
