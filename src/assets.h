@@ -89,6 +89,12 @@ typedef struct Assets {
 		Texture2D star;
 	} uiIcons;
 
+	struct {
+		Texture2D forrest;
+		Texture2D ice;
+		Texture2D sand;
+	} battleBackgrounds;
+
 	TileMap monsterTileMaps[MonsterIDCount];
 } Assets;
 

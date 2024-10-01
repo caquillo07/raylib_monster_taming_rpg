@@ -73,6 +73,10 @@ void load_assets() {
 	assets.uiIcons.shield = LoadTexture("./graphics/ui/shield.png");
 	assets.uiIcons.star = LoadTexture("./graphics/ui/star.png");
 
+	assets.battleBackgrounds.forrest = LoadTexture("./graphics/backgrounds/forest.png");
+	assets.battleBackgrounds.ice = LoadTexture("./graphics/backgrounds/ice.png");
+	assets.battleBackgrounds.sand = LoadTexture("./graphics/backgrounds/sand.png");
+
 	assets.monsterTileMaps[MonsterIDAtrox] = load_tile_map(4, 2, "./graphics/monsters/Atrox.png");
 	assets.monsterTileMaps[MonsterIDCharmadillo] = load_tile_map(4, 2, "./graphics/monsters/Charmadillo.png");
 	assets.monsterTileMaps[MonsterIDCindrill] = load_tile_map(4, 2, "./graphics/monsters/Cindrill.png");
@@ -89,6 +93,7 @@ void load_assets() {
 	assets.monsterTileMaps[MonsterIDPlumette] = load_tile_map(4, 2, "./graphics/monsters/Plumette.png");
 	assets.monsterTileMaps[MonsterIDPouch] = load_tile_map(4, 2, "./graphics/monsters/Pouch.png");
 	assets.monsterTileMaps[MonsterIDSparchu] = load_tile_map(4, 2, "./graphics/monsters/Sparchu.png");
+
 
 	assets.grassTexture = LoadTexture("./graphics/objects/grass.png");
 	assets.iceGrassTexture = LoadTexture("./graphics/objects/grass_ice.png");
@@ -175,6 +180,10 @@ void unload_assets() {
 	UnloadTexture(assets.uiIcons.health);
 	UnloadTexture(assets.uiIcons.shield);
 	UnloadTexture(assets.uiIcons.star);
+
+	UnloadTexture(assets.battleBackgrounds.forrest);
+	UnloadTexture(assets.battleBackgrounds.ice);
+	UnloadTexture(assets.battleBackgrounds.sand);
 
 	UnloadTexture(assets.monsterTileMaps[MonsterIDAtrox].texture);
 	array_free(assets.monsterTileMaps[MonsterIDAtrox].framesList);

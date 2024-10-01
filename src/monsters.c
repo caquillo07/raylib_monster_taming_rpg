@@ -5,6 +5,7 @@
 #include "monsters.h"
 #include "game_data.h"
 #include "colors.h"
+#include "settings.h"
 
 const char *monsterTypeStr[MonsterTypeCount] = {
 	[MonsterTypePlant] = "Plant",
@@ -179,3 +180,31 @@ Color monster_type_color(MonsterType type) {
 	}
 }
 
+// this is hacky, but i don't care. We know that every animation has 4 frames,
+// I don't feel like allocating a new buffer every time the menu gets opened,
+// and I don't feel like refactoring the animation system right now.
+// In a real game, this wouldn't fly, but for this demo its okay.
+// todo - fix this?
+AnimatedTiledSprite monster_get_animated_sprite_for_id(MonsterID monsterID) {
+#define AnimationFramesLen 4
+	static Rectangle monsterAnimationsFrames[AnimationFramesLen];
+
+	// turns out every sprite atlas has sprites of the same size,
+	// so lets be lazy and do it once...
+	const i32 animationFramesRow = 0;
+	const TileMap monsterTileSet = assets.monsterTileMaps[monsterID];
+	for (i32 i = 0; i < AnimationFramesLen; i++) {
+		monsterAnimationsFrames[i] = tile_map_get_frame_at(monsterTileSet, i, animationFramesRow);
+	}
+	return (AnimatedTiledSprite){
+		.entity = {
+			.id = monsterTileSet.texture.id,
+			.layer = WorldLayerTop,
+		},
+		.texture = monsterTileSet.texture,
+		.framesLen = 4,
+		.frameTimer = 0,
+		.animationSpeed = settings.monsterAnimationSpeed,
+		.sourceFrames = monsterAnimationsFrames,
+	};
+}

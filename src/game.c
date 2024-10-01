@@ -26,15 +26,13 @@ static void do_map_transition_check();
 static void handle_screen_transition(f32 dt);
 static void game_draw_fade_transition();
 static void game_load_map(MapID mapID);
+static void game_start_battle();
 
-//
 MapID startingMap = MapIDWorld;
 
-//
 static bool frameStepMode = false;
 static bool shouldRenderFrame = true;
 
-//
 Game game;
 
 void game_init() {
@@ -93,40 +91,9 @@ static void do_game_handle_input() {
 				game.gameModeState = GameModeMonsterIndex;
 				game.monsterIndex.state.partyLength = player_party_length();
 
-
-				// this is hacky, but i don't care. We know that every animation has 4 frames,
-				// I don't feel like allocating a new buffer every time the menu gets opened,
-				// and I don't feel like refactoring the animation system right now.
-				// In a real game, this wouldn't fly, but for this demo its okay.
-				// todo - fix this?
-#define AnimationFramesLen 4
-				static Rectangle monsterAnimationsFrames[AnimationFramesLen];
-
-				// turns out every sprite atlas has sprites of the same size,
-				// so lets be lazy and do it once...
-				const i32 animationFramesRow = 0;
 				const i32 currentIndex = game.monsterIndex.state.currentIndex;
 				const Monster currenMonster = game.playerMonsters[currentIndex];
-				for (i32 i = 0; i < AnimationFramesLen; i++) {
-					monsterAnimationsFrames[i] = tile_map_get_frame_at(
-						assets.monsterTileMaps[currenMonster.id],
-						i,
-						animationFramesRow
-					);
-				}
-
-				const TileMap monsterTileSet = assets.monsterTileMaps[game.playerMonsters[0].id];
-				game.monsterIndex.state.animatedMonster = (AnimatedTiledSprite){
-					.entity = {
-						.id = monsterTileSet.texture.id,
-						.layer = WorldLayerTop,
-					},
-					.texture = monsterTileSet.texture,
-					.framesLen = 4,
-					.frameTimer = 0,
-					.animationSpeed = settings.monsterAnimationSpeed,
-					.sourceFrames = monsterAnimationsFrames,
-				};
+				game.monsterIndex.state.animatedMonster = monster_get_animated_sprite_for_id(currenMonster.id);
 				game.player.characterComponent.velocity = (Vector2){0, 0};
 			}
 			break;
@@ -366,11 +333,6 @@ static void setup_game(const MapID mapID) {
 	game.playerMonsters[6] = monster_new(MonsterIDJacana, 2);
 	game.playerMonsters[7] = monster_new(MonsterIDPouch, 3);
 
-	game.dummyMonsters[0] = monster_new(MonsterIDLarvea, 13);
-	game.dummyMonsters[1] = monster_new(MonsterIDAtrox, 14);
-	game.dummyMonsters[2] = monster_new(MonsterIDSparchu, 25);
-	game.dummyMonsters[3] = monster_new(MonsterIDGulfin, 14);
-	game.dummyMonsters[4] = monster_new(MonsterIDJacana, 12);
 
 	// camera
 	game.camera = (Camera2D){0};
@@ -387,6 +349,9 @@ static void setup_game(const MapID mapID) {
 
 	// start the game;
 	game.gameModeState = GameModePlaying;
+
+	// todo - temp
+	game_start_battle();
 }
 
 static void update_camera() {
@@ -404,4 +369,19 @@ static void update_camera() {
 		(f32)GetScreenWidth() / game.camera.zoom,
 		(f32)GetScreenHeight() / game.camera.zoom
 	};
+}
+
+void game_start_battle() {
+	game.battleStage = (BattleStage){
+		.opponentMonsters = {
+			monster_new(MonsterIDLarvea, 13),
+			monster_new(MonsterIDAtrox, 14),
+			monster_new(MonsterIDSparchu, 25),
+			monster_new(MonsterIDGulfin, 14),
+			monster_new(MonsterIDJacana, 12),
+		},
+		.bgTexture = assets.battleBackgrounds.forrest,
+	};
+	monster_battle_setup();
+	game.gameModeState = GameModeBattle;
 }

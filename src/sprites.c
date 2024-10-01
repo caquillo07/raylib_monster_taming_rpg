@@ -5,12 +5,16 @@
 #include <math.h>
 #include "sprites.h"
 
-void update_animated_textures_sprite(AnimatedTexturesSprite *sprite, f32 dt) {
+void animated_textures_sprite_update(AnimatedTexturesSprite *sprite, f32 dt) {
     sprite->frameTimer += sprite->animationSpeed * dt;
     sprite->currentFrame = (i32) fmodf(sprite->frameTimer, (f32) sprite->framesLen);
 }
 
-void update_animated_tiled_sprite(AnimatedTiledSprite *sprite, f32 dt) {
+void animated_tiled_sprite_update(AnimatedTiledSprite *sprite, f32 dt) {
     sprite->frameTimer += sprite->animationSpeed * dt;
     sprite->currentFrame = (i32) fmodf(sprite->frameTimer, (f32) sprite->framesLen);
+}
+
+Rectangle animated_tiled_sprite_current_frame(const AnimatedTiledSprite *sprite) {
+	return sprite->sourceFrames[sprite->currentFrame];
 }

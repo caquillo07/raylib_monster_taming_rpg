@@ -9,6 +9,7 @@
 #include "player.h"
 #include "monsters.h"
 #include "monster_index.h"
+#include "monster_battle.h"
 
 typedef struct GameMetrics {
 	f64 timeInInput;
@@ -43,15 +44,14 @@ typedef enum GameModeState {
 	GameModeCount,
 } GameModeState;
 
-#define MAX_PLAYER_MONSTERS_LEN 8
 typedef struct Game {
 	bool isDebug;
 	GameModeState gameModeState;
 
 	Map *currentMap;
 	Player player;
-	Monster playerMonsters[MAX_PLAYER_MONSTERS_LEN];
-	Monster dummyMonsters[MAX_PLAYER_MONSTERS_LEN];
+	Monster playerMonsters[MAX_PARTY_MONSTERS_LEN];
+	Monster dummyMonsters[MAX_PARTY_MONSTERS_LEN];
 	Camera2D camera;
 	Rectangle cameraBoundingBox;
 	GameMetrics gameMetrics;
@@ -67,6 +67,7 @@ typedef struct Game {
 
 	// monsters index
 	MonsterIndex monsterIndex;
+	BattleStage battleStage;
 
 	struct {
 		CharacterData *characterData;

@@ -761,11 +761,11 @@ static void init_object_sprites(Map *map, const tmx_layer *layer) {
 
 void map_update(const Map *map, const f32 dt) {
     for (i32 i = 0; i < array_length(map->waterSpritesList); i++) {
-        update_animated_textures_sprite(&map->waterSpritesList[i], dt);
+		animated_textures_sprite_update(&map->waterSpritesList[i], dt);
     }
 
     array_range(map->coastLineSpritesList, i) {
-        update_animated_tiled_sprite(&map->coastLineSpritesList[i], dt);
+		animated_tiled_sprite_update(&map->coastLineSpritesList[i], dt);
     }
 
     array_range(map->overWorldCharacters, i) {

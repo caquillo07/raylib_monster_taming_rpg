@@ -58,8 +58,8 @@ typedef struct AnimatedTexturesSprite {
     f32 animationSpeed;
 } AnimatedTexturesSprite;
 
-void update_animated_textures_sprite(AnimatedTexturesSprite *sprite, f32 dt);
-
-void update_animated_tiled_sprite(AnimatedTiledSprite *sprite, f32 dt);
+void animated_textures_sprite_update(AnimatedTexturesSprite *sprite, f32 dt);
+void animated_tiled_sprite_update(AnimatedTiledSprite *sprite, f32 dt);
+Rectangle animated_tiled_sprite_current_frame(const AnimatedTiledSprite *sprite);
 
 #endif //RAYLIB_POKEMON_CLONE_SPRITES_H

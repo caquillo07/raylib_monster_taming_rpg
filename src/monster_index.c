@@ -72,7 +72,7 @@ void monster_index_update(f32 dt) {
 	}
 	game.monsterIndex.frame.height = (f32)GetScreenHeight();
 	game.monsterIndex.frame.width = (f32)GetScreenWidth();
-	update_animated_tiled_sprite(&game.monsterIndex.state.animatedMonster, dt);
+	animated_tiled_sprite_update(&game.monsterIndex.state.animatedMonster, dt);
 }
 
 static Texture2D monster_icon_texture_for_id(MonsterID id) {

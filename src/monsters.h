@@ -7,6 +7,7 @@
 
 #include <raylib.h>
 #include "common.h"
+#include "sprites.h"
 
 // this seems like a nice way to do this faster
 // https://cboard.cprogramming.com/c-programming/27503-enum-question-post186539.html#post186539
@@ -72,6 +73,7 @@ typedef struct MonsterStats {
 #define MAX_MONSTER_NAME_LEN 32
 #define MAX_MONSTER_ABILITIES_LEN 5
 #define MAX_MONSTER_EVOLUTIONS_LEN 3
+#define MAX_PARTY_MONSTERS_LEN 8
 typedef struct MonsterData {
 	MonsterID id;
 	char name[MAX_MONSTER_NAME_LEN];
@@ -125,5 +127,6 @@ MonsterAbilityID monster_ability_from_str(const char *name);
 MonsterID monster_name_from_str(const char *name);
 MonsterAbilityTarget monster_target_from_str(const char *name);
 Color monster_type_color(MonsterType type);
+AnimatedTiledSprite monster_get_animated_sprite_for_id(MonsterID monsterID);
 
 #endif //MONSTERS_H

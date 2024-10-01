@@ -53,5 +53,6 @@ typedef ssize_t isize;
 
 void initLogger();
 f32 clamp(f32 n, f32 mi, f32 ma);
+f32 rand_f32(f32 min, f32 max);
 
 #endif //POKEMON_GAME_COMMON_H
