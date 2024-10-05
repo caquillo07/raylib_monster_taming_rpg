@@ -37,6 +37,7 @@ typedef struct StaticSprite {
     Rectangle sourceFrame;
 } StaticSprite;
 
+#define AnimationFramesLen 4
 typedef struct AnimatedTiledSprite {
     Entity entity; // cannot be moved from 1st position
 

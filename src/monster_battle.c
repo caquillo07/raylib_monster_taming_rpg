@@ -21,6 +21,7 @@ static void draw_general_ui();
 static void draw_attacks_ui();
 static void draw_switch_ui();
 static bool player_monster_in_stage(const Monster *monster);
+static void monster_start_attack();
 
 struct monsterPosition_ {
 	Vector2 top;
@@ -50,7 +51,7 @@ typedef enum selectionMode_ {
 	SelectionModeGeneral,
 	SelectionModeAttack,
 	SelectionModeSwitch,
-	SelectionModeCatch,
+	SelectionModeTarget,
 
 	SelectionModeCount,
 } selectionMode_;
@@ -78,10 +79,16 @@ typedef struct uiBattleChoiceState_ {
 	i32 indexes[SelectionModeCount];
 } uiBattleChoiceState_;
 
+struct selectedMonster_ {
+	Monster* monster;
+	i32 index;
+};
+
 // internal state, probably should have been a struct, but then i have to type twice
 static Rectangle currentMonsterRect = {};
 static Monster emptyMonster = {};
-static Monster *currentMonster = nil;
+static struct selectedMonster_ currentMonster = {};
+static struct selectedMonster_ selectedTargetMonster = {};
 static Monster *playerActiveMonsters[MAX_MONSTERS_PER_SIDE_LEN] = {&emptyMonster, &emptyMonster, &emptyMonster};
 static Monster *opponentActiveMonsters[MAX_MONSTERS_PER_SIDE_LEN] = {&emptyMonster, &emptyMonster, &emptyMonster};
 static bool highlight = false; // use to highlight monster when damage occurs
@@ -92,10 +99,12 @@ static uiBattleChoiceState_ uiBattleChoiceState = {
 		[SelectionModeGeneral] = 0,
 		[SelectionModeAttack] = 0,
 		[SelectionModeSwitch] = 0,
-		[SelectionModeCatch] = 0,
+		[SelectionModeTarget] = 0,
 	},
 	.uiSelectionMode = SelectionModeNone,
 };
+static selectionSide_ selectedSelectionSide = SelectionSideNone;
+static MonsterAbilityID selectedAttackID = {0};
 
 void monster_battle_setup() {
 	// player side
@@ -150,21 +159,21 @@ void monster_battle_setup() {
 void monster_battle_input() {
 	if (game.gameModeState != GameModeBattle) { return; }
 
-	if (uiBattleChoiceState.uiSelectionMode == SelectionModeNone ||
-		currentMonster == nil ||
-		currentMonster == &emptyMonster) {
+	selectionMode_ selectedMode = uiBattleChoiceState.uiSelectionMode;
+	if (selectedMode == SelectionModeNone ||
+		currentMonster.monster == nil ||
+		currentMonster.monster == &emptyMonster) {
 		return;
 	}
 
 	i32 maxIndex = 0;
-	selectionMode_ selectedMode = uiBattleChoiceState.uiSelectionMode;
 	if (selectedMode == SelectionModeGeneral) {
 		maxIndex = game.battleStage.battleType == BattleTypeTrainer ?
 			UIBattleChoiceIconIDCatch : UIBattleChoiceIconIDCount;
 	} else if (selectedMode == SelectionModeAttack) {
-		const MonsterData *currentMonsterData = game_data_for_monster_id(currentMonster->id);
+		const MonsterData *currentMonsterData = game_data_for_monster_id(currentMonster.monster->id);
 		for (i32 i = 0; i < currentMonsterData->abilitiesLen; i++) {
-			if (currentMonster->level < currentMonsterData->abilities[i].level) { continue; }
+			if (currentMonster.monster->level < currentMonsterData->abilities[i].level) { continue; }
 			maxIndex++;
 		}
 	} else if (selectedMode == SelectionModeSwitch) {
@@ -177,8 +186,18 @@ void monster_battle_input() {
 			availableMonsters[maxIndex] = monster;
 			maxIndex++;
 		}
-	} else if (selectedMode == SelectionModeCatch) {
-		maxIndex = 0;
+	} else if (selectedMode == SelectionModeTarget) {
+		Monster **targetMonsters = selectedSelectionSide == SelectionSideOpponent ?
+			opponentActiveMonsters : playerActiveMonsters;
+		i32 opponentsCount = 0;
+
+		for (usize i = 0; i < MAX_MONSTERS_PER_SIDE_LEN; i++) {
+			if (targetMonsters[i]->id != MonsterIDNone && targetMonsters[i]->health > 0) {
+				opponentsCount++;
+			}
+		}
+
+		maxIndex = opponentsCount;
 	} else {
 		panic("invalid selection mode %d", uiBattleChoiceState.uiSelectionMode);
 	}
@@ -193,6 +212,53 @@ void monster_battle_input() {
 		}
 	}
 	if (IsKeyPressed(KEY_SPACE)) {
+		if (selectedMode == SelectionModeTarget) {
+			Monster **targetMonsters = selectedSelectionSide == SelectionSideOpponent ?
+				opponentActiveMonsters : playerActiveMonsters;
+
+			i32 displayedIndex = 0;
+			for (usize i = 0; i < MAX_MONSTERS_PER_SIDE_LEN; i++) {
+				if (targetMonsters[i]->id != MonsterIDNone && targetMonsters[i]->health > 0) {
+					if (displayedIndex == uiBattleChoiceState.indexes[SelectionModeTarget]) {
+						printfln("selected monster %s", targetMonsters[i]->name);
+						selectedTargetMonster.monster = targetMonsters[i];
+						selectedTargetMonster.index = (i32)i;
+						break;
+					}
+					displayedIndex++;
+				}
+			}
+			uiBattleChoiceState.indexes[SelectionModeTarget] = 0;
+
+			if (selectedAttackID != MonsterAbilityNone) {
+				monster_start_attack();
+				selectedAttackID = MonsterAbilityNone;
+				selectedMode = SelectionModeNone;
+				currentMonster.monster = &emptyMonster;
+				currentMonster.index = 0;
+				update_all_monster_states(MonsterStateActive);
+			} else {
+				// catch
+			}
+		}
+		if (selectedMode == SelectionModeAttack) {
+			panicIfNil(currentMonster.monster);
+			uiBattleChoiceState.uiSelectionMode = SelectionModeTarget;
+			const MonsterData *currentMonsterData = game_data_for_monster_id(currentMonster.monster->id);
+			i32 displayedIndex = 0;
+			for (i32 i = 0; i < currentMonsterData->abilitiesLen; i++) {
+				if (currentMonster.monster->level < currentMonsterData->abilities[i].level) { continue; }
+				if (displayedIndex == uiBattleChoiceState.indexes[SelectionModeAttack]) {
+					selectedAttackID = currentMonsterData->abilities[i].ability;
+					break;
+				}
+				displayedIndex++;
+			}
+			printfln("chosen attack %s", monsterAbilityStr[selectedAttackID]);
+			selectedSelectionSide = game_data_for_monster_attack_id(selectedAttackID)->target ==
+									MonsterAbilityTargetPlayer ?
+				SelectionSidePlayer : SelectionSideOpponent;
+		}
 		if (selectedMode == SelectionModeGeneral) {
 			switch (uiBattleChoiceState.indexes[SelectionModeGeneral]) {
 				case UIBattleChoiceIconIDFight: {
@@ -201,7 +267,8 @@ void monster_battle_input() {
 				}
 				case UIBattleChoiceIconIDDefend: {
 					update_all_monster_states(MonsterStateActive);
-					currentMonster = &emptyMonster;
+					currentMonster.monster = &emptyMonster;
+					currentMonster.index = 0;
 					uiBattleChoiceState.uiSelectionMode = SelectionModeNone;
 					break;
 				}
@@ -210,7 +277,7 @@ void monster_battle_input() {
 					break;
 				}
 				case UIBattleChoiceIconIDCatch: {
-					uiBattleChoiceState.uiSelectionMode = SelectionModeCatch;
+					uiBattleChoiceState.uiSelectionMode = SelectionModeTarget;
 					break;
 				}
 				case UIBattleChoiceIconIDCount:
@@ -224,10 +291,25 @@ void monster_battle_input() {
 	if (IsKeyPressed(KEY_LEFT)) {
 		if (selectedMode == SelectionModeSwitch ||
 			selectedMode == SelectionModeAttack ||
-			selectedMode == SelectionModeCatch) {
+			selectedMode == SelectionModeTarget) {
 			uiBattleChoiceState.uiSelectionMode = SelectionModeGeneral;
 		}
 	}
+}
+
+void monster_start_attack() {
+	panicIf(selectedAttackID == MonsterAbilityNone);
+
+	currentMonster.monster->state = MonsterStateAttack;
+	AnimatedTiledSprite* animatedTiledSprite = &game.battleStage.playerMonsterSprites[currentMonster.index];
+	panicIfNil(animatedTiledSprite);
+
+	animatedTiledSprite->currentFrame = 0;
+
+	// get the attack data
+	const MonsterAbilityData *abilityData = game_data_for_monster_attack_id(selectedAttackID);
+	currentMonster.monster->energy -= abilityData->cost;
+	selectedTargetMonster.monster->health -= abilityData->damageAmount;
 }
 
 static void update_all_monster_states(MonsterState state) {
@@ -254,8 +336,9 @@ static void common_monster_update(Monster *monster, f32 dt) {
 	for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN * 2; i++) {
 		if (allMonsters[i]->initiative >= 100) {
 			update_all_monster_states(MonsterStatePaused);
-			currentMonster = allMonsters[i];
-			currentMonster->initiative = 0;
+			currentMonster.monster = allMonsters[i];
+			currentMonster.monster->initiative = 0;
+			currentMonster.index = i % MAX_MONSTERS_PER_SIDE_LEN; // original index
 			set_monster_highlight(true);
 
 			// if is a player monster, index 0,1,2
@@ -338,7 +421,12 @@ void monster_battle_draw() {
 		WHITE
 	);
 	// monsters
-	draw_monster(playerActiveMonsters[0], &game.battleStage.playerMonsterSprites[0], battlePositions.left.top, true);
+	draw_monster(
+		playerActiveMonsters[0],
+		&game.battleStage.playerMonsterSprites[0],
+		battlePositions.left.top,
+		true
+	);
 	draw_monster(
 		playerActiveMonsters[1],
 		&game.battleStage.playerMonsterSprites[1],
@@ -375,7 +463,7 @@ void monster_battle_draw() {
 }
 
 static void draw_monster(const Monster *monster, const AnimatedTiledSprite *sprite, Vector2 pos, bool flipped) {
-	if (monster->id == MonsterIDNone) { return; }
+	if (monster->id == MonsterIDNone || monster->health <= 0) { return; }
 	Rectangle animationFrame = animated_tiled_sprite_current_frame(sprite);
 	Rectangle monsterDestRec = {
 		.x = pos.x - animationFrame.width / 2,
@@ -467,9 +555,29 @@ static void draw_monster(const Monster *monster, const AnimatedTiledSprite *spri
 		gameColors[ColorsBlack]
 	);
 
-	const bool isCurrentMonster = currentMonster == monster;
+	bool isSelectedOpponent = false;
+	if (selectedSelectionSide != SelectionSideNone && uiBattleChoiceState.uiSelectionMode == SelectionModeTarget) {
+		Monster **targetMonsters = selectedSelectionSide == SelectionSideOpponent ?
+			opponentActiveMonsters : playerActiveMonsters;
+		i32 displayedIndex = 0;
+		for (usize i = 0; i < MAX_MONSTERS_PER_SIDE_LEN; i++) {
+			if (targetMonsters[i]->id != MonsterIDNone && targetMonsters[i]->health > 0) {
+				if (uiBattleChoiceState.indexes[SelectionModeTarget] == displayedIndex &&
+					monster == targetMonsters[i]) {
+					isSelectedOpponent = true;
+					break;
+				}
+				displayedIndex++;
+			}
+		}
+	}
+
+	const bool isCurrentMonster = currentMonster.monster == monster &&
+								  uiBattleChoiceState.uiSelectionMode != SelectionModeTarget;
 	if (isCurrentMonster) {
 		currentMonsterRect = monsterDestRec; // todo - this is a big no no, but i don't feel like restructuring the code...
+	}
+	if (isCurrentMonster || isSelectedOpponent) {
 		BeginShaderMode(assets.shaders.textureOutline);
 	}
 
@@ -482,7 +590,7 @@ static void draw_monster(const Monster *monster, const AnimatedTiledSprite *spri
 		0.f,
 		WHITE
 	);
-	if (isCurrentMonster) {
+	if (isCurrentMonster || isSelectedOpponent) {
 		EndShaderMode();
 	}
 
@@ -571,7 +679,7 @@ static void draw_monster_stat_bar(Vector2 textPos, f32 barWidth, i32 value, i32 
 }
 
 static void draw_ui() {
-	if (currentMonster == nil) {
+	if (currentMonster.monster == nil) {
 		return;
 	}
 
@@ -588,7 +696,7 @@ static void draw_ui() {
 			draw_switch_ui();
 			break;
 		}
-		case SelectionModeCatch:break;
+		case SelectionModeTarget:break;
 		case SelectionModeNone:
 		case SelectionModeCount:
 		default: {
@@ -669,7 +777,7 @@ static void draw_general_ui() {
 
 static void draw_attacks_ui() {
 	if (uiBattleChoiceState.uiSelectionMode != SelectionModeAttack) { return; }
-	panicIfNil(currentMonster);
+	panicIfNil(currentMonster.monster);
 
 	const i32 selectedIndex = uiBattleChoiceState.indexes[SelectionModeAttack];
 	const Rectangle listBgRect = rectangle_with_mid_left_at(
@@ -684,9 +792,9 @@ static void draw_attacks_ui() {
 		0 : -((f32)(selectedIndex - visibleAttacks + 1)) * itemHeight;
 	DrawRectangleRounded(listBgRect, itemRadius, 1, gameColors[ColorsWhite]);
 
-	const MonsterData *currentMonsterData = game_data_for_monster_id(currentMonster->id);
+	const MonsterData *currentMonsterData = game_data_for_monster_id(currentMonster.monster->id);
 	for (i32 i = 0; i < currentMonsterData->abilitiesLen; i++) {
-		if (currentMonster->level < currentMonsterData->abilities[i].level) { continue; }
+		if (currentMonster.monster->level < currentMonsterData->abilities[i].level) { continue; }
 
 		// rect
 		const Vector2 offset = {
@@ -730,7 +838,7 @@ static void draw_attacks_ui() {
 			isSelected ? abilityBGColor : gameColors[ColorsLight]
 		);
 
-		const bool isReady = currentMonster->energy >= abilityData->cost;
+		const bool isReady = currentMonster.monster->energy >= abilityData->cost;
 		DrawRectangleRec(
 			rectangle_at(
 				(Rectangle){.width = attackTextRect.width * .1f, .height = attackTextRect.height},

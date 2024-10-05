@@ -165,7 +165,6 @@ Monster monster_new(MonsterID id, u8 level) {
 	i32 currentXP = rand() % levelUp; // todo - remove, just some test data
 	i32 currentHP = rand() % (i32)(stats.maxHealth); // todo - remove, just some test data
 	i32 currentEnergy = rand() % (i32)(stats.maxEnergy); // todo - remove, just some test data
-//	i32 initiative = (i32)random() % MonsterMaxInitiative; // todo - remove, just some test data
 	Monster m = {
 		.id = id,
 		.state = MonsterStateActive,

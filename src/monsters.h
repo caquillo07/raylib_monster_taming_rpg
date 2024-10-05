@@ -111,6 +111,7 @@ extern const i32 MonsterMaxInitiative;
 typedef enum MonsterState {
 	MonsterStateActive,
 	MonsterStatePaused,
+	MonsterStateAttack,
 } MonsterState;
 
 typedef struct Monster {
