@@ -48,7 +48,7 @@ typedef struct Character {
     // todo remove - too lazy and im tired to think
     bool isPlayer;
 
-    // todo this can be a bitmask instead, save swome space. Enums even?
+    // todo this can be a bitmask instead, save some space. Enums even?
     bool blocked;
     bool hasMoved;
     bool canNoticePlayer;

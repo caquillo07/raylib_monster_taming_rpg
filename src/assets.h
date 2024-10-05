@@ -33,7 +33,7 @@ typedef enum TileMapID {
 } TileMapID;
 
 typedef struct GameFont {
-	Font font;
+	Font rFont;
 	f32 size;
 } GameFont;
 
@@ -50,10 +50,12 @@ typedef struct Assets {
 	Texture2D characterShadowTexture;
 	Texture2D exclamationMarkTexture;
 
-	GameFont dialogFont;
-	GameFont regularFont;
-	GameFont smallFont;
-	GameFont boldFont;
+	struct {
+		GameFont dialog;
+		GameFont regular;
+		GameFont small;
+		GameFont bold;
+	} fonts;
 
 	struct {
 		Texture2D atrox;
@@ -101,12 +103,18 @@ typedef struct Assets {
 	} battleBackgrounds;
 
 	TileMap monsterTileMaps[MonsterIDCount];
+	struct {
+		Shader textureOutline;
+		Shader grayscale;
+	} shaders;
 } Assets;
 
 extern Assets assets;
 
 void load_assets();
 void unload_assets();
+void load_shaders();
+void unload_shaders();
 
 Rectangle tile_map_get_frame_at(TileMap tm, i32 col, i32 row);
 

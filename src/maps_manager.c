@@ -442,13 +442,13 @@ Character *init_over_world_characters(const tmx_layer *layer) {
         character.canNoticePlayer = data->lookAround;
         // ideally we want this to be driven by the character creation data,
         // but giving a bit of randomness here is good enough for this game.
-        const f32 patrolInterval = GetRandomValue(1, settings.charactersPatrolIntervalSecs);
+        const f32 patrolInterval = (f32)GetRandomValue(1, (int)settings.charactersPatrolIntervalSecs);
         timer_start(&character.patrolTimer, patrolInterval);
 
         if (radiusProp != nil) {
             const i32 radius = atoi(radiusProp->value.string);
             if (radius > 0) {
-                character.radius = radius;
+                character.radius = (f32)radius;
             }
         }
 

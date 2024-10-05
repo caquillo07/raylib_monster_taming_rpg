@@ -108,8 +108,14 @@ typedef struct MonsterAbilityData {
 
 extern const i32 MonsterMaxInitiative;
 
+typedef enum MonsterState {
+	MonsterStateActive,
+	MonsterStatePaused,
+} MonsterState;
+
 typedef struct Monster {
 	MonsterID id;
+	MonsterState state;
 	char name[MAX_MONSTER_NAME_LEN];
 	u8 level;
 	MonsterType type;
@@ -118,7 +124,7 @@ typedef struct Monster {
 	i32 levelUp;
 	i32 health;
 	i32 energy;
-	i32 initiative;
+	f32 initiative;
 } Monster;
 
 extern const char *monsterTypeStr[MonsterTypeCount];
@@ -131,5 +137,6 @@ MonsterID monster_name_from_str(const char *name);
 MonsterAbilityTarget monster_target_from_str(const char *name);
 Color monster_type_color(MonsterType type);
 AnimatedTiledSprite monster_get_animated_sprite_for_id(MonsterID monsterID);
+Texture2D monster_icon_texture_for_id(MonsterID id);
 
 #endif //MONSTERS_H

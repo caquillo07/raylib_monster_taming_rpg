@@ -9,6 +9,12 @@
 #include "monsters.h"
 #include "sprites.h"
 
+typedef enum BattleType {
+	BattleTypeNone,
+	BattleTypeTrainer,
+	BattleTypeWildEncounter,
+} BattleType;
+
 #define MAX_MONSTERS_PER_SIDE_LEN 3
 typedef struct BattleStage {
 	Texture2D bgTexture;
@@ -16,8 +22,9 @@ typedef struct BattleStage {
 
 	AnimatedTiledSprite playerMonsterSprites[MAX_MONSTERS_PER_SIDE_LEN];
 	AnimatedTiledSprite opponentMonsterSprites[MAX_MONSTERS_PER_SIDE_LEN];
-} BattleStage;
 
+	BattleType battleType;
+} BattleStage;
 
 // todo - needed?
 typedef enum BattleBackgroundID {

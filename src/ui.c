@@ -7,7 +7,7 @@
 void ui_draw_progress_bar(Rectangle rect, f32 value, f32 maxValue, Color color, Color bgColor, f32 radius) {
     f32 ratio = rect.width / maxValue;
     Rectangle progressRect = rect;
-    progressRect.width = value * ratio;
+    progressRect.width = clamp(value * ratio, 0, rect.width);
     DrawRectangleRounded(rect, radius, 4, bgColor);
     DrawRectangleRounded(progressRect, radius, 4, color);
 }

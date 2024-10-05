@@ -3,3 +3,8 @@
 //
 
 #include "colors.h"
+
+Color color_with_alpha(Color c, i32 a) {
+	c.a = a;
+	return c;
+}

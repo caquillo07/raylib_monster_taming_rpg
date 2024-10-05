@@ -14,4 +14,5 @@ GameSettings settings = {
 	.coastLineAnimationSpeed = 4,
 	.charactersPatrolIntervalSecs = 3,
 	.fadeTransitionSpeed =  600.f,
+	.monsterBattleRemoveHighlightIntervalSecs = 0.3f,
 };

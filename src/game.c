@@ -26,7 +26,7 @@ static void do_map_transition_check();
 static void handle_screen_transition(f32 dt);
 static void game_draw_fade_transition();
 static void game_load_map(MapID mapID);
-static void game_start_battle();
+static void game_start_battle(BattleType battleType);
 
 MapID startingMap = MapIDWorld;
 
@@ -40,6 +40,7 @@ void game_init() {
 
 	maps_manager_init();
 	load_assets();
+	load_shaders();
 	game_data_init();
 
 	setup_game(startingMap);
@@ -52,6 +53,7 @@ void game_shutdown() {
 	player_free(&game.player);
 
 	unload_assets();
+	unload_shaders();
 	game_data_free();
 }
 
@@ -300,7 +302,7 @@ static void game_draw_dialog_box() {
 
 	const f32 fontSize = 33.f;
 	const f32 fontSpacing = 4.f;
-	const Vector2 textSize = MeasureTextEx(assets.dialogFont.font, msg, fontSize, fontSpacing);
+	const Vector2 textSize = MeasureTextEx(assets.fonts.dialog.rFont, msg, fontSize, fontSpacing);
 	const f32 textPadding = 20.f;
 	const f32 minWidth = 30.f;
 	const f32 bubbleWidth = textPadding * 2 + textSize.x;
@@ -317,7 +319,7 @@ static void game_draw_dialog_box() {
 
 	DrawRectangleRounded(frame, radius, 0, gameColors[ColorsWhite]);
 	DrawTextEx(
-		assets.dialogFont.font,
+		assets.fonts.dialog.rFont,
 		msg,
 		(Vector2){frame.x + textPadding, frame.y + textPadding},
 		fontSize,
@@ -358,7 +360,7 @@ static void setup_game(const MapID mapID) {
 	game.gameModeState = GameModePlaying;
 
 	// todo - temp
-	game_start_battle();
+	game_start_battle(BattleTypeWildEncounter);
 }
 
 static void update_camera() {
@@ -378,7 +380,7 @@ static void update_camera() {
 	};
 }
 
-void game_start_battle() {
+void game_start_battle(BattleType battleType) {
 	game.battleStage = (BattleStage){
 		.opponentMonsters = {
 			monster_new(MonsterIDLarvea, 13),
@@ -388,6 +390,7 @@ void game_start_battle() {
 			monster_new(MonsterIDJacana, 12),
 		},
 		.bgTexture = assets.battleBackgrounds.forrest,
+		.battleType = battleType,
 	};
 	monster_battle_setup();
 	game.gameModeState = GameModeBattle;

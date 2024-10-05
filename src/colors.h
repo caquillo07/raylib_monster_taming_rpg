@@ -6,6 +6,7 @@
 #define COLORS_H
 
 #include <raylib.h>
+#include "common.h"
 
 typedef enum colors {
     ColorsWhite,
@@ -44,5 +45,7 @@ static const Color gameColors[ColorsMax] = {
     [ColorsNormal] = {.r = 255, .g = 255, .b = 255, .a = 255},
     [ColorsDarkWhite] = {.r = 240, .g = 240, .b = 240, .a = 255},
 };
+
+Color color_with_alpha(Color c, i32 a);
 
 #endif //COLORS_H

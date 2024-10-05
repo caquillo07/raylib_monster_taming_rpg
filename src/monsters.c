@@ -165,10 +165,11 @@ Monster monster_new(MonsterID id, u8 level) {
 	i32 currentXP = (i32)random() % levelUp; // todo - remove, just some test data
 	i32 currentHP = (i32)random() % (i32)(stats.maxHealth); // todo - remove, just some test data
 	i32 currentEnergy = (i32)random() % (i32)(data->stats.maxEnergy); // todo - remove, just some test data
-	i32 initiative = (i32)random() % MonsterMaxInitiative; // todo - remove, just some test data
+//	i32 initiative = (i32)random() % MonsterMaxInitiative; // todo - remove, just some test data
 
 	Monster m = {
 		.id = id,
+		.state = MonsterStateActive,
 		.level = level,
 		.health = max(currentHP, 10),
 		.energy = currentEnergy,
@@ -176,7 +177,7 @@ Monster monster_new(MonsterID id, u8 level) {
 		.stats = stats,
 		.xp = currentXP,
 		.levelUp = level * 150,
-		.initiative = initiative,
+		.initiative = 0.f,
 	};
 	strncpy(m.name, data->name, MAX_MONSTER_NAME_LEN);
 	return m;
@@ -221,4 +222,29 @@ AnimatedTiledSprite monster_get_animated_sprite_for_id(MonsterID monsterID) {
 		.animationSpeed = settings.monsterAnimationSpeed,
 		.sourceFrames = monsterAnimationsFrames,
 	};
+}
+
+Texture2D monster_icon_texture_for_id(MonsterID id) {
+	panicIf(id == MonsterIDNone || id >= MonsterIDCount);
+	switch (id) {
+		case MonsterIDPlumette: return assets.monsterIcons.plumette;
+		case MonsterIDIvieron: return assets.monsterIcons.ivieron;
+		case MonsterIDPluma: return assets.monsterIcons.pluma;
+		case MonsterIDSparchu: return assets.monsterIcons.sparchu;
+		case MonsterIDCindrill: return assets.monsterIcons.cindrill;
+		case MonsterIDCharmadillo: return assets.monsterIcons.charmadillo;
+		case MonsterIDFinsta: return assets.monsterIcons.finsta;
+		case MonsterIDGulfin: return assets.monsterIcons.gulfin;
+		case MonsterIDFiniette: return assets.monsterIcons.finiette;
+		case MonsterIDAtrox: return assets.monsterIcons.atrox;
+		case MonsterIDPouch: return assets.monsterIcons.pouch;
+		case MonsterIDDraem: return assets.monsterIcons.draem;
+		case MonsterIDLarvea: return assets.monsterIcons.larvea;
+		case MonsterIDCleaf: return assets.monsterIcons.cleaf;
+		case MonsterIDJacana: return assets.monsterIcons.jacana;
+		case MonsterIDFriolera: return assets.monsterIcons.friolera;
+		case MonsterIDCount:
+		case MonsterIDNone:
+		default: panic("invalid monsterID");
+	}
 }

@@ -102,14 +102,14 @@ void load_assets() {
 	assets.characterShadowTexture = LoadTexture("./graphics/other/shadow.png");
 	assets.exclamationMarkTexture = LoadTexture("./graphics/ui/notice.png");
 
-	assets.dialogFont.size = 30;
-	assets.dialogFont.font = LoadFontEx("./graphics/fonts/PixeloidSans.ttf", (i32)assets.dialogFont.size, nil, 250);
-	assets.regularFont.size = 18;
-	assets.regularFont.font = LoadFontEx("./graphics/fonts/PixeloidSans.ttf", (i32)assets.regularFont.size, nil, 250);
-	assets.smallFont.size = 14;
-	assets.smallFont.font = LoadFontEx("./graphics/fonts/PixeloidSans.ttf", (i32)assets.smallFont.size, nil, 250);
-	assets.boldFont.size = 20;
-	assets.boldFont.font = LoadFontEx("./graphics/fonts/dogicapixelbold.otf", (i32)assets.boldFont.size, nil, 250);
+	assets.fonts.dialog.size = 30;
+	assets.fonts.dialog.rFont = LoadFontEx("./graphics/fonts/PixeloidSans.ttf", (i32)assets.fonts.dialog.size, nil, 250);
+	assets.fonts.regular.size = 18;
+	assets.fonts.regular.rFont = LoadFontEx("./graphics/fonts/PixeloidSans.ttf", (i32)assets.fonts.regular.size, nil, 250);
+	assets.fonts.small.size = 14;
+	assets.fonts.small.rFont = LoadFontEx("./graphics/fonts/PixeloidSans.ttf", (i32)assets.fonts.small.size, nil, 250);
+	assets.fonts.bold.size = 20;
+	assets.fonts.bold.rFont = LoadFontEx("./graphics/fonts/dogicapixelbold.otf", (i32)assets.fonts.bold.size, nil, 250);
 }
 
 void unload_assets() {
@@ -222,10 +222,10 @@ void unload_assets() {
 	UnloadTexture(assets.monsterTileMaps[MonsterIDSparchu].texture);
 	array_free(assets.monsterTileMaps[MonsterIDSparchu].framesList);
 
-	UnloadFont(assets.dialogFont.font);
-	UnloadFont(assets.regularFont.font);
-	UnloadFont(assets.smallFont.font);
-	UnloadFont(assets.boldFont.font);
+	UnloadFont(assets.fonts.dialog.rFont);
+	UnloadFont(assets.fonts.regular.rFont);
+	UnloadFont(assets.fonts.small.rFont);
+	UnloadFont(assets.fonts.bold.rFont);
 }
 
 static Texture2D *import_textures_from_directory(const char *dirPath) {
@@ -291,6 +291,22 @@ Rectangle tile_map_get_frame_at(const TileMap tm, const i32 col, const i32 row) 
 	const i32 index = (tm.columns * row) + col;
 	panicIf((index > array_length(tm.framesList) - 1), "queried x,y is out of bounds");
 	return tm.framesList[index];
+}
+
+void load_shaders() {
+	assets.shaders.textureOutline = LoadShader(
+		nil,
+		"./shaders/texture_outline.frag"
+	);
+	assets.shaders.grayscale = LoadShader(
+		nil,
+		"./shaders/texture_grayscale.frag"
+	);
+
+}
+
+void unload_shaders() {
+	UnloadShader(assets.shaders.textureOutline);
 }
 
 static int dir_entry_compare(const void *lhsp, const void *rhsp) {

@@ -75,31 +75,6 @@ void monster_index_update(f32 dt) {
 	animated_tiled_sprite_update(&game.monsterIndex.state.animatedMonster, dt);
 }
 
-static Texture2D monster_icon_texture_for_id(MonsterID id) {
-	panicIf(id == MonsterIDNone || id >= MonsterIDCount);
-	switch (id) {
-		case MonsterIDPlumette: return assets.monsterIcons.plumette;
-		case MonsterIDIvieron: return assets.monsterIcons.ivieron;
-		case MonsterIDPluma: return assets.monsterIcons.pluma;
-		case MonsterIDSparchu: return assets.monsterIcons.sparchu;
-		case MonsterIDCindrill: return assets.monsterIcons.cindrill;
-		case MonsterIDCharmadillo: return assets.monsterIcons.charmadillo;
-		case MonsterIDFinsta: return assets.monsterIcons.finsta;
-		case MonsterIDGulfin: return assets.monsterIcons.gulfin;
-		case MonsterIDFiniette: return assets.monsterIcons.finiette;
-		case MonsterIDAtrox: return assets.monsterIcons.atrox;
-		case MonsterIDPouch: return assets.monsterIcons.pouch;
-		case MonsterIDDraem: return assets.monsterIcons.draem;
-		case MonsterIDLarvea: return assets.monsterIcons.larvea;
-		case MonsterIDCleaf: return assets.monsterIcons.cleaf;
-		case MonsterIDJacana: return assets.monsterIcons.jacana;
-		case MonsterIDFriolera: return assets.monsterIcons.friolera;
-		case MonsterIDCount:
-		case MonsterIDNone:
-		default: panic("invalid monsterID");
-	}
-}
-
 static const u8 visibleItems = 6;
 
 // todo(hector) make text size dynamic for different screen sizes
@@ -183,13 +158,13 @@ static void draw_monsters_list(Rectangle *menuRect, const f32 listWidth, const f
 
 			// text
 			const f32 textPadding = 90.f;
-			const Vector2 textSize = MeasureTextEx(assets.regularFont.font, monster.name, 18, 1);
+			const Vector2 textSize = MeasureTextEx(assets.fonts.regular.rFont, monster.name, 18, 1);
 			const Vector2 pos = {
 				.x = menuItemRect.x + textPadding,
 				.y = menuItemRectMidLeft - (textSize.y / 2),
 			};
 			DrawTextEx(
-				assets.regularFont.font,
+				assets.fonts.regular.rFont,
 				monster.name,
 				pos,
 				18,
@@ -345,7 +320,7 @@ void monster_index_draw() {
 	// monster name and level
 	const Vector2 monsterNamePos = {.x = monsterDisplayRect.x + 10, .y = monsterDisplayRect.y + 10};
 	DrawTextEx(
-		assets.boldFont.font,
+		assets.fonts.bold.rFont,
 		currentMonster.name,
 		monsterNamePos,
 		14,
@@ -360,7 +335,7 @@ void monster_index_draw() {
 	f32 levelTextSpacing = 1;
 
 	const f32 levelTextHeight = MeasureTextEx(
-		assets.regularFont.font,
+		assets.fonts.regular.rFont,
 		levelText,
 		levelTextFontSize,
 		levelTextSpacing
@@ -370,7 +345,7 @@ void monster_index_draw() {
 		.y = monsterDisplayRect.y + monsterDisplayRect.height - levelTextHeight - 16, // 10 padding
 	};
 	DrawTextEx(
-		assets.regularFont.font,
+		assets.fonts.regular.rFont,
 		levelText,
 		monsterLevelPos,
 		levelTextFontSize,
@@ -396,7 +371,7 @@ void monster_index_draw() {
 
 	const char *monsterTypeText = monsterTypeStr[currentMonster.type];
 	const Vector2 typeTextSize = MeasureTextEx(
-		assets.regularFont.font,
+		assets.fonts.regular.rFont,
 		monsterTypeText,
 		levelTextFontSize,
 		levelTextSpacing
@@ -407,7 +382,7 @@ void monster_index_draw() {
 		.y = monsterDisplayRect.y + monsterDisplayRect.height - typeTextSize.y - 10, // 10 padding
 	};
 	DrawTextEx(
-		assets.regularFont.font,
+		assets.fonts.regular.rFont,
 		monsterTypeText,
 		monsterElementPos,
 		levelTextFontSize,
@@ -436,14 +411,14 @@ void monster_index_draw() {
 	// HP Text
 	const f32 hpTextFontSize = 18;
 	const char *hpText = TextFormat("HP: %d/%d", (i32)currentMonster.health, (i32)maxHealth);
-	const Vector2 hpTextSize = MeasureTextEx(assets.regularFont.font, hpText, hpTextFontSize, 1);
+	const Vector2 hpTextSize = MeasureTextEx(assets.fonts.regular.rFont, hpText, hpTextFontSize, 1);
 	const f32 hpTextPadding = healthBarRect.height / 2 - hpTextSize.y / 2;
 	const Vector2 hpTextPos = {
 		.x = healthBarRect.x + hpTextPadding,
 		.y = healthBarRect.y + hpTextPadding,
 	};
 	DrawTextEx(
-		assets.regularFont.font,
+		assets.fonts.regular.rFont,
 		hpText,
 		hpTextPos,
 		hpTextFontSize,
@@ -472,14 +447,14 @@ void monster_index_draw() {
 	// energy Text
 	const f32 energyTextFontSize = 18;
 	const char *energyText = TextFormat("EP: %d/%d", (i32)currentMonster.energy, (i32)maxEnergy);
-	const Vector2 energyTextSize = MeasureTextEx(assets.regularFont.font, energyText, energyTextFontSize, 1);
+	const Vector2 energyTextSize = MeasureTextEx(assets.fonts.regular.rFont, energyText, energyTextFontSize, 1);
 	const f32 energyTextPadding = healthBarRect.height / 2 - energyTextSize.y / 2;
 	const Vector2 energyPos = {
 		.x = energyBarRect.x + energyTextPadding,
 		.y = energyBarRect.y + energyTextPadding,
 	};
 	DrawTextEx(
-		assets.regularFont.font,
+		assets.fonts.regular.rFont,
 		energyText,
 		energyPos,
 		energyTextFontSize,
@@ -500,13 +475,13 @@ void monster_index_draw() {
 
 	const f32 statsTextFontSize = 18;
 	const char *statsText = "Stats";
-	const Vector2 statsTextSize = MeasureTextEx(assets.regularFont.font, statsText, statsTextFontSize, 1);
+	const Vector2 statsTextSize = MeasureTextEx(assets.fonts.regular.rFont, statsText, statsTextFontSize, 1);
 	const Vector2 statsPos = {
 		.x = statsRect.x,
 		.y = statsRect.y - statsTextSize.y,
 	};
 	DrawTextEx(
-		assets.regularFont.font,
+		assets.fonts.regular.rFont,
 		statsText,
 		statsPos,
 		statsTextFontSize,
@@ -557,13 +532,13 @@ void monster_index_draw() {
 		};
 		DrawTextureV(statIcons[i], (Vector2){iconRect.x, iconRect.y}, WHITE);
 
-		const Vector2 singleStatSize = MeasureTextEx(assets.regularFont.font, statNames[i], singleStatFontSize, 1);
+		const Vector2 singleStatSize = MeasureTextEx(assets.fonts.regular.rFont, statNames[i], singleStatFontSize, 1);
 		const Vector2 singleStatTextPos = {
 			.x = iconRect.x + iconRect.width + singleStatTextPadding,
 			.y = singleStatRect.y + (singleStatRect.height - singleStatSize.y) / 2,
 		};
 		DrawTextEx(
-			assets.regularFont.font,
+			assets.fonts.regular.rFont,
 			statNames[i],
 			singleStatTextPos,
 			energyTextFontSize,
@@ -577,13 +552,13 @@ void monster_index_draw() {
 	abilitiesRect.x = energyBarRect.x;
 
 	const char *abilitiesText = "Abilities";
-	const Vector2 abilitiesTextSize = MeasureTextEx(assets.regularFont.font, abilitiesText, statsTextFontSize, 1);
+	const Vector2 abilitiesTextSize = MeasureTextEx(assets.fonts.regular.rFont, abilitiesText, statsTextFontSize, 1);
 	const Vector2 abilitiesPos = {
 		.x = abilitiesRect.x,
 		.y = abilitiesRect.y - abilitiesTextSize.y,
 	};
 	DrawTextEx(
-		assets.regularFont.font,
+		assets.fonts.regular.rFont,
 		abilitiesText,
 		abilitiesPos,
 		statsTextFontSize,
@@ -602,7 +577,7 @@ void monster_index_draw() {
 		const f32 abilityOffset = 20.f;
 		const f32 abilityRectInnerPadding = 10.f;
 		const f32 abilityFontSize = 15.f;
-		const Vector2 singleAbilitySize = MeasureTextEx(assets.regularFont.font, abilityText, abilityFontSize, 1);
+		const Vector2 singleAbilitySize = MeasureTextEx(assets.fonts.regular.rFont, abilityText, abilityFontSize, 1);
 		const f32 abilityRectHeight = singleAbilitySize.y + abilityRectInnerPadding * 2;
 		const Rectangle abilityRect = {
 			.x = abilitiesRect.x + (f32)(i % 2) * abilitiesRect.width / 2,
@@ -615,13 +590,11 @@ void monster_index_draw() {
 			.y = abilityRect.y + abilityRectInnerPadding,
 		};
 
-		// todo
-
 		const MonsterAbilityData *attackData = game_data_for_monster_attack_id(abilityID);
 		const Color abilityBGColor = monster_type_color(attackData->element);
 		DrawRectangleRounded(abilityRect, 0.4f, 1, abilityBGColor);
 		DrawTextEx(
-			assets.regularFont.font,
+			assets.fonts.regular.rFont,
 			abilityText,
 			abilityPos,
 			abilityFontSize,

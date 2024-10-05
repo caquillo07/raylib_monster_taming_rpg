@@ -12,7 +12,7 @@ typedef struct Timer {
 } Timer;
 
 /**
- * Initializes a given timer with the given amount of secods.
+ * Initializes a given timer with the given amount of seconds.
  * @param timer the timer to init
  * @param lifetime how long is the timer, in seconds
  */

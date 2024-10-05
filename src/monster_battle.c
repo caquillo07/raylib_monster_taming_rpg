@@ -7,9 +7,19 @@
 #include "settings.h"
 #include "colors.h"
 #include "ui.h"
+#include "raylib_extras.h"
+#include "game_data.h"
+
+#include <raymath.h>
 
 static void draw_monster(const Monster *monster, const AnimatedTiledSprite *sprite, Vector2 pos, bool flipped);
 static void draw_monster_stat_bar(Vector2 textPos, f32 barWidth, i32 value, i32 maxValue, Colors barColor);
+static void set_monster_highlight(bool activate);
+static void update_all_monster_states(MonsterState state);
+static void draw_ui();
+static void draw_general_ui();
+static void draw_attacks_ui();
+static void draw_switch_ui();
 
 struct monsterPosition_ {
 	Vector2 top;
@@ -34,6 +44,60 @@ const struct battlePositions_ {
 	},
 };
 
+typedef enum selectionMode_ {
+	SelectionModeNone,
+	SelectionModeGeneral,
+	SelectionModeAttack,
+	SelectionModeSwitch,
+	SelectionModeCatch,
+
+	SelectionModeCount,
+} selectionMode_;
+
+typedef enum uiBattleChoiceIconID_ {
+	UIBattleChoiceIconIDFight,
+	UIBattleChoiceIconIDDefend,
+	UIBattleChoiceIconIDSwitch,
+	UIBattleChoiceIconIDCatch,
+	UIBattleChoiceIconIDCount,
+} uiBattleChoiceIconID_;
+
+typedef enum selectionSide_ {
+	SelectionSideNone,
+	SelectionSidePlayer,
+	SelectionSideOpponent,
+
+	SelectionSideCount,
+} selectionSide_;
+
+typedef struct uiBattleChoiceState_ {
+	selectionMode_ uiSelectionMode;
+//	uiBattleChoiceIconID_ selectedIcon;
+//	i32 selectedAttackIndex;
+	i32 indexes[SelectionModeCount];
+} uiBattleChoiceState_;
+
+// internal state, probably should have been a struct, but then i have to type twice
+static Rectangle currentMonsterRect = {};
+static Monster emptyMonster = {};
+static Monster *currentMonster = nil;
+static Monster *playerActiveMonsters[MAX_MONSTERS_PER_SIDE_LEN] = {&emptyMonster, &emptyMonster, &emptyMonster};
+static Monster *opponentActiveMonsters[MAX_MONSTERS_PER_SIDE_LEN] = {&emptyMonster, &emptyMonster, &emptyMonster};
+static bool highlight = false; // use to highlight monster when damage occurs
+static i32 highlightLoc = 0;
+static Timer removeHighlightTimer = {};
+static uiBattleChoiceState_ uiBattleChoiceState = {
+	.indexes = {
+		[SelectionModeGeneral] = 0,
+		[SelectionModeAttack] = 0,
+		[SelectionModeSwitch] = 0,
+		[SelectionModeCatch] = 0,
+	},
+//	.selectedIcon = UIBattleChoiceIconIDFight,
+//	.selectedAttackIndex = 0,
+	.uiSelectionMode = SelectionModeNone,
+};
+
 void monster_battle_setup() {
 	// player side
 	const f32 minAnimSpeed = 0.85f;
@@ -43,6 +107,7 @@ void monster_battle_setup() {
 		if (game.playerMonsters[i].id == MonsterIDNone) {
 			continue;
 		}
+		playerActiveMonsters[i] = &game.playerMonsters[i];
 		game.battleStage.playerMonsterSprites[i] = monster_get_animated_sprite_for_id(
 			game.playerMonsters[i].id
 		);
@@ -55,24 +120,182 @@ void monster_battle_setup() {
 		if (game.battleStage.opponentMonsters[i].id == MonsterIDNone) {
 			continue;
 		}
+		opponentActiveMonsters[i] = &game.battleStage.opponentMonsters[i];
 		game.battleStage.opponentMonsterSprites[i] = monster_get_animated_sprite_for_id(
 			game.battleStage.opponentMonsters[i].id
 		);
 		game.battleStage.opponentMonsterSprites[i].animationSpeed *= rand_f32(minAnimSpeed, maxAnimSpeed);
 	}
+
+	// set up the shaders - this should all be in a shader container, but ¯\_(ツ)_/¯ for now
+
+	// Get shader locations
+	i32 outlineSizeLoc = GetShaderLocation(assets.shaders.textureOutline, "outlineSize");
+	i32 outlineColorLoc = GetShaderLocation(assets.shaders.textureOutline, "outlineColor");
+	i32 textureSizeLoc = GetShaderLocation(assets.shaders.textureOutline, "textureSize");
+	highlightLoc = GetShaderLocation(assets.shaders.textureOutline, "highlight");
+
+	// shader values
+	const Texture2D monsterTextureSample = game.battleStage.playerMonsterSprites[0].texture;
+	f32 outlineSize = 4.0f;
+	f32 outlineColor[4] = {1.0f, 1.0f, 1.0f, 1.0f};     // Normalized WHITE color
+	f32 textureSize[2] = {(f32)monsterTextureSample.width, (f32)monsterTextureSample.height};
+
+	// Set shader values (they can be changed later)
+	SetShaderValue(assets.shaders.textureOutline, outlineSizeLoc, &outlineSize, SHADER_UNIFORM_FLOAT);
+	SetShaderValue(assets.shaders.textureOutline, outlineColorLoc, outlineColor, SHADER_UNIFORM_VEC4);
+	SetShaderValue(assets.shaders.textureOutline, textureSizeLoc, textureSize, SHADER_UNIFORM_VEC2);
+	SetShaderValue(assets.shaders.textureOutline, highlightLoc, &highlight, SHADER_UNIFORM_INT);
 }
 
 void monster_battle_input() {
 	if (game.gameModeState != GameModeBattle) { return; }
+
+	if (uiBattleChoiceState.uiSelectionMode == SelectionModeNone ||
+		currentMonster == nil ||
+		currentMonster == &emptyMonster) {
+		return;
+	}
+
+	i32 maxIndex = 0;
+	selectionMode_ selectedMode = uiBattleChoiceState.uiSelectionMode;
+	if (selectedMode == SelectionModeGeneral) {
+		maxIndex = game.battleStage.battleType == BattleTypeTrainer ?
+			UIBattleChoiceIconIDCatch : UIBattleChoiceIconIDCount;
+	} else if (selectedMode == SelectionModeAttack) {
+		const MonsterData *currentMonsterData = game_data_for_monster_id(currentMonster->id);
+		for (i32 i = 0; i < currentMonsterData->abilitiesLen; i++) {
+			if (currentMonster->level < currentMonsterData->abilities[i].level) { continue; }
+			maxIndex++;
+		}
+	} else if (selectedMode == SelectionModeSwitch) {
+		maxIndex = player_party_length();
+	} else if (selectedMode == SelectionModeSwitch) {
+		maxIndex = 0;
+	} else {
+		panic("invalid selection mode %d", uiBattleChoiceState.uiSelectionMode);
+	}
+
+	if (IsKeyPressed(KEY_DOWN)) {
+		uiBattleChoiceState.indexes[selectedMode] = (uiBattleChoiceState.indexes[selectedMode] + 1) % maxIndex;
+	}
+	if (IsKeyPressed(KEY_UP)) {
+		uiBattleChoiceState.indexes[selectedMode] -= 1;
+		if (uiBattleChoiceState.indexes[selectedMode] < 0) {
+			uiBattleChoiceState.indexes[selectedMode] = maxIndex - 1;
+		}
+	}
+	if (IsKeyPressed(KEY_SPACE)) {
+		if (selectedMode == SelectionModeGeneral) {
+			switch (uiBattleChoiceState.indexes[SelectionModeGeneral]) {
+				case UIBattleChoiceIconIDFight: {
+					uiBattleChoiceState.uiSelectionMode = SelectionModeAttack;
+					break;
+				}
+				case UIBattleChoiceIconIDDefend: {
+					update_all_monster_states(MonsterStateActive);
+					currentMonster = &emptyMonster;
+					uiBattleChoiceState.uiSelectionMode = SelectionModeNone;
+					break;
+				}
+				case UIBattleChoiceIconIDSwitch: {
+					uiBattleChoiceState.uiSelectionMode = SelectionModeSwitch;
+					break;
+				}
+				case UIBattleChoiceIconIDCatch: {
+					uiBattleChoiceState.uiSelectionMode = SelectionModeCatch;
+					break;
+				}
+				case UIBattleChoiceIconIDCount:
+				default: panic(
+					"tried to select on invalid battle icon state %d",
+					uiBattleChoiceState.indexes[SelectionModeGeneral]
+				);
+			}
+		}
+	}
+}
+
+static void update_all_monster_states(MonsterState state) {
+	for (i32 j = 0; j < MAX_MONSTERS_PER_SIDE_LEN; j++) {
+		playerActiveMonsters[j]->state = state;
+		opponentActiveMonsters[j]->state = state;
+	}
+}
+
+static void common_monster_update(Monster *monster, f32 dt) {
+	monster->initiative = min(monster->initiative + monster->stats.speed * dt, MonsterMaxInitiative);
+
+	// if any monster reached the max initiative, then we should pause the rest
+	Monster *allMonsters[MAX_MONSTERS_PER_SIDE_LEN * 2];
+	for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN * 2; i++) {
+		if (i < MAX_MONSTERS_PER_SIDE_LEN) {
+			allMonsters[i] = playerActiveMonsters[i % MAX_MONSTERS_PER_SIDE_LEN];
+		} else {
+			allMonsters[i] = opponentActiveMonsters[i % MAX_MONSTERS_PER_SIDE_LEN];
+		}
+	}
+
+	// checking to see who is active
+	for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN * 2; i++) {
+		if (allMonsters[i]->initiative >= 100) {
+			update_all_monster_states(MonsterStatePaused);
+			currentMonster = allMonsters[i];
+			currentMonster->initiative = 0;
+			set_monster_highlight(true);
+
+			// if is a player monster, index 0,1,2
+			// this assumption breaks if the ordering above changes.
+			if (i < 3) {
+				uiBattleChoiceState.uiSelectionMode = SelectionModeGeneral;
+				uiBattleChoiceState.indexes[SelectionModeGeneral] = UIBattleChoiceIconIDFight;
+			}
+		}
+	}
+}
+
+static void set_monster_highlight(bool activate) {
+	highlight = activate;
+	if (activate) {
+		timer_start(&removeHighlightTimer, settings.monsterBattleRemoveHighlightIntervalSecs);
+	}
+}
+
+static void player_monster_update(Monster *monster, f32 dt) {
+	if (monster->state == MonsterStatePaused) { return; }
+	common_monster_update(monster, dt);
+}
+
+static void opponent_monster_update(Monster *monster, f32 dt) {
+	if (monster->state == MonsterStatePaused) { return; }
+	common_monster_update(monster, dt);
 }
 
 void monster_battle_update(f32 dt) {
 	if (game.gameModeState != GameModeBattle) { return; }
 
+	// timers
+	if (timer_is_valid(removeHighlightTimer) && timer_done(removeHighlightTimer)) {
+		set_monster_highlight(false);
+		timer_stop(&removeHighlightTimer);
+	}
+
+	// player
 	for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN; i++) {
+		if (playerActiveMonsters[i]->id == MonsterIDNone) { continue; }
+		player_monster_update(playerActiveMonsters[i], dt);
 		animated_tiled_sprite_update(&game.battleStage.playerMonsterSprites[i], dt);
+	}
+
+	// opponent
+	for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN; i++) {
+		if (opponentActiveMonsters[i]->id == MonsterIDNone) { continue; }
+		player_monster_update(opponentActiveMonsters[i], dt);
 		animated_tiled_sprite_update(&game.battleStage.opponentMonsterSprites[i], dt);
 	}
+
+	// update shaders data
+	SetShaderValue(assets.shaders.textureOutline, highlightLoc, &highlight, SHADER_UNIFORM_INT);
 }
 
 // normally you would want to add some sort of sprite + z-value for draw order,
@@ -101,31 +324,44 @@ void monster_battle_draw() {
 		WHITE
 	);
 	// monsters
-	draw_monster(&game.playerMonsters[0], &game.battleStage.playerMonsterSprites[0], battlePositions.left.top, true);
-	draw_monster(&game.playerMonsters[1], &game.battleStage.playerMonsterSprites[1], battlePositions.left.center, true);
-	draw_monster(&game.playerMonsters[2], &game.battleStage.playerMonsterSprites[2], battlePositions.left.bottom, true);
+	draw_monster(playerActiveMonsters[0], &game.battleStage.playerMonsterSprites[0], battlePositions.left.top, true);
+	draw_monster(
+		playerActiveMonsters[1],
+		&game.battleStage.playerMonsterSprites[1],
+		battlePositions.left.center,
+		true
+	);
+	draw_monster(
+		playerActiveMonsters[2],
+		&game.battleStage.playerMonsterSprites[2],
+		battlePositions.left.bottom,
+		true
+	);
 
 	draw_monster(
-		&game.battleStage.opponentMonsters[0],
+		opponentActiveMonsters[0],
 		&game.battleStage.opponentMonsterSprites[0],
 		battlePositions.right.top,
 		false
 	);
 	draw_monster(
-		&game.battleStage.opponentMonsters[1],
+		opponentActiveMonsters[1],
 		&game.battleStage.opponentMonsterSprites[1],
 		battlePositions.right.center,
 		false
 	);
 	draw_monster(
-		&game.battleStage.opponentMonsters[2],
+		opponentActiveMonsters[2],
 		&game.battleStage.opponentMonsterSprites[2],
 		battlePositions.right.bottom,
 		false
 	);
+
+	draw_ui();
 }
 
 static void draw_monster(const Monster *monster, const AnimatedTiledSprite *sprite, Vector2 pos, bool flipped) {
+	if (monster->id == MonsterIDNone) { return; }
 	Rectangle animationFrame = animated_tiled_sprite_current_frame(sprite);
 	Rectangle monsterDestRec = {
 		.x = pos.x - animationFrame.width / 2,
@@ -137,7 +373,12 @@ static void draw_monster(const Monster *monster, const AnimatedTiledSprite *spri
 	// monster name/level box
 	const char *monsterName = monster->name;
 	const f32 monsterNamePadding = 10.f;
-	const Vector2 monsterNameSize = MeasureTextEx(assets.regularFont.font, monsterName, assets.regularFont.size, 1.0f);
+	const Vector2 monsterNameSize = MeasureTextEx(
+		assets.fonts.regular.rFont,
+		monsterName,
+		assets.fonts.regular.size,
+		1.0f
+	);
 	Rectangle monsterNameRect = {
 		.height = monsterNameSize.y + monsterNamePadding * 2,
 		.width = monsterNameSize.x + monsterNamePadding * 2,
@@ -156,10 +397,10 @@ static void draw_monster(const Monster *monster, const AnimatedTiledSprite *spri
 	};
 	DrawRectangleRec(monsterNameRect, gameColors[ColorsWhite]);
 	DrawTextEx(
-		assets.regularFont.font,
+		assets.fonts.regular.rFont,
 		monsterName,
 		monsterNamePos,
-		assets.regularFont.size,
+		assets.fonts.regular.size,
 		1.0f,
 		gameColors[ColorsBlack]
 	);
@@ -204,13 +445,19 @@ static void draw_monster(const Monster *monster, const AnimatedTiledSprite *spri
 
 	DrawRectangleRec(monsterLevelRect, gameColors[ColorsWhite]);
 	DrawTextEx(
-		assets.smallFont.font,
+		assets.fonts.small.rFont,
 		monsterLevelText,
 		monsterLevelPos,
-		assets.smallFont.size,
+		assets.fonts.small.size,
 		1.0f,
 		gameColors[ColorsBlack]
 	);
+
+	const bool isCurrentMonster = currentMonster == monster;
+	if (isCurrentMonster) {
+		currentMonsterRect = monsterDestRec; // todo - this is a big no no, but i don't feel like restructuring the code...
+		BeginShaderMode(assets.shaders.textureOutline);
+	}
 
 	// draw the monster AFTER the name/level
 	DrawTexturePro(
@@ -221,6 +468,9 @@ static void draw_monster(const Monster *monster, const AnimatedTiledSprite *spri
 		0.f,
 		WHITE
 	);
+	if (isCurrentMonster) {
+		EndShaderMode();
+	}
 
 	// monster stats
 	Rectangle monsterStatsRect = {
@@ -234,7 +484,7 @@ static void draw_monster(const Monster *monster, const AnimatedTiledSprite *spri
 
 	DrawRectangleRec(monsterStatsRect, gameColors[ColorsWhite]);
 
-	// health and energy (probably abstracted too soon here...?
+	// health and energy
 	const f32 barWidth = monsterStatsRect.width * 0.9f;
 	Vector2 statPosition = {
 		.x = monsterStatsRect.x + (monsterStatsRect.width * 0.05f),
@@ -247,12 +497,13 @@ static void draw_monster(const Monster *monster, const AnimatedTiledSprite *spri
 		(i32)monster->stats.maxHealth,
 		ColorsRed
 	);
+
 	statPosition.y = monsterStatsRect.y + (monsterStatsRect.height / 2);
 	draw_monster_stat_bar(
 		statPosition,
 		barWidth,
-		(i32)monster->health,
-		(i32)monster->stats.maxHealth,
+		(i32)monster->energy,
+		(i32)monster->stats.maxEnergy,
 		ColorsBlue
 	);
 	const f32 initiativeBarHeight = 2.f;
@@ -264,7 +515,7 @@ static void draw_monster(const Monster *monster, const AnimatedTiledSprite *spri
 	};
 	ui_draw_progress_bar(
 		initiativeRect,
-		(f32)monster->initiative,
+		monster->initiative,
 		(f32)MonsterMaxInitiative,
 		gameColors[ColorsBlack],
 		gameColors[ColorsWhite],
@@ -274,7 +525,7 @@ static void draw_monster(const Monster *monster, const AnimatedTiledSprite *spri
 
 static void draw_monster_stat_bar(Vector2 textPos, f32 barWidth, i32 value, i32 maxValue, Colors barColor) {
 	const char *barText = TextFormat("%d/%d", value, maxValue);
-	const Vector2 barTextSize = MeasureTextEx(assets.smallFont.font, barText, assets.regularFont.size, 1.f);
+	const Vector2 barTextSize = MeasureTextEx(assets.fonts.small.rFont, barText, assets.fonts.regular.size, 1.f);
 	const Rectangle barTextRect = {
 		.x = textPos.x,
 		.y = textPos.y,
@@ -282,10 +533,10 @@ static void draw_monster_stat_bar(Vector2 textPos, f32 barWidth, i32 value, i32 
 		.height = barTextSize.y,
 	};
 	DrawTextEx(
-		assets.smallFont.font,
+		assets.fonts.small.rFont,
 		barText,
 		(Vector2){barTextRect.x, barTextRect.y},
-		assets.smallFont.size,
+		assets.fonts.small.size,
 		1.0f,
 		gameColors[ColorsBlack]
 	);
@@ -304,3 +555,265 @@ static void draw_monster_stat_bar(Vector2 textPos, f32 barWidth, i32 value, i32 
 		2
 	);
 }
+
+static void draw_ui() {
+	if (currentMonster == nil) {
+		return;
+	}
+
+	switch (uiBattleChoiceState.uiSelectionMode) {
+		case SelectionModeGeneral: {
+			draw_general_ui();
+			break;
+		}
+		case SelectionModeAttack: {
+			draw_attacks_ui();
+			break;
+		}
+		case SelectionModeSwitch: {
+			draw_switch_ui();
+			break;
+		}
+		case SelectionModeCatch:break;
+		case SelectionModeNone:
+		case SelectionModeCount:
+		default: {
+			break;
+		}
+	}
+}
+
+static void draw_battle_icon(Texture2D texture, Vector2 pos, bool grayscale) {
+	if (grayscale) { BeginShaderMode(assets.shaders.grayscale); }
+	DrawTextureV(texture, pos, WHITE);
+	if (grayscale) { EndShaderMode(); }
+}
+
+static void draw_general_ui() {
+	Vector2 fightIconOffset = {30, -60};
+	Vector2 defendIconOffset = {40, -20};
+	Vector2 switchIconOffset = {40, 20};
+	Vector2 catchIconOffset = {30, 60};
+	if (game.battleStage.battleType == BattleTypeTrainer) {
+		fightIconOffset = (Vector2){30, -40};
+		defendIconOffset = (Vector2){40, 0};
+		switchIconOffset = (Vector2){30, 40};
+		catchIconOffset = Vector2Zero();
+	}
+
+	Vector2 currentMonsterMidRightPos = rectangle_mid_right(currentMonsterRect);
+	Rectangle fightIconRect = rectangle_with_center_at(
+		rectangle_from_texture(assets.uiIcons.sword),
+		Vector2Add(fightIconOffset, currentMonsterMidRightPos)
+	);
+	Rectangle defendIconRect = rectangle_with_center_at(
+		rectangle_from_texture(assets.uiIcons.shield),
+		Vector2Add(defendIconOffset, currentMonsterMidRightPos)
+	);
+	Rectangle switchIconRect = rectangle_with_center_at(
+		rectangle_from_texture(assets.uiIcons.arrows),
+		Vector2Add(switchIconOffset, currentMonsterMidRightPos)
+	);
+	Rectangle catchIconRect = rectangle_with_center_at(
+		rectangle_from_texture(assets.uiIcons.hand),
+		Vector2Add(catchIconOffset, currentMonsterMidRightPos)
+	);
+
+	uiBattleChoiceIconID_ selectedIcon = uiBattleChoiceState.indexes[SelectionModeGeneral];
+	Texture2D fightIconTexture = selectedIcon == UIBattleChoiceIconIDFight ?
+		assets.uiIcons.swordHighlight : assets.uiIcons.sword;
+	Texture2D defendIconTexture = selectedIcon == UIBattleChoiceIconIDDefend ?
+		assets.uiIcons.shieldHighlight : assets.uiIcons.shield;
+	Texture2D switchIconTexture = selectedIcon == UIBattleChoiceIconIDSwitch ?
+		assets.uiIcons.arrowsHighlight : assets.uiIcons.arrows;
+	Texture2D catchIconTexture = selectedIcon == UIBattleChoiceIconIDCatch ?
+		assets.uiIcons.handHighlight : assets.uiIcons.hand;
+
+	draw_battle_icon(
+		fightIconTexture,
+		rectangle_location(fightIconRect),
+		selectedIcon != UIBattleChoiceIconIDFight
+	);
+	draw_battle_icon(
+		defendIconTexture,
+		rectangle_location(defendIconRect),
+		selectedIcon != UIBattleChoiceIconIDDefend
+	);
+	draw_battle_icon(
+		switchIconTexture,
+		rectangle_location(switchIconRect),
+		selectedIcon != UIBattleChoiceIconIDSwitch
+	);
+	if (game.battleStage.battleType != BattleTypeTrainer) {
+		draw_battle_icon(
+			catchIconTexture,
+			rectangle_location(catchIconRect),
+			selectedIcon != UIBattleChoiceIconIDCatch
+		);
+	}
+}
+
+static void draw_attacks_ui() {
+	if (uiBattleChoiceState.uiSelectionMode != SelectionModeAttack) { return; }
+	panicIfNil(currentMonster);
+
+	const i32 selectedIndex = uiBattleChoiceState.indexes[SelectionModeAttack];
+	const Rectangle listBgRect = rectangle_with_mid_left_at(
+		(Rectangle){.width = 150, .height = 200},
+		Vector2Add(rectangle_mid_right(currentMonsterRect), (Vector2){20, 0})
+	);
+
+	const i32 visibleAttacks = 4;
+	const f32 itemHeight = listBgRect.height / (f32)visibleAttacks;
+	const f32 itemRadius = 0.05f;
+	const f32 tableOffset = selectedIndex < visibleAttacks ?
+		0 : -((f32)(selectedIndex - visibleAttacks + 1)) * itemHeight;
+	DrawRectangleRounded(listBgRect, itemRadius, 1, gameColors[ColorsWhite]);
+
+	const MonsterData *currentMonsterData = game_data_for_monster_id(currentMonster->id);
+	for (i32 i = 0; i < currentMonsterData->abilitiesLen; i++) {
+		if (currentMonster->level < currentMonsterData->abilities[i].level) { continue; }
+
+		// rect
+		const Vector2 offset = {
+			.x = 0,
+			.y = (f32)i * itemHeight + tableOffset,
+		};
+
+		// text
+		const MonsterAbilityData *abilityData = game_data_for_monster_attack_id(currentMonsterData->abilities[i].ability);
+		const Rectangle attackTextRect = rectangle_move_by(
+			(Rectangle){.width = listBgRect.width, .height = itemHeight},
+			Vector2Add(rectangle_location(listBgRect), offset)
+		);
+		if (!CheckCollisionPointRec(rectangle_center(attackTextRect), listBgRect)) {
+			continue;
+		}
+		const char *abilityText = monsterAbilityStr[abilityData->id];
+		const Rectangle textRect = text_rectangle_centered_at(
+			abilityText,
+			assets.fonts.regular,
+			rectangle_center(attackTextRect)
+		);
+
+		Color abilityBGColor;
+		if (abilityData->element == MonsterTypeNormal) {
+			abilityBGColor = gameColors[ColorsGray];
+		} else {
+			abilityBGColor = monster_type_color(abilityData->element);
+		}
+
+		bool isSelected = i == selectedIndex;
+		if (isSelected) {
+			DrawRectangleRounded(attackTextRect, itemRadius, 1, gameColors[ColorsDarkWhite]);
+		}
+		DrawTextEx(
+			assets.fonts.regular.rFont,
+			abilityText,
+			rectangle_location(textRect),
+			assets.fonts.regular.size,
+			1.f,
+			isSelected ? abilityBGColor : gameColors[ColorsLight]
+		);
+
+		const bool isReady = currentMonster->energy >= abilityData->cost;
+		DrawRectangleRec(
+			rectangle_at(
+				(Rectangle){.width = attackTextRect.width * .1f, .height = attackTextRect.height},
+				rectangle_location(attackTextRect)
+			),
+			isReady ? color_with_alpha(gameColors[ColorsPlant], 100) : color_with_alpha(
+				gameColors[ColorsLightGray],
+				100
+			)
+		);
+	}
+}
+
+// cool thing is if we can pass in some sort of "view" object (maybe a texture?, gotta see the performance
+// implications with that) as a row, we can use this as a table view.
+
+static void draw_switch_ui() {
+	if (uiBattleChoiceState.uiSelectionMode != SelectionModeSwitch) { return; }
+
+	const i32 selectedIndex = uiBattleChoiceState.indexes[SelectionModeSwitch];
+	const Rectangle listBodyRect = rectangle_with_mid_left_at(
+		(Rectangle){.width = 300, .height = 320},
+		Vector2Add(rectangle_mid_right(currentMonsterRect), (Vector2){20, 0})
+	);
+
+	const i32 visibleRows = 4;
+	const f32 itemHeight = listBodyRect.height / (f32)visibleRows;
+	const f32 itemRadius = 0.05f;
+	const i32 currentIndex = selectedIndex;
+	const f32 tableOffset = currentIndex < visibleRows ?
+		0 : (f32)(-(currentIndex - visibleRows + 1)) * itemHeight;
+	DrawRectangleRounded(listBodyRect, itemRadius, 1, gameColors[ColorsWhite]);
+
+	f32 largestMonsterIconWidth = 0;
+	for (usize i = 0; i < static_array_len(game.playerMonsters); i++) {
+		largestMonsterIconWidth = max(
+			monster_icon_texture_for_id(game.playerMonsters[i].id).width,
+			largestMonsterIconWidth
+		);
+	}
+
+	for (usize i = 0; i < static_array_len(game.playerMonsters); i++) {
+		const Monster monster = game.playerMonsters[i];
+		if (monster.id == MonsterIDNone || monster.health <= 0) { continue; }
+
+		// rect
+		const Vector2 offset = {
+			.x = 0,
+			.y = (f32)i * itemHeight + tableOffset,
+		};
+
+		// text
+		const Rectangle monsterRowRect = rectangle_move_by(
+			(Rectangle){.width = listBodyRect.width, .height = itemHeight},
+			Vector2Add(rectangle_location(listBodyRect), offset)
+		);
+		if (!CheckCollisionPointRec(rectangle_center(monsterRowRect), listBodyRect)) {
+			continue;
+		}
+
+		const Texture2D monsterIcon = monster_icon_texture_for_id(monster.id);
+		Rectangle monsterIconRect = rectangle_from_texture(monsterIcon);
+		monsterIconRect = rectangle_with_mid_left_at(monsterIconRect, rectangle_mid_left(monsterRowRect));
+		DrawRectangleLinesEx(monsterIconRect, 2.f, RED);
+		monsterIconRect = rectangle_move_by(
+			monsterIconRect,
+			(Vector2){
+				.x = (largestMonsterIconWidth - (f32)monsterIcon.width) / 2,
+				.y = 0,
+			}
+		);
+
+		DrawRectangleLinesEx(monsterIconRect, 2.f, BLUE);
+		DrawTexturePro(
+			monsterIcon,
+			rectangle_from_texture(monsterIcon),
+			monsterIconRect,
+			Vector2Zero(),
+			0.f,
+			WHITE
+		);
+
+		const Rectangle textRect = text_rectangle_centered_at(
+			monster.name,
+			assets.fonts.regular,
+			rectangle_center(monsterRowRect)
+		);
+		bool isSelected = (i32)i == selectedIndex;
+
+		DrawTextEx(
+			assets.fonts.regular.rFont,
+			monster.name,
+			rectangle_location(textRect),
+			assets.fonts.regular.size,
+			1.f,
+			isSelected ? gameColors[ColorsDark] : gameColors[ColorsLight]
+		);
+	}
+}
+
