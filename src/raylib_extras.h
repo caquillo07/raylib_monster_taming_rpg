@@ -22,6 +22,7 @@ Vector2 rectangle_center(Rectangle rect);
 Vector2 rectangle_mid_left(Rectangle rect);
 Vector2 rectangle_mid_right(Rectangle rect);
 Vector2 rectangle_top_right(Rectangle rect);
+Vector2 rectangle_bottom_left(Rectangle rect);
 Vector2 rectangle_location(Rectangle rect);
 Rectangle rectangle_at(Rectangle rect, Vector2 pos);
 Rectangle rectangle_with_center_at(Rectangle rect, Vector2 pos);

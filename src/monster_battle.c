@@ -20,6 +20,7 @@ static void draw_ui();
 static void draw_general_ui();
 static void draw_attacks_ui();
 static void draw_switch_ui();
+static bool player_monster_in_stage(const Monster *monster);
 
 struct monsterPosition_ {
 	Vector2 top;
@@ -93,8 +94,6 @@ static uiBattleChoiceState_ uiBattleChoiceState = {
 		[SelectionModeSwitch] = 0,
 		[SelectionModeCatch] = 0,
 	},
-//	.selectedIcon = UIBattleChoiceIconIDFight,
-//	.selectedAttackIndex = 0,
 	.uiSelectionMode = SelectionModeNone,
 };
 
@@ -169,8 +168,16 @@ void monster_battle_input() {
 			maxIndex++;
 		}
 	} else if (selectedMode == SelectionModeSwitch) {
-		maxIndex = player_party_length();
-	} else if (selectedMode == SelectionModeSwitch) {
+		// hate to duplicate this, but whatever.
+		maxIndex = 0;
+		const Monster *availableMonsters[MAX_PARTY_MONSTERS_LEN] = {};
+		for (usize i = 0; i < static_array_len(game.playerMonsters); i++) {
+			const Monster *monster = &game.playerMonsters[i];
+			if (monster->id == MonsterIDNone || monster->health <= 0 || player_monster_in_stage(monster)) { continue; }
+			availableMonsters[maxIndex] = monster;
+			maxIndex++;
+		}
+	} else if (selectedMode == SelectionModeCatch) {
 		maxIndex = 0;
 	} else {
 		panic("invalid selection mode %d", uiBattleChoiceState.uiSelectionMode);
@@ -212,6 +219,13 @@ void monster_battle_input() {
 					uiBattleChoiceState.indexes[SelectionModeGeneral]
 				);
 			}
+		}
+	}
+	if (IsKeyPressed(KEY_LEFT)) {
+		if (selectedMode == SelectionModeSwitch ||
+			selectedMode == SelectionModeAttack ||
+			selectedMode == SelectionModeCatch) {
+			uiBattleChoiceState.uiSelectionMode = SelectionModeGeneral;
 		}
 	}
 }
@@ -745,22 +759,30 @@ static void draw_switch_ui() {
 	const i32 visibleRows = 4;
 	const f32 itemHeight = listBodyRect.height / (f32)visibleRows;
 	const f32 itemRadius = 0.05f;
-	const i32 currentIndex = selectedIndex;
-	const f32 tableOffset = currentIndex < visibleRows ?
-		0 : (f32)(-(currentIndex - visibleRows + 1)) * itemHeight;
+	const f32 tableOffset = selectedIndex < visibleRows ?
+		0 : (f32)(-(selectedIndex - visibleRows + 1)) * itemHeight;
 	DrawRectangleRounded(listBodyRect, itemRadius, 1, gameColors[ColorsWhite]);
 
-	f32 largestMonsterIconWidth = 0;
+	i32 availableMonsterCount = 0;
+	const Monster *availableMonsters[MAX_PARTY_MONSTERS_LEN] = {};
 	for (usize i = 0; i < static_array_len(game.playerMonsters); i++) {
+		const Monster *monster = &game.playerMonsters[i];
+		if (monster->id == MonsterIDNone || monster->health <= 0 || player_monster_in_stage(monster)) { continue; }
+		availableMonsters[availableMonsterCount] = monster;
+		availableMonsterCount++;
+	}
+
+	f32 largestMonsterIconWidth = 0;
+	for (i32 i = 0; i < availableMonsterCount; i++) {
 		largestMonsterIconWidth = max(
-			monster_icon_texture_for_id(game.playerMonsters[i].id).width,
+			monster_icon_texture_for_id(availableMonsters[i]->id).width,
 			largestMonsterIconWidth
 		);
 	}
 
-	for (usize i = 0; i < static_array_len(game.playerMonsters); i++) {
-		const Monster monster = game.playerMonsters[i];
-		if (monster.id == MonsterIDNone || monster.health <= 0) { continue; }
+	for (i32 i = 0; i < availableMonsterCount; i++) {
+		const Monster *monster = availableMonsters[i];
+		panicIf(monster->id == MonsterIDNone || monster->health <= 0 || player_monster_in_stage(monster));
 
 		// rect
 		const Vector2 offset = {
@@ -777,7 +799,7 @@ static void draw_switch_ui() {
 			continue;
 		}
 
-		const Texture2D monsterIcon = monster_icon_texture_for_id(monster.id);
+		const Texture2D monsterIcon = monster_icon_texture_for_id(monster->id);
 		const f32 monsterIconPadding = 10.f + ((largestMonsterIconWidth - (f32)monsterIcon.width) / 2);
 		Rectangle monsterIconRect = rectangle_from_texture(monsterIcon);
 		monsterIconRect = rectangle_with_mid_left_at(monsterIconRect, rectangle_mid_left(monsterRowRect));
@@ -788,7 +810,10 @@ static void draw_switch_ui() {
 				.y = 0,
 			}
 		);
-
+		bool isSelected = (i32)i == selectedIndex;
+		if (isSelected) {
+			DrawRectangleRounded(monsterRowRect, itemRadius, 1, gameColors[ColorsDarkWhite]);
+		}
 		DrawTexturePro(
 			monsterIcon,
 			rectangle_from_texture(monsterIcon),
@@ -798,21 +823,55 @@ static void draw_switch_ui() {
 			WHITE
 		);
 
+		const char *rowText = TextFormat("%s (Lv. %d)", monster->name, monster->level);
 		const Rectangle textRect = text_rectangle_at(
-			monster.name,
+			rowText,
 			assets.fonts.regular,
 			Vector2Add(rectangle_top_right(monsterIconRect), (Vector2){monsterIconPadding, 0})
 		);
-		bool isSelected = (i32)i == selectedIndex;
 
 		DrawTextEx(
 			assets.fonts.regular.rFont,
-			monster.name,
+			rowText,
 			rectangle_location(textRect),
 			assets.fonts.regular.size,
 			1.f,
-			isSelected ? gameColors[ColorsDark] : gameColors[ColorsLight]
+			isSelected ? gameColors[ColorsRed] : gameColors[ColorsBlack]
+		);
+		const Rectangle healthRect = rectangle_at(
+			(Rectangle){.width = 100, .height = 4},
+			Vector2Add(rectangle_bottom_left(textRect), (Vector2){0, 4})
+		);
+		ui_draw_progress_bar(
+			healthRect,
+			(f32)monster->health,
+			monster->stats.maxHealth,
+			gameColors[ColorsRed],
+			gameColors[ColorsBlack],
+			0.3f
+		);
+		const Rectangle energyRect = rectangle_at(
+			(Rectangle){.width = 100, .height = 4},
+			Vector2Add(rectangle_bottom_left(healthRect), (Vector2){0, 2})
+		);
+		ui_draw_progress_bar(
+			energyRect,
+			(f32)monster->energy,
+			monster->stats.maxEnergy,
+			gameColors[ColorsBlue],
+			gameColors[ColorsBlack],
+			0.3f
 		);
 	}
+}
+
+bool player_monster_in_stage(const Monster *monster) {
+	for (usize i = 0; i < static_array_len(playerActiveMonsters); i++) {
+		const Monster *m = playerActiveMonsters[i];
+		if (monster == m) {
+			return true;
+		}
+	}
+	return false;
 }
 

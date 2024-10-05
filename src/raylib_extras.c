@@ -92,6 +92,19 @@ Rectangle rectangle_move_by(Rectangle rect, Vector2 direction) {
 	return rect;
 }
 
+Rectangle rectangle_at(Rectangle rect, Vector2 pos) {
+	rect.x = pos.x;
+	rect.y = pos.y;
+	return rect;
+}
+
+Vector2 rectangle_bottom_left(Rectangle rect) {
+	return (Vector2){
+		.x = rect.x,
+		.y = rect.y + rect.height,
+	};
+}
+
 // Textures
 
 Rectangle rectangle_from_texture(Texture2D text) {
@@ -123,10 +136,3 @@ Rectangle text_rectangle_mid_left_at(const char *text, GameFont font, Vector2 po
 	rect.y -= rect.height / 2;
 	return rect;
 }
-
-Rectangle rectangle_at(Rectangle rect, Vector2 pos) {
-	rect.x = pos.x;
-	rect.y = pos.y;
-	return rect;
-}
-
