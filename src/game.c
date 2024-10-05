@@ -95,7 +95,7 @@ static void do_game_handle_input() {
 
 				const i32 currentIndex = game.monsterIndex.state.currentIndex;
 				const Monster currenMonster = game.playerMonsters[currentIndex];
-				game.monsterIndex.state.animatedMonster = monster_get_animated_sprite_for_id(currenMonster.id);
+				game.monsterIndex.state.animatedMonster = monster_get_idle_animated_sprite_for_id(currenMonster.id);
 				game.player.characterComponent.velocity = (Vector2){0, 0};
 			}
 			break;

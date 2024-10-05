@@ -198,28 +198,35 @@ Color monster_type_color(MonsterType type) {
 // and I don't feel like refactoring the animation system right now.
 // In a real game, this wouldn't fly, but for this demo its okay.
 // todo - fix this?
-AnimatedTiledSprite monster_get_animated_sprite_for_id(MonsterID monsterID) {
-#define AnimationFramesLen 4
-	static Rectangle monsterAnimationsFrames[AnimationFramesLen];
-
+static AnimatedTiledSprite monster_get_animated_sprite_for_id(MonsterID monsterID, i32 animationFramesRow, bool loop) {
 	// turns out every sprite atlas has sprites of the same size,
 	// so lets be lazy and do it once...
-	const i32 animationFramesRow = 0;
 	const TileMap monsterTileSet = assets.monsterTileMaps[monsterID];
-	for (i32 i = 0; i < AnimationFramesLen; i++) {
-		monsterAnimationsFrames[i] = tile_map_get_frame_at(monsterTileSet, i, animationFramesRow);
-	}
-	return (AnimatedTiledSprite){
+	AnimatedTiledSprite sprite = {
 		.entity = {
 			.id = monsterTileSet.texture.id,
 			.layer = WorldLayerTop,
 		},
 		.texture = monsterTileSet.texture,
+		.loop = loop,
 		.framesLen = 4,
 		.frameTimer = 0,
 		.animationSpeed = settings.monsterAnimationSpeed,
-		.sourceFrames = monsterAnimationsFrames,
 	};
+	for (i32 i = 0; i < AnimatedSpriteAnimationFramesLen; i++) {
+		sprite.sourceFrames[i] = tile_map_get_frame_at(monsterTileSet, i, animationFramesRow);
+	}
+	return sprite;
+}
+
+#define idleAnimationFramesRow 0
+#define attackAnimationFramesRow 1
+AnimatedTiledSprite monster_get_idle_animated_sprite_for_id(MonsterID monsterID) {
+	return monster_get_animated_sprite_for_id(monsterID, idleAnimationFramesRow, true);
+}
+
+AnimatedTiledSprite monster_get_attack_animated_sprite_for_id(MonsterID monsterID) {
+	return monster_get_animated_sprite_for_id(monsterID, attackAnimationFramesRow, false);
 }
 
 Texture2D monster_icon_texture_for_id(MonsterID id) {

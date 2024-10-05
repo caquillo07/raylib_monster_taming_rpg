@@ -253,9 +253,6 @@ void map_free(Map *map) {
     array_free(map->waterSpritesList);
     map->waterSpritesList = nil;
 
-    array_range(map->coastLineSpritesList, i) {
-        array_free(map->coastLineSpritesList[i].sourceFrames);
-    }
     array_free(map->coastLineSpritesList);
     map->coastLineSpritesList = nil;
 
@@ -533,25 +530,26 @@ static AnimatedTiledSprite *init_coast_line_sprites(const tmx_layer *layer) {
         }
 
         const TileMap coastLineTileMap = assets.tileMaps[TileMapIDCoastLine];
-        Rectangle *sourceFrames = nil;
-        array_push(sourceFrames, tile_map_get_frame_at(coastLineTileMap, firstFrameCol, firstFrameRow));
-        array_push(sourceFrames, tile_map_get_frame_at(coastLineTileMap, firstFrameCol, firstFrameRow + 1 * 3));
-        array_push(sourceFrames, tile_map_get_frame_at(coastLineTileMap, firstFrameCol, firstFrameRow + 2 * 3));
-        array_push(sourceFrames, tile_map_get_frame_at(coastLineTileMap, firstFrameCol, firstFrameRow + 3 * 3));
 
         const AnimatedTiledSprite sprite = {
             .entity = {
                 .id = coastLineH->id,
                 .position = {.x = (f32) coastLineH->x, .y = (f32) coastLineH->y},
-                .ySort = coastLineH->y,
+                .ySort = (f32)coastLineH->y,
                 .layer = WorldLayerWater,
             },
+			.loop = true,
             .texture = coastLineTileMap.texture,
             .framesLen = 4,
             .currentFrame = 0,
             .frameTimer = 0.f,
             .animationSpeed = settings.coastLineAnimationSpeed,
-            .sourceFrames = sourceFrames,
+			.sourceFrames = {
+				tile_map_get_frame_at(coastLineTileMap, firstFrameCol, firstFrameRow),
+				tile_map_get_frame_at(coastLineTileMap, firstFrameCol, firstFrameRow + 1 * 3),
+				tile_map_get_frame_at(coastLineTileMap, firstFrameCol, firstFrameRow + 2 * 3),
+				tile_map_get_frame_at(coastLineTileMap, firstFrameCol, firstFrameRow + 3 * 3),
+			}
         };
 
         array_push(spritesList, sprite);

@@ -137,7 +137,8 @@ MonsterAbilityID monster_ability_from_str(const char *name);
 MonsterID monster_name_from_str(const char *name);
 MonsterAbilityTarget monster_target_from_str(const char *name);
 Color monster_type_color(MonsterType type);
-AnimatedTiledSprite monster_get_animated_sprite_for_id(MonsterID monsterID);
+AnimatedTiledSprite monster_get_idle_animated_sprite_for_id(MonsterID monsterID);
+AnimatedTiledSprite monster_get_attack_animated_sprite_for_id(MonsterID monsterID);
 Texture2D monster_icon_texture_for_id(MonsterID id);
 
 #endif //MONSTERS_H

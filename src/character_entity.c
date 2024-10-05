@@ -52,28 +52,22 @@ Character character_new(
 				.position = position,
 			},
 			.texture = tm.texture,
+			.loop = true,
 			.framesLen = 4,
 			.frameTimer = 0,
 			.animationSpeed = settings.playerAnimationSpeed, // todo
 		},
 	};
 
-	// i happen to know there is nothing larger for this demo, wouldnt do in a
+	// i happen to know there is nothing larger for this demo, probably wouldnt do in a
 	// real project
 	strncpy(character.id, id, 16);
 	character.hitBox = rectangle_deflate(character.frame, character.frame.width / 2, 60);
-	character.animatedSprite.sourceFrames = array_hold(
-		character.animatedSprite.sourceFrames,
-		character.animatedSprite.framesLen,
-		sizeof(*character.animatedSprite.sourceFrames)
-	);
 
 	return character;
 }
 
-void character_free(const Character *c) {
-	array_free(c->animatedSprite.sourceFrames);
-}
+void character_free(const Character *c) {}
 
 void character_move_towards(Character *c, const Vector2 point) {
 	// start to move the character towards the player
@@ -191,8 +185,7 @@ void character_animate(Character *c, const f32 deltaTime) {
 		case CharacterDirectionMax:
 		default:panic("unknown character direction requested in draw");
 	}
-#define colsPerRow 4
-	for (i32 i = 0; i < colsPerRow; i++) {
+	for (i32 i = 0; i < AnimatedSpriteAnimationFramesLen; i++) {
 		c->animatedSprite.sourceFrames[i] = tile_map_get_frame_at(
 			assets.tileMaps[c->tileMapID],
 			i,

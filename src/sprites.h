@@ -37,16 +37,18 @@ typedef struct StaticSprite {
     Rectangle sourceFrame;
 } StaticSprite;
 
-#define AnimationFramesLen 4
+#define AnimatedSpriteAnimationFramesLen 4
 typedef struct AnimatedTiledSprite {
     Entity entity; // cannot be moved from 1st position
 
+	bool loop;
+	bool done;
     Texture2D texture;
     i32 framesLen;
     i32 currentFrame;
     f32 frameTimer;
     f32 animationSpeed;
-    Rectangle *sourceFrames;
+    Rectangle sourceFrames[AnimatedSpriteAnimationFramesLen];
 } AnimatedTiledSprite;
 
 typedef struct AnimatedTexturesSprite {
