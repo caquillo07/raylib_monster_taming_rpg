@@ -778,18 +778,17 @@ static void draw_switch_ui() {
 		}
 
 		const Texture2D monsterIcon = monster_icon_texture_for_id(monster.id);
+		const f32 monsterIconPadding = 10.f + ((largestMonsterIconWidth - (f32)monsterIcon.width) / 2);
 		Rectangle monsterIconRect = rectangle_from_texture(monsterIcon);
 		monsterIconRect = rectangle_with_mid_left_at(monsterIconRect, rectangle_mid_left(monsterRowRect));
-		DrawRectangleLinesEx(monsterIconRect, 2.f, RED);
 		monsterIconRect = rectangle_move_by(
 			monsterIconRect,
 			(Vector2){
-				.x = (largestMonsterIconWidth - (f32)monsterIcon.width) / 2,
+				.x = monsterIconPadding,
 				.y = 0,
 			}
 		);
 
-		DrawRectangleLinesEx(monsterIconRect, 2.f, BLUE);
 		DrawTexturePro(
 			monsterIcon,
 			rectangle_from_texture(monsterIcon),
@@ -799,10 +798,10 @@ static void draw_switch_ui() {
 			WHITE
 		);
 
-		const Rectangle textRect = text_rectangle_centered_at(
+		const Rectangle textRect = text_rectangle_at(
 			monster.name,
 			assets.fonts.regular,
-			rectangle_center(monsterRowRect)
+			Vector2Add(rectangle_top_right(monsterIconRect), (Vector2){monsterIconPadding, 0})
 		);
 		bool isSelected = (i32)i == selectedIndex;
 

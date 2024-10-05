@@ -53,6 +53,13 @@ Vector2 rectangle_mid_right(Rectangle rect) {
 	};
 }
 
+Vector2 rectangle_top_right(Rectangle rect) {
+	return (Vector2){
+		.x = rect.x + rect.width,
+		.y = rect.y,
+	};
+}
+
 Vector2 rectangle_location(Rectangle rect) {
 	return (Vector2){
 		.x = rect.x,
@@ -107,6 +114,12 @@ Rectangle text_rectangle_at(const char *text, GameFont font, Vector2 pos) {
 Rectangle text_rectangle_centered_at(const char *text, GameFont font, Vector2 pos) {
 	Rectangle rect = text_rectangle_at(text, font, pos);
 	rect.x -= rect.width / 2;
+	rect.y -= rect.height / 2;
+	return rect;
+}
+
+Rectangle text_rectangle_mid_left_at(const char *text, GameFont font, Vector2 pos) {
+	Rectangle rect = text_rectangle_at(text, font, pos);
 	rect.y -= rect.height / 2;
 	return rect;
 }
