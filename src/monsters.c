@@ -176,6 +176,7 @@ Monster monster_new(MonsterID id, u8 level) {
 		.xp = currentXP,
 		.levelUp = level * 150,
 		.initiative = 0.f,
+		.paused = false, // used in battles
 	};
 	strncpy(m.name, data->name, MAX_MONSTER_NAME_LEN);
 	return m;

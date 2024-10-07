@@ -17,8 +17,8 @@ void animated_tiled_sprite_update(AnimatedTiledSprite *sprite, f32 dt) {
 	} else if (sprite->done) {
 		sprite->currentFrame = sprite->framesLen-1;
 	} else if (sprite->currentFrame < sprite->framesLen) {
-		sprite->currentFrame = (i32)sprite->frameTimer;
-		sprite->done = sprite->currentFrame >= sprite->framesLen;
+		sprite->currentFrame = min(sprite->framesLen, (i32)sprite->frameTimer);
+		sprite->done = sprite->currentFrame >= sprite->framesLen-1;
 	}
 }
 

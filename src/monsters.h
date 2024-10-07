@@ -126,6 +126,7 @@ typedef struct Monster {
 	i32 health;
 	i32 energy;
 	f32 initiative;
+	bool paused;
 } Monster;
 
 extern const char *monsterTypeStr[MonsterTypeCount];

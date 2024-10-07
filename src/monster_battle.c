@@ -1,6 +1,4 @@
 //
-// Created by Hector Mejia on 9/30/24.
-//
 
 #include "monster_battle.h"
 #include "game.h"
@@ -15,13 +13,17 @@
 static void draw_monster(const Monster *monster, const AnimatedTiledSprite *sprite, Vector2 pos, bool flipped);
 static void draw_monster_stat_bar(Vector2 textPos, f32 barWidth, i32 value, i32 maxValue, Colors barColor);
 static void set_monster_highlight(bool activate);
-static void update_all_monster_states(MonsterState state);
+static void pause_all_monster_initiative(bool pause);
 static void draw_ui();
 static void draw_general_ui();
 static void draw_attacks_ui();
 static void draw_switch_ui();
 static bool player_monster_in_stage(const Monster *monster);
 static void monster_start_attack();
+static void apply_start_attack();
+static void player_monster_update(Monster *monster, AnimatedTiledSprite *sprite, i32 fieldIndex, f32 dt);
+static void opponent_monster_update(Monster *monster, AnimatedTiledSprite *sprite, i32 fieldIndex, f32 dt);
+static bool common_monster_update(Monster *monster, AnimatedTiledSprite *sprite, i32 fieldIndex, f32 dt);
 
 struct monsterPosition_ {
 	Vector2 top;
@@ -232,11 +234,8 @@ void monster_battle_input() {
 
 			if (selectedAttackID != MonsterAbilityNone) {
 				monster_start_attack();
-				selectedAttackID = MonsterAbilityNone;
 				selectedMode = SelectionModeNone;
-				currentMonster.monster = &emptyMonster;
-				currentMonster.index = 0;
-				update_all_monster_states(MonsterStateActive);
+				pause_all_monster_initiative(false);
 			} else {
 				// catch
 			}
@@ -266,7 +265,7 @@ void monster_battle_input() {
 					break;
 				}
 				case UIBattleChoiceIconIDDefend: {
-					update_all_monster_states(MonsterStateActive);
+					pause_all_monster_initiative(false);
 					currentMonster.monster = &emptyMonster;
 					currentMonster.index = 0;
 					uiBattleChoiceState.uiSelectionMode = SelectionModeNone;
@@ -297,78 +296,94 @@ void monster_battle_input() {
 	}
 }
 
-void monster_start_attack() {
+// 9:07:13 / 11:25:01
+static void monster_start_attack() {
 	panicIf(selectedAttackID == MonsterAbilityNone);
 
 	currentMonster.monster->state = MonsterStateAttack;
-//	AnimatedTiledSprite* animatedTiledSprite = &game.battleStage.playerMonsterSprites[currentMonster.index];
-//	panicIfNil(animatedTiledSprite);
-//
-//	animatedTiledSprite->currentFrame = 0;
 	game.battleStage.playerMonsterSprites[currentMonster.index] = monster_get_attack_animated_sprite_for_id(
 		currentMonster.monster->id
 	);
+}
+
+static void apply_start_attack() {
+	panicIf(currentMonster.monster->state != MonsterStateAttack && selectedAttackID == MonsterAbilityNone);
 
 	// get the attack data
 	const MonsterAbilityData *abilityData = game_data_for_monster_attack_id(selectedAttackID);
 	currentMonster.monster->energy -= abilityData->cost;
-	selectedTargetMonster.monster->health -= abilityData->damageAmount;
+	currentMonster.monster->energy = max(0, currentMonster.monster->energy);
+
+	selectedTargetMonster.monster->health -= (i32)(currentMonster.monster->stats.attack * abilityData->damageAmount);
+	selectedTargetMonster.monster->health = max(0, selectedTargetMonster.monster->health);
+
+	currentMonster.monster->state = MonsterStateActive;
+	selectedAttackID = MonsterAbilityNone;
+
+	// clear for next monster attack
+	currentMonster.monster = &emptyMonster;
+	currentMonster.index = 0;
 }
 
-static void update_all_monster_states(MonsterState state) {
+static void pause_all_monster_initiative(bool pause) {
 	for (i32 j = 0; j < MAX_MONSTERS_PER_SIDE_LEN; j++) {
-		playerActiveMonsters[j]->state = state;
-		opponentActiveMonsters[j]->state = state;
+		playerActiveMonsters[j]->paused = pause;
+		opponentActiveMonsters[j]->paused = pause;
 	}
 }
 
-static void common_monster_update(Monster *monster, f32 dt) {
-	if (monster->state != MonsterStatePaused) {
+static bool common_monster_update(Monster *monster, AnimatedTiledSprite *sprite, i32 fieldIndex, f32 dt) {
+	panicIf(fieldIndex >= MAX_MONSTERS_PER_SIDE_LEN);
+
+	// check if attack animation is playing, and it's done.
+	// would be nice to have animation hooks, but we already know when an animation
+	// is finished here, and that's good enough.
+//	for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN; i++) {
+//		const i32 index = i % MAX_MONSTERS_PER_SIDE_LEN;
+	if (monster->state == MonsterStateAttack && sprite->done) {
+		apply_start_attack();
+		*sprite = monster_get_idle_animated_sprite_for_id(monster->id);
+	}
+//		if (opponentActiveMonsters[index]->state == MonsterStateAttack && game.battleStage.opponentMonsterSprites[index].done) {
+//			game.battleStage.opponentMonsterSprites[index] = monster_get_idle_animated_sprite_for_id(
+//				opponentActiveMonsters[index]->id
+//			);
+//			apply_start_attack();
+//		}
+//	}
+
+	// if any monster reached the max initiative, then we should pause the rest
+//	Monster *allMonsters[MAX_MONSTERS_PER_SIDE_LEN * 2];
+//	for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN * 2; i++) {
+//		if (i < MAX_MONSTERS_PER_SIDE_LEN) {
+//			allMonsters[i] = playerActiveMonsters[i % MAX_MONSTERS_PER_SIDE_LEN];
+//		} else {
+//			allMonsters[i] = opponentActiveMonsters[i % MAX_MONSTERS_PER_SIDE_LEN];
+//		}
+//	}
+
+	if (!monster->paused) {
 		monster->initiative = min(monster->initiative + monster->stats.speed * dt, MonsterMaxInitiative);
 	}
 
-	// if any monster reached the max initiative, then we should pause the rest
-	Monster *allMonsters[MAX_MONSTERS_PER_SIDE_LEN * 2];
-	for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN * 2; i++) {
-		if (i < MAX_MONSTERS_PER_SIDE_LEN) {
-			allMonsters[i] = playerActiveMonsters[i % MAX_MONSTERS_PER_SIDE_LEN];
-		} else {
-			allMonsters[i] = opponentActiveMonsters[i % MAX_MONSTERS_PER_SIDE_LEN];
-		}
-	}
-
-	// check if attack animation is playing, and its done
-	for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN; i++) {
-		const i32 index = i % MAX_MONSTERS_PER_SIDE_LEN;
-		if (game.battleStage.playerMonsterSprites[index].done) {
-			game.battleStage.playerMonsterSprites[index] = monster_get_idle_animated_sprite_for_id(
-				playerActiveMonsters[index]->id
-			);
-		}
-		if (game.battleStage.opponentMonsterSprites[index].done) {
-			game.battleStage.opponentMonsterSprites[index] = monster_get_idle_animated_sprite_for_id(
-				opponentActiveMonsters[index]->id
-			);
-		}
-	}
-
 	// checking to see who is active
-	for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN * 2; i++) {
-		if (allMonsters[i]->initiative >= 100) {
-			update_all_monster_states(MonsterStatePaused);
-			currentMonster.monster = allMonsters[i];
-			currentMonster.monster->initiative = 0;
-			currentMonster.index = i % MAX_MONSTERS_PER_SIDE_LEN; // original index
-			set_monster_highlight(true);
+//	for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN * 2; i++) {
+	if (monster->initiative >= 100) {
+		pause_all_monster_initiative(true);
+		currentMonster.monster = monster;
+		currentMonster.monster->initiative = 0;
+		currentMonster.index = fieldIndex; // original index
+		set_monster_highlight(true);
 
-			// if is a player monster, index 0,1,2
-			// this assumption breaks if the ordering above changes.
-			if (i < 3) {
-				uiBattleChoiceState.uiSelectionMode = SelectionModeGeneral;
-				uiBattleChoiceState.indexes[SelectionModeGeneral] = UIBattleChoiceIconIDFight;
-			}
-		}
+		// if is a player monster, index 0,1,2
+		// this assumption breaks if the ordering above changes.
+//			break;
+		return true;
 	}
+//	}
+
+	animated_tiled_sprite_update(sprite, dt);
+	return false;
 }
 
 static void set_monster_highlight(bool activate) {
@@ -378,12 +393,20 @@ static void set_monster_highlight(bool activate) {
 	}
 }
 
-static void player_monster_update(Monster *monster, f32 dt) {
-	common_monster_update(monster, dt);
+static void player_monster_update(Monster *monster, AnimatedTiledSprite *sprite, i32 fieldIndex, f32 dt) {
+	panicIf(fieldIndex >= MAX_MONSTERS_PER_SIDE_LEN);
+
+	bool finishedTurn = common_monster_update(monster, sprite, fieldIndex, dt);
+	if (finishedTurn) {
+		uiBattleChoiceState.uiSelectionMode = SelectionModeGeneral;
+		uiBattleChoiceState.indexes[SelectionModeGeneral] = UIBattleChoiceIconIDFight;
+	}
 }
 
-static void opponent_monster_update(Monster *monster, f32 dt) {
-	common_monster_update(monster, dt);
+static void opponent_monster_update(Monster *monster, AnimatedTiledSprite *sprite, i32 fieldIndex, f32 dt) {
+	panicIf(fieldIndex >= MAX_MONSTERS_PER_SIDE_LEN);
+
+	common_monster_update(monster, sprite, fieldIndex, dt);
 }
 
 void monster_battle_update(f32 dt) {
@@ -398,15 +421,23 @@ void monster_battle_update(f32 dt) {
 	// player
 	for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN; i++) {
 		if (playerActiveMonsters[i]->id == MonsterIDNone) { continue; }
-		player_monster_update(playerActiveMonsters[i], dt);
-		animated_tiled_sprite_update(&game.battleStage.playerMonsterSprites[i], dt);
+		player_monster_update(
+			playerActiveMonsters[i],
+			&game.battleStage.playerMonsterSprites[i],
+			i,
+			dt
+		);
 	}
 
 	// opponent
 	for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN; i++) {
 		if (opponentActiveMonsters[i]->id == MonsterIDNone) { continue; }
-		opponent_monster_update(opponentActiveMonsters[i], dt);
-		animated_tiled_sprite_update(&game.battleStage.opponentMonsterSprites[i], dt);
+		opponent_monster_update(
+			opponentActiveMonsters[i],
+			&game.battleStage.opponentMonsterSprites[i],
+			i,
+			dt
+		);
 	}
 
 	// update shaders data
