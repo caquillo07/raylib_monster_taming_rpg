@@ -296,7 +296,6 @@ void monster_battle_input() {
 	}
 }
 
-// 9:07:13 / 11:25:01
 static void monster_start_attack() {
 	panicIf(selectedAttackID == MonsterAbilityNone);
 
