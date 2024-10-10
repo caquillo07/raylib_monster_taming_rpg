@@ -97,6 +97,15 @@ typedef struct Assets {
 	} uiIcons;
 
 	struct {
+		Texture2D explosion;
+		Texture2D fire;
+		Texture2D green;
+		Texture2D ice;
+		Texture2D scratch;
+		Texture2D splash;
+	} attackTextures;
+
+	struct {
 		Texture2D forrest;
 		Texture2D ice;
 		Texture2D sand;

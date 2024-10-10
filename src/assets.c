@@ -73,6 +73,13 @@ void load_assets() {
 	assets.uiIcons.shield = LoadTexture("./graphics/ui/shield.png");
 	assets.uiIcons.star = LoadTexture("./graphics/ui/star.png");
 
+	assets.attackTextures.explosion = LoadTexture("./graphics/attacks/explosion.png");
+	assets.attackTextures.fire = LoadTexture("./graphics/attacks/fire.png");
+	assets.attackTextures.green = LoadTexture("./graphics/attacks/green.png");
+	assets.attackTextures.ice = LoadTexture("./graphics/attacks/ice.png");
+	assets.attackTextures.scratch = LoadTexture("./graphics/attacks/scratch.png");
+	assets.attackTextures.splash = LoadTexture("./graphics/attacks/splash.png");
+
 	assets.battleBackgrounds.forrest = LoadTexture("./graphics/backgrounds/forest.png");
 	assets.battleBackgrounds.ice = LoadTexture("./graphics/backgrounds/ice.png");
 	assets.battleBackgrounds.sand = LoadTexture("./graphics/backgrounds/sand.png");
@@ -103,9 +110,19 @@ void load_assets() {
 	assets.exclamationMarkTexture = LoadTexture("./graphics/ui/notice.png");
 
 	assets.fonts.dialog.size = 30;
-	assets.fonts.dialog.rFont = LoadFontEx("./graphics/fonts/PixeloidSans.ttf", (i32)assets.fonts.dialog.size, nil, 250);
+	assets.fonts.dialog.rFont = LoadFontEx(
+		"./graphics/fonts/PixeloidSans.ttf",
+		(i32)assets.fonts.dialog.size,
+		nil,
+		250
+	);
 	assets.fonts.regular.size = 18;
-	assets.fonts.regular.rFont = LoadFontEx("./graphics/fonts/PixeloidSans.ttf", (i32)assets.fonts.regular.size, nil, 250);
+	assets.fonts.regular.rFont = LoadFontEx(
+		"./graphics/fonts/PixeloidSans.ttf",
+		(i32)assets.fonts.regular.size,
+		nil,
+		250
+	);
 	assets.fonts.small.size = 14;
 	assets.fonts.small.rFont = LoadFontEx("./graphics/fonts/PixeloidSans.ttf", (i32)assets.fonts.small.size, nil, 250);
 	assets.fonts.bold.size = 20;
@@ -184,6 +201,13 @@ void unload_assets() {
 	UnloadTexture(assets.uiIcons.health);
 	UnloadTexture(assets.uiIcons.shield);
 	UnloadTexture(assets.uiIcons.star);
+
+	UnloadTexture(assets.attackTextures.explosion);
+	UnloadTexture(assets.attackTextures.fire);
+	UnloadTexture(assets.attackTextures.green);
+	UnloadTexture(assets.attackTextures.ice);
+	UnloadTexture(assets.attackTextures.scratch);
+	UnloadTexture(assets.attackTextures.splash);
 
 	UnloadTexture(assets.battleBackgrounds.forrest);
 	UnloadTexture(assets.battleBackgrounds.ice);
@@ -302,7 +326,6 @@ void load_shaders() {
 		nil,
 		"./shaders/texture_grayscale.frag"
 	);
-
 }
 
 void unload_shaders() {

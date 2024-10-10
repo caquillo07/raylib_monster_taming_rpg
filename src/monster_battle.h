@@ -20,21 +20,8 @@ typedef struct BattleStage {
 	Texture2D bgTexture;
 	Monster opponentMonsters[MAX_PARTY_MONSTERS_LEN];
 
-	AnimatedTiledSprite playerMonsterSprites[MAX_MONSTERS_PER_SIDE_LEN];
-	AnimatedTiledSprite opponentMonsterSprites[MAX_MONSTERS_PER_SIDE_LEN];
-
 	BattleType battleType;
 } BattleStage;
-
-// todo - needed?
-typedef enum BattleBackgroundID {
-	BattleBackgroundIDNone,
-	BattleBackgroundIDForrest,
-	BattleBackgroundIDIce,
-	BattleBackgroundIDSand,
-
-	BattleBackgroundIDCount,
-} BattleBackgroundID;
 
 void monster_battle_setup();
 void monster_battle_input();
