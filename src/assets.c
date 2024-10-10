@@ -13,6 +13,7 @@
 static Texture2D *import_textures_from_directory(const char *dir);
 static int dir_entry_compare(const void *lhsp, const void *rhsp);
 static TileMap load_tile_map(i32 cols, i32 rows, const char *imagePath);
+static void unload_tile_map(TileMap *tm);
 
 Assets assets;
 
@@ -100,6 +101,12 @@ void load_assets() {
 	assets.monsterTileMaps[MonsterIDPouch] = load_tile_map(4, 2, "./graphics/monsters/Pouch.png");
 	assets.monsterTileMaps[MonsterIDSparchu] = load_tile_map(4, 2, "./graphics/monsters/Sparchu.png");
 
+	assets.monsterAttackTileMaps[MonsterAbilityAnimationIDExplosion] = load_tile_map(4, 1, "./graphics/attacks/explosion.png");
+	assets.monsterAttackTileMaps[MonsterAbilityAnimationIDFire] = load_tile_map(4, 1, "./graphics/attacks/fire.png");
+	assets.monsterAttackTileMaps[MonsterAbilityAnimationIDGreen] = load_tile_map(4, 1, "./graphics/attacks/green.png");
+	assets.monsterAttackTileMaps[MonsterAbilityAnimationIDIce] = load_tile_map(4, 1, "./graphics/attacks/ice.png");
+	assets.monsterAttackTileMaps[MonsterAbilityAnimationIDScratch] = load_tile_map(4, 1, "./graphics/attacks/scratch.png");
+	assets.monsterAttackTileMaps[MonsterAbilityAnimationIDSplash] = load_tile_map(4, 1, "./graphics/attacks/splash.png");
 
 	assets.grassTexture = LoadTexture("./graphics/objects/grass.png");
 	assets.iceGrassTexture = LoadTexture("./graphics/objects/grass_ice.png");
@@ -212,38 +219,29 @@ void unload_assets() {
 	UnloadTexture(assets.battleBackgrounds.ice);
 	UnloadTexture(assets.battleBackgrounds.sand);
 
-	UnloadTexture(assets.monsterTileMaps[MonsterIDAtrox].texture);
-	array_free(assets.monsterTileMaps[MonsterIDAtrox].framesList);
-	UnloadTexture(assets.monsterTileMaps[MonsterIDCharmadillo].texture);
-	array_free(assets.monsterTileMaps[MonsterIDCharmadillo].framesList);
-	UnloadTexture(assets.monsterTileMaps[MonsterIDCindrill].texture);
-	array_free(assets.monsterTileMaps[MonsterIDCindrill].framesList);
-	UnloadTexture(assets.monsterTileMaps[MonsterIDCleaf].texture);
-	array_free(assets.monsterTileMaps[MonsterIDCleaf].framesList);
-	UnloadTexture(assets.monsterTileMaps[MonsterIDDraem].texture);
-	array_free(assets.monsterTileMaps[MonsterIDDraem].framesList);
-	UnloadTexture(assets.monsterTileMaps[MonsterIDFiniette].texture);
-	array_free(assets.monsterTileMaps[MonsterIDFiniette].framesList);
-	UnloadTexture(assets.monsterTileMaps[MonsterIDFinsta].texture);
-	array_free(assets.monsterTileMaps[MonsterIDFinsta].framesList);
-	UnloadTexture(assets.monsterTileMaps[MonsterIDFriolera].texture);
-	array_free(assets.monsterTileMaps[MonsterIDFriolera].framesList);
-	UnloadTexture(assets.monsterTileMaps[MonsterIDGulfin].texture);
-	array_free(assets.monsterTileMaps[MonsterIDGulfin].framesList);
-	UnloadTexture(assets.monsterTileMaps[MonsterIDIvieron].texture);
-	array_free(assets.monsterTileMaps[MonsterIDIvieron].framesList);
-	UnloadTexture(assets.monsterTileMaps[MonsterIDJacana].texture);
-	array_free(assets.monsterTileMaps[MonsterIDJacana].framesList);
-	UnloadTexture(assets.monsterTileMaps[MonsterIDLarvea].texture);
-	array_free(assets.monsterTileMaps[MonsterIDLarvea].framesList);
-	UnloadTexture(assets.monsterTileMaps[MonsterIDPluma].texture);
-	array_free(assets.monsterTileMaps[MonsterIDPluma].framesList);
-	UnloadTexture(assets.monsterTileMaps[MonsterIDPlumette].texture);
-	array_free(assets.monsterTileMaps[MonsterIDPlumette].framesList);
-	UnloadTexture(assets.monsterTileMaps[MonsterIDPouch].texture);
-	array_free(assets.monsterTileMaps[MonsterIDPouch].framesList);
-	UnloadTexture(assets.monsterTileMaps[MonsterIDSparchu].texture);
-	array_free(assets.monsterTileMaps[MonsterIDSparchu].framesList);
+	unload_tile_map(&assets.monsterTileMaps[MonsterIDAtrox]);
+	unload_tile_map(&assets.monsterTileMaps[MonsterIDCharmadillo]);
+	unload_tile_map(&assets.monsterTileMaps[MonsterIDCindrill]);
+	unload_tile_map(&assets.monsterTileMaps[MonsterIDCleaf]);
+	unload_tile_map(&assets.monsterTileMaps[MonsterIDDraem]);
+	unload_tile_map(&assets.monsterTileMaps[MonsterIDFiniette]);
+	unload_tile_map(&assets.monsterTileMaps[MonsterIDFinsta]);
+	unload_tile_map(&assets.monsterTileMaps[MonsterIDFriolera]);
+	unload_tile_map(&assets.monsterTileMaps[MonsterIDGulfin]);
+	unload_tile_map(&assets.monsterTileMaps[MonsterIDIvieron]);
+	unload_tile_map(&assets.monsterTileMaps[MonsterIDJacana]);
+	unload_tile_map(&assets.monsterTileMaps[MonsterIDLarvea]);
+	unload_tile_map(&assets.monsterTileMaps[MonsterIDPluma]);
+	unload_tile_map(&assets.monsterTileMaps[MonsterIDPlumette]);
+	unload_tile_map(&assets.monsterTileMaps[MonsterIDPouch]);
+	unload_tile_map(&assets.monsterTileMaps[MonsterIDSparchu]);
+
+	unload_tile_map(&assets.monsterAttackTileMaps[MonsterAbilityAnimationIDExplosion]);
+	unload_tile_map(&assets.monsterAttackTileMaps[MonsterAbilityAnimationIDFire]);
+	unload_tile_map(&assets.monsterAttackTileMaps[MonsterAbilityAnimationIDGreen]);
+	unload_tile_map(&assets.monsterAttackTileMaps[MonsterAbilityAnimationIDIce]);
+	unload_tile_map(&assets.monsterAttackTileMaps[MonsterAbilityAnimationIDScratch]);
+	unload_tile_map(&assets.monsterAttackTileMaps[MonsterAbilityAnimationIDSplash]);
 
 	UnloadFont(assets.fonts.dialog.rFont);
 	UnloadFont(assets.fonts.regular.rFont);
@@ -307,6 +305,11 @@ TileMap load_tile_map(const i32 cols, const i32 rows, const char *imagePath) {
 		.texture = texture,
 	};
 	return tileMap;
+}
+
+void unload_tile_map(TileMap *tm) {
+	UnloadTexture(tm->texture);
+	array_free(tm->framesList);
 }
 
 // returns a copy of the frame inside the tilemap

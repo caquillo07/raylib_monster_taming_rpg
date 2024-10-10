@@ -226,7 +226,7 @@ static void init_monster_attack_data() {
 			.damageAmount = (f32)get_number(attackData, "amount")->valuedouble,
 			.cost = (i32)get_number(attackData, "cost")->valueint,
 			.element = monster_type_from_str(get_string(attackData, "element")->valuestring),
-//			.animation = ???,
+			.animation = monster_ability_animation_from_str(get_string(attackData, "animation")->valuestring),
 		};
 		array_push(game.data.attackData, data);
 	}

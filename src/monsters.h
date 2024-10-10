@@ -39,6 +39,19 @@ typedef enum MonsterAbilityID {
 	MonsterAbilityCount,
 } MonsterAbilityID;
 
+typedef enum MonsterAbilityAnimationID {
+	MonsterAbilityAnimationIDNone,
+	MonsterAbilityAnimationIDExplosion,
+	MonsterAbilityAnimationIDFire,
+	MonsterAbilityAnimationIDGreen,
+	MonsterAbilityAnimationIDIce,
+	MonsterAbilityAnimationIDScratch,
+	MonsterAbilityAnimationIDSplash,
+
+	MonsterAbilityAnimationIDCount,
+
+} MonsterAbilityAnimationID;
+
 typedef enum MonsterID {
 	MonsterIDNone = 0,
 	MonsterIDPlumette = 1,
@@ -103,7 +116,7 @@ typedef struct MonsterAbilityData {
 	f32 damageAmount;
 	i32 cost;
 	MonsterType element;
-//	animation; ???
+	MonsterAbilityAnimationID animation;
 } MonsterAbilityData;
 
 extern const i32 MonsterMaxInitiative;
@@ -134,6 +147,7 @@ extern const char *monsterAbilityStr[MonsterAbilityCount];
 
 Monster monster_new(MonsterID id, u8 level);
 MonsterType monster_type_from_str(const char *name);
+MonsterAbilityAnimationID monster_ability_animation_from_str(const char *name);
 MonsterAbilityID monster_ability_from_str(const char *name);
 MonsterID monster_name_from_str(const char *name);
 MonsterAbilityTarget monster_target_from_str(const char *name);

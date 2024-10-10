@@ -109,6 +109,7 @@ typedef struct Assets {
 	} tileMaps;
 
 	TileMap monsterTileMaps[MonsterIDCount];
+	TileMap monsterAttackTileMaps[MonsterAbilityAnimationIDCount];
 	struct {
 		Shader textureOutline;
 		Shader grayscale;

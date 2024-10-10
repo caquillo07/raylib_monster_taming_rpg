@@ -30,6 +30,29 @@ const char *monsterAbilityStr[MonsterAbilityCount] = {
 	[MonsterAbilityBurn] = "Burn",
 };
 
+MonsterAbilityAnimationID monster_ability_animation_from_str(const char *name) {
+	if (streq(name, "explosion")) {
+		return MonsterAbilityAnimationIDExplosion;
+	}
+	if (streq(name, "fire")) {
+		return MonsterAbilityAnimationIDFire;
+	}
+	if (streq(name, "green")) {
+		return MonsterAbilityAnimationIDGreen;
+	}
+	if (streq(name, "ice")) {
+		return MonsterAbilityAnimationIDIce;
+	}
+	if (streq(name, "scratch")) {
+		return MonsterAbilityAnimationIDScratch;
+	}
+	if (streq(name, "splash")) {
+		return MonsterAbilityAnimationIDSplash;
+	}
+
+	panic("unknown type \"%s\" provided", name);
+}
+
 MonsterType monster_type_from_str(const char *name) {
 	if (streq(name, "plant")) {
 		return MonsterTypePlant;
@@ -222,6 +245,7 @@ static AnimatedTiledSprite monster_get_animated_sprite_for_id(MonsterID monsterI
 
 #define idleAnimationFramesRow 0
 #define attackAnimationFramesRow 1
+
 AnimatedTiledSprite monster_get_idle_animated_sprite_for_id(MonsterID monsterID) {
 	return monster_get_animated_sprite_for_id(monsterID, idleAnimationFramesRow, true);
 }
