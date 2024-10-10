@@ -16,22 +16,6 @@ typedef struct TileMap {
 	Rectangle *framesList;
 } TileMap;
 
-typedef enum TileMapID {
-	TileMapIDCoastLine = 0,
-	TileMapIDPlayer,
-	TileMapIDBlondCharacter,
-	TileMapIDFireBossCharacter,
-	TileMapIDGrassBossCharacter,
-	TileMapIDHatGirlCharacter,
-	TileMapIDPurpleGirlCharacter,
-	TileMapIDStrawCharacter,
-	TileMapIDWaterBossCharacter,
-	TileMapIDYoungGirlCharacter,
-	TileMapIDYoungGuyCharacter,
-
-	TileMapIDMax,
-} TileMapID;
-
 typedef struct GameFont {
 	Font rFont;
 	f32 size;
@@ -43,7 +27,6 @@ typedef struct Assets {
 		Texture2D *texturesList;
 	} waterTextures;
 
-	TileMap tileMaps[TileMapIDMax];
 	Texture2D grassTexture;
 	Texture2D iceGrassTexture;
 	Texture2D sandTexture;
@@ -110,6 +93,20 @@ typedef struct Assets {
 		Texture2D ice;
 		Texture2D sand;
 	} battleBackgrounds;
+
+	struct {
+		TileMap coastLine;
+		TileMap player;
+		TileMap blondCharacter;
+		TileMap fireBossCharacter;
+		TileMap grassBossCharacter;
+		TileMap hatGirlCharacter;
+		TileMap purpleGirlCharacter;
+		TileMap strawCharacter;
+		TileMap waterBossCharacter;
+		TileMap youngGirlCharacter;
+		TileMap youngGuyCharacter;
+	} tileMaps;
 
 	TileMap monsterTileMaps[MonsterIDCount];
 	struct {

@@ -252,7 +252,8 @@ void monster_battle_input() {
 	}
 
 	if (IsKeyPressed(KEY_DOWN)) {
-		state.uiBattleChoiceState.indexes[selectedMode] = (state.uiBattleChoiceState.indexes[selectedMode] + 1) % maxIndex;
+		state.uiBattleChoiceState.indexes[selectedMode] = (state.uiBattleChoiceState.indexes[selectedMode] + 1) %
+														  maxIndex;
 	}
 	if (IsKeyPressed(KEY_UP)) {
 		state.uiBattleChoiceState.indexes[selectedMode] -= 1;
@@ -302,7 +303,7 @@ void monster_battle_input() {
 			}
 			printfln("chosen attack %s", monsterAbilityStr[state.selectedAttackID]);
 			state.selectedSelectionSide = game_data_for_monster_attack_id(state.selectedAttackID)->target ==
-									MonsterAbilityTargetPlayer ?
+										  MonsterAbilityTargetPlayer ?
 				SelectionSidePlayer : SelectionSideOpponent;
 		}
 		if (selectedMode == SelectionModeGeneral) {
@@ -343,6 +344,26 @@ void monster_battle_input() {
 	}
 }
 
+static AnimatedTiledSprite new_animation_attack(Texture2D texture) {
+//	const TileMap monsterTileSet = assets.monsterTileMaps[monsterID];
+//	AnimatedTiledSprite sprite = {
+//		.entity = {
+//			.id = monsterTileSet.texture.id,
+//			.layer = WorldLayerTop,
+//		},
+//		.texture = monsterTileSet.texture,
+//		.loop = loop,
+//		.framesLen = 4,
+//		.frameTimer = 0,
+//		.animationSpeed = settings.monsterAnimationSpeed,
+//	};
+//	for (i32 i = 0; i < AnimatedSpriteAnimationFramesLen; i++) {
+//		sprite.sourceFrames[i] = tile_map_get_frame_at(monsterTileSet, i, animationFramesRow);
+//	}
+//	return sprite;
+	return (AnimatedTiledSprite){};
+}
+
 static void monster_start_attack() {
 	panicIf(state.selectedAttackID == MonsterAbilityNone);
 
@@ -360,7 +381,10 @@ static void apply_start_attack() {
 	state.currentMonster.monster->energy -= abilityData->cost;
 	state.currentMonster.monster->energy = max(0, state.currentMonster.monster->energy);
 
-	state.selectedTargetMonster.monster->health -= (i32)(state.currentMonster.monster->stats.attack * abilityData->damageAmount);
+	state.selectedTargetMonster.monster->health -= (i32)(
+		state.currentMonster.monster->stats.attack *
+		abilityData->damageAmount
+	);
 	state.selectedTargetMonster.monster->health = max(0, state.selectedTargetMonster.monster->health);
 
 	state.currentMonster.monster->state = MonsterStateActive;
@@ -651,7 +675,8 @@ static void draw_monster(const Monster *monster, const AnimatedTiledSprite *spri
 	);
 
 	bool isSelectedOpponent = false;
-	if (state.selectedSelectionSide != SelectionSideNone && state.uiBattleChoiceState.uiSelectionMode == SelectionModeTarget) {
+	if (state.selectedSelectionSide != SelectionSideNone &&
+		state.uiBattleChoiceState.uiSelectionMode == SelectionModeTarget) {
 		Monster **targetMonsters = state.selectedSelectionSide == SelectionSideOpponent ?
 			state.opponentActiveMonsters : state.playerActiveMonsters;
 		i32 displayedIndex = 0;

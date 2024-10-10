@@ -42,7 +42,7 @@ typedef struct Character {
     AnimatedTiledSprite animatedSprite;
     CharacterDirection direction;
     CharacterState state;
-    TileMapID tileMapID;
+    TileMap tileMap;
     f32 speed;
 
     // todo remove - too lazy and im tired to think
@@ -56,7 +56,7 @@ typedef struct Character {
     f32 radius;
 
     Timer patrolTimer;
-    u64 currentDirectionIndex;
+    i32 currentDirectionIndex;
 } Character;
 
 #define MAX_CHARACTER_ID_LENGTH 128
@@ -89,7 +89,7 @@ typedef struct CharacterData {
 } CharacterData;
 
 
-Character character_new(Vector2 centerPosition, TileMapID tileMapID, CharacterDirection direction, const char *id);
+Character character_new(Vector2 centerPosition, TileMap tileMap, CharacterDirection direction, const char *id);
 void character_free(const Character *c);
 void character_update(Character *c, f32 deltaTime);
 void character_draw(const Character *c);
@@ -100,7 +100,7 @@ void character_change_direction(Character *c, Vector2 target);
 CharacterDirection character_direction_from_str(const char *directionStr);
 void character_raycast(Character *c);
 bool check_character_connection(const Character *from, const Character *to, f32 radius);
-inline void character_move_towards(Character *c, const Vector2 point);
+inline void character_move_towards(Character *c, Vector2 point);
 void character_create_dialog(const Character *character);
 
 #endif //RAYLIB_POKEMON_CLONE_CHARACTER_ENTITY_H

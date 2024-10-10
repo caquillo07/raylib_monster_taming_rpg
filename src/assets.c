@@ -22,21 +22,20 @@ void load_assets() {
 	assets.waterTextures.len = 4;
 
 	// each graphic is 192, but we want 64px chunks
-	assets.tileMaps[TileMapIDCoastLine] = load_tile_map(3 * 8, 3 * 4, ("./graphics/tilesets/coast.png"));
+	assets.tileMaps.coastLine = load_tile_map(3 * 8, 3 * 4, ("./graphics/tilesets/coast.png"));
 
 	// player and characters
-	assets.tileMaps[TileMapIDPlayer] = load_tile_map(4, 4, ("./graphics/characters/player.png"));
-	assets.tileMaps[TileMapIDBlondCharacter] = load_tile_map(4, 4, ("./graphics/characters/blond.png"));
-	assets.tileMaps[TileMapIDFireBossCharacter] = load_tile_map(4, 4, ("./graphics/characters/fire_boss.png"));
-	assets.tileMaps[TileMapIDGrassBossCharacter] = load_tile_map(4, 4, ("./graphics/characters/grass_boss.png"));
-	assets.tileMaps[TileMapIDHatGirlCharacter] = load_tile_map(4, 4, ("./graphics/characters/hat_girl.png"));
-	assets.tileMaps[TileMapIDPurpleGirlCharacter] = load_tile_map(4, 4, ("./graphics/characters/purple_girl.png"));
-	assets.tileMaps[TileMapIDStrawCharacter] = load_tile_map(4, 4, ("./graphics/characters/straw.png"));
-	assets.tileMaps[TileMapIDWaterBossCharacter] = load_tile_map(4, 4, ("./graphics/characters/water_boss.png"));
-	assets.tileMaps[TileMapIDYoungGirlCharacter] = load_tile_map(4, 4, ("./graphics/characters/young_girl.png"));
-	assets.tileMaps[TileMapIDYoungGuyCharacter] = load_tile_map(4, 4, ("./graphics/characters/young_guy.png"));
+	assets.tileMaps.player = load_tile_map(4, 4, ("./graphics/characters/player.png"));
+	assets.tileMaps.blondCharacter = load_tile_map(4, 4, ("./graphics/characters/blond.png"));
+	assets.tileMaps.fireBossCharacter = load_tile_map(4, 4, ("./graphics/characters/fire_boss.png"));
+	assets.tileMaps.grassBossCharacter = load_tile_map(4, 4, ("./graphics/characters/grass_boss.png"));
+	assets.tileMaps.hatGirlCharacter = load_tile_map(4, 4, ("./graphics/characters/hat_girl.png"));
+	assets.tileMaps.purpleGirlCharacter = load_tile_map(4, 4, ("./graphics/characters/purple_girl.png"));
+	assets.tileMaps.strawCharacter = load_tile_map(4, 4, ("./graphics/characters/straw.png"));
+	assets.tileMaps.waterBossCharacter = load_tile_map(4, 4, ("./graphics/characters/water_boss.png"));
+	assets.tileMaps.youngGirlCharacter = load_tile_map(4, 4, ("./graphics/characters/young_girl.png"));
+	assets.tileMaps.youngGuyCharacter = load_tile_map(4, 4, ("./graphics/characters/young_guy.png"));
 
-	// todo(hector) - refactor to use lookup table instead
 	assets.monsterIcons.atrox = LoadTexture("./graphics/icons/Atrox.png");
 	assets.monsterIcons.charmadillo = LoadTexture("./graphics/icons/Charmadillo.png");
 	assets.monsterIcons.cindrill = LoadTexture("./graphics/icons/Cindrill.png");
@@ -135,30 +134,30 @@ void unload_assets() {
 	}
 	array_free(assets.waterTextures.texturesList);
 
-	UnloadTexture(assets.tileMaps[TileMapIDCoastLine].texture);
-	array_free(assets.tileMaps[TileMapIDCoastLine].framesList);
+	UnloadTexture(assets.tileMaps.coastLine.texture);
+	array_free(assets.tileMaps.coastLine.framesList);
 
-	UnloadTexture(assets.tileMaps[TileMapIDPlayer].texture);
-	array_free(assets.tileMaps[TileMapIDPlayer].framesList);
+	UnloadTexture(assets.tileMaps.player.texture);
+	array_free(assets.tileMaps.player.framesList);
 
-	UnloadTexture(assets.tileMaps[TileMapIDBlondCharacter].texture);
-	array_free(assets.tileMaps[TileMapIDBlondCharacter].framesList);
-	UnloadTexture(assets.tileMaps[TileMapIDFireBossCharacter].texture);
-	array_free(assets.tileMaps[TileMapIDFireBossCharacter].framesList);
-	UnloadTexture(assets.tileMaps[TileMapIDGrassBossCharacter].texture);
-	array_free(assets.tileMaps[TileMapIDGrassBossCharacter].framesList);
-	UnloadTexture(assets.tileMaps[TileMapIDHatGirlCharacter].texture);
-	array_free(assets.tileMaps[TileMapIDHatGirlCharacter].framesList);
-	UnloadTexture(assets.tileMaps[TileMapIDPurpleGirlCharacter].texture);
-	array_free(assets.tileMaps[TileMapIDPurpleGirlCharacter].framesList);
-	UnloadTexture(assets.tileMaps[TileMapIDStrawCharacter].texture);
-	array_free(assets.tileMaps[TileMapIDStrawCharacter].framesList);
-	UnloadTexture(assets.tileMaps[TileMapIDWaterBossCharacter].texture);
-	array_free(assets.tileMaps[TileMapIDWaterBossCharacter].framesList);
-	UnloadTexture(assets.tileMaps[TileMapIDYoungGirlCharacter].texture);
-	array_free(assets.tileMaps[TileMapIDYoungGirlCharacter].framesList);
-	UnloadTexture(assets.tileMaps[TileMapIDYoungGuyCharacter].texture);
-	array_free(assets.tileMaps[TileMapIDYoungGuyCharacter].framesList);
+	UnloadTexture(assets.tileMaps.blondCharacter.texture);
+	array_free(assets.tileMaps.blondCharacter.framesList);
+	UnloadTexture(assets.tileMaps.fireBossCharacter.texture);
+	array_free(assets.tileMaps.fireBossCharacter.framesList);
+	UnloadTexture(assets.tileMaps.grassBossCharacter.texture);
+	array_free(assets.tileMaps.grassBossCharacter.framesList);
+	UnloadTexture(assets.tileMaps.hatGirlCharacter.texture);
+	array_free(assets.tileMaps.hatGirlCharacter.framesList);
+	UnloadTexture(assets.tileMaps.purpleGirlCharacter.texture);
+	array_free(assets.tileMaps.purpleGirlCharacter.framesList);
+	UnloadTexture(assets.tileMaps.strawCharacter.texture);
+	array_free(assets.tileMaps.strawCharacter.framesList);
+	UnloadTexture(assets.tileMaps.waterBossCharacter.texture);
+	array_free(assets.tileMaps.waterBossCharacter.framesList);
+	UnloadTexture(assets.tileMaps.youngGirlCharacter.texture);
+	array_free(assets.tileMaps.youngGirlCharacter.framesList);
+	UnloadTexture(assets.tileMaps.youngGuyCharacter.texture);
+	array_free(assets.tileMaps.youngGuyCharacter.framesList);
 
 	UnloadTexture(assets.grassTexture);
 	UnloadTexture(assets.iceGrassTexture);

@@ -389,27 +389,28 @@ Character *init_over_world_characters(const tmx_layer *layer) {
         const tmx_property *graphicProp = tmx_get_property(characterH->properties, "graphic");
         const tmx_property *radiusProp = tmx_get_property(characterH->properties, "radius");
 
-        TileMapID characterTiledMapID = TileMapIDMax;
+        TileMap characterTiledMapID = {};
         if (streq(graphicProp->value.string, "blond")) {
-            characterTiledMapID = TileMapIDBlondCharacter;
+            characterTiledMapID = assets.tileMaps.blondCharacter;
         } else if (streq(graphicProp->value.string, "fire_boss")) {
-            characterTiledMapID = TileMapIDFireBossCharacter;
+            characterTiledMapID = assets.tileMaps.fireBossCharacter;
         } else if (streq(graphicProp->value.string, "grass_boss")) {
-            characterTiledMapID = TileMapIDGrassBossCharacter;
+            characterTiledMapID = assets.tileMaps.grassBossCharacter;
         } else if (streq(graphicProp->value.string, "hat_girl")) {
-            characterTiledMapID = TileMapIDHatGirlCharacter;
+            characterTiledMapID = assets.tileMaps.hatGirlCharacter;
         } else if (streq(graphicProp->value.string, "purple_girl")) {
-            characterTiledMapID = TileMapIDPurpleGirlCharacter;
+            characterTiledMapID = assets.tileMaps.purpleGirlCharacter;
         } else if (streq(graphicProp->value.string, "straw")) {
-            characterTiledMapID = TileMapIDStrawCharacter;
+            characterTiledMapID = assets.tileMaps.strawCharacter;
         } else if (streq(graphicProp->value.string, "water_boss")) {
-            characterTiledMapID = TileMapIDWaterBossCharacter;
+            characterTiledMapID = assets.tileMaps.waterBossCharacter;
         } else if (streq(graphicProp->value.string, "young_girl")) {
-            characterTiledMapID = TileMapIDYoungGirlCharacter;
+            characterTiledMapID = assets.tileMaps.youngGirlCharacter;
         } else if (streq(graphicProp->value.string, "young_guy")) {
-            characterTiledMapID = TileMapIDYoungGuyCharacter;
+            characterTiledMapID = assets.tileMaps.youngGuyCharacter;
         }
-        if (characterTiledMapID == TileMapIDMax) {
+
+        if (!IsTextureReady(characterTiledMapID.texture)) {
             panic("unexpected graphics property for entity %s", graphicProp->value.string);
         }
 
@@ -529,7 +530,7 @@ static AnimatedTiledSprite *init_coast_line_sprites(const tmx_layer *layer) {
             firstFrameRow = rowBase + 0;
         }
 
-        const TileMap coastLineTileMap = assets.tileMaps[TileMapIDCoastLine];
+        const TileMap coastLineTileMap = assets.tileMaps.coastLine;
 
         const AnimatedTiledSprite sprite = {
             .entity = {
@@ -873,7 +874,7 @@ static void draw_animated_tiled_sprites(AnimatedTiledSprite *coastLineSprites) {
 
         game.gameMetrics.drawnSprites++;
         const Rectangle tileToDraw = coastSprite.sourceFrames[coastSprite.currentFrame];
-        draw_tile(&assets.tileMaps[TileMapIDCoastLine].texture, tileToDraw, coastSprite.entity.position, 1.f);
+        draw_tile(&assets.tileMaps.coastLine.texture, tileToDraw, coastSprite.entity.position, 1.f);
 
         // draw debug frames
         if (!game.isDebug) { continue; }

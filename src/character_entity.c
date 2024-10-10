@@ -18,12 +18,11 @@ static bool line_intersects_rect(Vector2 p1, Vector2 p2, Rectangle r);
 static bool character_has_line_of_sight(const Character *c, const Rectangle *rect);
 
 Character character_new(
-	const Vector2 centerPosition,
-	const TileMapID tileMapID,
-	const CharacterDirection direction,
+	Vector2 centerPosition,
+	TileMap tileMap,
+	CharacterDirection direction,
 	const char *id
 ) {
-	const TileMap tm = assets.tileMaps[tileMapID];
 
 	const i32 characterTileHeight = 128;
 	const i32 characterTileWidth = 128;
@@ -36,7 +35,7 @@ Character character_new(
 		.blocked = false,
 		.state = CharacterStateIdle,
 		.direction = direction,
-		.tileMapID = tileMapID,
+		.tileMap = tileMap,
 		.velocity = {},
 		.frame = {
 			.x = position.x,
@@ -46,12 +45,12 @@ Character character_new(
 		},
 		.animatedSprite = {
 			.entity = {
-				.id = tm.texture.id,
+				.id = tileMap.texture.id,
 				.layer = WorldLayerMain,
 				.ySort = position.y + (characterTileHeight / 2),
 				.position = position,
 			},
-			.texture = tm.texture,
+			.texture = tileMap.texture,
 			.loop = true,
 			.framesLen = 4,
 			.frameTimer = 0,
@@ -144,8 +143,8 @@ void character_draw(const Character *c) {
 	const Rectangle shadowRect = {
 		.x = 0,
 		.y = 0,
-		.height = assets.characterShadowTexture.height,
-		.width = assets.characterShadowTexture.width,
+		.height = (f32)assets.characterShadowTexture.height,
+		.width = (f32)assets.characterShadowTexture.width,
 	};
 	game.gameMetrics.drawnSprites++;
 	DrawTextureRec(assets.characterShadowTexture, shadowRect, shadowPos, WHITE);
@@ -187,7 +186,7 @@ void character_animate(Character *c, const f32 deltaTime) {
 	}
 	for (i32 i = 0; i < AnimatedSpriteAnimationFramesLen; i++) {
 		c->animatedSprite.sourceFrames[i] = tile_map_get_frame_at(
-			assets.tileMaps[c->tileMapID],
+			c->tileMap,
 			i,
 			row
 		);
