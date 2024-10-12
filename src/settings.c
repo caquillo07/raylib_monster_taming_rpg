@@ -9,6 +9,7 @@ GameSettings settings = {
 	.charactersSpeed = 250,
 	.playerAnimationSpeed = 4,
 	.monsterAnimationSpeed= 4,
+	.monsterAttackAnimationSpeed = 4,
 	.playerNoticedTimerSec = 0.5f,
 	.waterAnimationSpeed = 4,
 	.coastLineAnimationSpeed = 4,

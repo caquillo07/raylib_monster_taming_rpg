@@ -49,7 +49,13 @@ typedef ssize_t isize;
 // cant forget the null character at the end of the string .-.
 #define streq(str, val) (strncmp(str, val, strlen(val)+1) == 0)
 
-#define static_array_len(arr) ((arr) != nil ? sizeof(arr)/sizeof((arr)[0]) : 0)
+/* Compile time macros
+ *	- Anything that starts with `comptime` is an expression
+ *	- Anything in the for of `_comptime_<something>_` is an attribute
+ */
+#define comptime_array_len(arr) ((arr) != nil ? sizeof(arr)/sizeof((arr)[0]) : 0)
+#define comptime_member_size(type, member) (sizeof( ((type *)0)->member ))
+#define _comptime_unused_ __attribute__((unused))
 
 void initLogger();
 f32 clamp(f32 n, f32 mi, f32 ma);

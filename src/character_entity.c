@@ -24,11 +24,11 @@ Character character_new(
 	const char *id
 ) {
 
-	const i32 characterTileHeight = 128;
-	const i32 characterTileWidth = 128;
+	const f32 characterTileHeight = 128;
+	const f32 characterTileWidth = 128;
 	const Vector2 position = {
-		.x = centerPosition.x - (f32)characterTileWidth / 2,
-		.y = centerPosition.y - (f32)characterTileHeight / 2,
+		.x = centerPosition.x - characterTileWidth / 2,
+		.y = centerPosition.y - characterTileHeight / 2,
 	};
 	Character character = {
 		.radius = 0.f, // 0 means they dont fight?
@@ -58,15 +58,14 @@ Character character_new(
 		},
 	};
 
-	// i happen to know there is nothing larger for this demo, probably wouldnt do in a
-	// real project
+	// i happen to know there is nothing larger for this demo
 	strncpy(character.id, id, 16);
 	character.hitBox = rectangle_deflate(character.frame, character.frame.width / 2, 60);
 
 	return character;
 }
 
-void character_free(const Character *c) {}
+void character_free(const Character*) {}
 
 void character_move_towards(Character *c, const Vector2 point) {
 	// start to move the character towards the player

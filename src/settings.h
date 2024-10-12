@@ -17,6 +17,7 @@ typedef struct GameSettings {
 	f32 playerNoticedTimerSec;
 	f32 fadeTransitionSpeed;
 	f32 monsterAnimationSpeed;
+	f32 monsterAttackAnimationSpeed;
 	f32 monsterBattleRemoveHighlightIntervalSecs;
 } GameSettings;
 

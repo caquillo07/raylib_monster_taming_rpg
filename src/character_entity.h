@@ -65,7 +65,7 @@ typedef struct Character {
 #define MAX_DEFEATED_DIALOG_ENTRIES 2
 #define MAX_DIRECTIONS_ENTRIES 4
 
-// i've kind of realized i should of gone for a component based architecture
+// i've kind of realized i should've gone for a component based architecture
 // instead, but im too deep to start over or refactor.
 typedef struct CharacterData {
     char id[MAX_CHARACTER_ID_LENGTH];

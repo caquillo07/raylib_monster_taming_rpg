@@ -177,7 +177,7 @@ void game_draw() {
 
 i32 player_party_length() {
 	i32 count = 0;
-	for (i32 i = 0; i < (i32)static_array_len(game.playerMonsters); i++) {
+	for (i32 i = 0; i < (i32)comptime_array_len(game.playerMonsters); i++) {
 		if (game.playerMonsters[i].id == MonsterIDNone) {
 			break;
 		}
