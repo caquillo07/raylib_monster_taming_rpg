@@ -10,21 +10,6 @@
 
 #include <raymath.h>
 
-static void draw_monster(const Monster *monster, const AnimatedTiledSprite *sprite, Vector2 pos, bool flipped);
-static void draw_monster_stat_bar(Vector2 textPos, f32 barWidth, i32 value, i32 maxValue, Colors barColor);
-static void set_monster_highlight(bool activate);
-static void pause_all_monster_initiative(bool pause);
-static void draw_ui();
-static void draw_general_ui();
-static void draw_attacks_ui();
-static void draw_switch_ui();
-static bool player_monster_in_stage(const Monster *monster);
-static void monster_start_attack();
-static void apply_start_attack();
-static void player_monster_update(Monster *monster, AnimatedTiledSprite *sprite, i32 fieldIndex, f32 dt);
-static void opponent_monster_update(Monster *monster, AnimatedTiledSprite *sprite, i32 fieldIndex, f32 dt);
-static bool common_monster_update(Monster *monster, AnimatedTiledSprite *sprite, i32 fieldIndex, f32 dt);
-
 typedef enum selectionMode_ {
 	SelectionModeNone,
 	SelectionModeGeneral,
@@ -51,23 +36,56 @@ typedef enum selectionSide_ {
 	SelectionSideCount,
 } selectionSide_;
 
+// monster specific
+static void set_monster_highlight(bool activate);
+static void pause_all_monster_initiative(bool pause);
+static bool player_monster_in_stage(const Monster *monster);
+static void monster_start_attack();
+static void apply_pending_attack();
+static void set_current_monster(Monster *monster, selectionSide_ side, i32 index);
+static void set_selected_target_monster(Monster *monster, selectionSide_ side, i32 index);
+static void clear_current_monster();
+static void clear_selected_target_monster();
+static i32 opponent_party_length();
+
+// update
+static void player_monster_update(Monster *monster, AnimatedTiledSprite *sprite, i32 fieldIndex, f32 dt);
+static void opponent_monster_update(Monster *monster, AnimatedTiledSprite *sprite, i32 fieldIndex, f32 dt);
+static bool common_monster_update(
+	Monster *monster,
+	AnimatedTiledSprite *sprite,
+	enum selectionSide_ side,
+	i32 fieldIndex,
+	f32 dt
+);
+
+// drawing
+static void draw_ui();
+static void draw_general_ui();
+static void draw_attacks_ui();
+static void draw_switch_ui();
+static void draw_monster_attack();
+static void draw_monster(const Monster *monster, const AnimatedTiledSprite *sprite, Vector2 pos, bool flipped);
+static void draw_monster_stat_bar(Vector2 textPos, f32 barWidth, i32 value, i32 maxValue, Colors barColor);
+
+struct selectedMonsterState_ {
+	Monster *monster;
+	i32 index;
+	selectionSide_ side;
+};
+
 struct monsterBattleState {
 	// internal state, probably should have been a struct, but then i have to type twice
 	Rectangle currentMonsterRect;
-	Monster emptyMonster;
 
-	struct {
-		Monster *monster;
-		i32 index;
-	} currentMonster;
-	struct {
-		Monster *monster;
-		i32 index;
-	} selectedTargetMonster;
+	struct selectedMonsterState_ currentMonster;
+	struct selectedMonsterState_ selectedTargetMonster;
 
 	// all spites are the same, so we can just swap the textures and reset the sprite
 	struct {
+		bool active;
 		AnimatedTiledSprite sprite;
+		Rectangle rect;
 	} attackAnimationSprite;
 
 	// player state
@@ -91,33 +109,21 @@ struct monsterBattleState {
 	} uiBattleChoiceState;
 	selectionSide_ selectedSelectionSide;
 	MonsterAbilityID selectedAttackID;
-};
-
-typedef struct uiBattleChoiceState_ {
-	selectionMode_ uiSelectionMode;
-//	uiBattleChoiceIconID_ selectedIcon;
-//	i32 selectedAttackIndex;
-	i32 indexes[SelectionModeCount];
-} uiBattleChoiceState_;
-
-struct selectedMonster_ {
-	Monster *monster;
-	i32 index;
-};
-
-struct attackAnimationSprite_ {
-	AnimatedTiledSprite sprite;
+//	bool cycleMonsters;
 };
 
 static Monster emptyMonster = {};
+static TileMap emptyTileMap = {};
+
 static struct monsterBattleState state = {
 	.currentMonsterRect = {},
-	.emptyMonster = {},
 	.currentMonster = {},
 	.selectedTargetMonster = {},
 
 	// all spites are the same, so we can just swap the textures and reset the sprite
-	.attackAnimationSprite = {},
+	.attackAnimationSprite = {
+		.sprite = {},
+	},
 
 	// player state
 	.playerMonsterSprites = {
@@ -153,6 +159,7 @@ static struct monsterBattleState state = {
 	},
 	.selectedSelectionSide = SelectionSideNone,
 	.selectedAttackID = {},
+//	.cycleMonsters = false,
 };
 
 void monster_battle_setup() {
@@ -165,6 +172,7 @@ void monster_battle_setup() {
 			continue;
 		}
 		state.playerActiveMonsters[i] = &game.playerMonsters[i];
+		state.playerActiveMonsters[i]->inField = true;
 		state.playerMonsterSprites[i] = monster_get_idle_animated_sprite_for_id(
 			game.playerMonsters[i].id
 		);
@@ -178,6 +186,7 @@ void monster_battle_setup() {
 			continue;
 		}
 		state.opponentActiveMonsters[i] = &game.battleStage.opponentMonsters[i];
+		state.opponentActiveMonsters[i]->inField = true;
 		state.opponentMonsterSprites[i] = monster_get_idle_animated_sprite_for_id(
 			game.battleStage.opponentMonsters[i].id
 		);
@@ -229,7 +238,7 @@ void monster_battle_input() {
 		// hate to duplicate this, but whatever.
 		maxIndex = 0;
 		const Monster *availableMonsters[MAX_PARTY_MONSTERS_LEN] = {};
-		for (usize i = 0; i < static_array_len(game.playerMonsters); i++) {
+		for (usize i = 0; i < comptime_array_len(game.playerMonsters); i++) {
 			const Monster *monster = &game.playerMonsters[i];
 			if (monster->id == MonsterIDNone || monster->health <= 0 || player_monster_in_stage(monster)) { continue; }
 			availableMonsters[maxIndex] = monster;
@@ -267,12 +276,11 @@ void monster_battle_input() {
 				state.opponentActiveMonsters : state.playerActiveMonsters;
 
 			i32 displayedIndex = 0;
-			for (usize i = 0; i < MAX_MONSTERS_PER_SIDE_LEN; i++) {
+			for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN; i++) {
 				if (targetMonsters[i]->id != MonsterIDNone && targetMonsters[i]->health > 0) {
 					if (displayedIndex == state.uiBattleChoiceState.indexes[SelectionModeTarget]) {
 						printfln("selected monster %s", targetMonsters[i]->name);
-						state.selectedTargetMonster.monster = targetMonsters[i];
-						state.selectedTargetMonster.index = (i32)i;
+						set_selected_target_monster(targetMonsters[i], state.selectedSelectionSide, i);
 						break;
 					}
 					displayedIndex++;
@@ -283,7 +291,6 @@ void monster_battle_input() {
 			if (state.selectedAttackID != MonsterAbilityNone) {
 				monster_start_attack();
 				selectedMode = SelectionModeNone;
-				pause_all_monster_initiative(false);
 			} else {
 				// catch
 			}
@@ -303,7 +310,7 @@ void monster_battle_input() {
 			}
 			printfln("chosen attack %s", monsterAbilityStr[state.selectedAttackID]);
 			state.selectedSelectionSide = game_data_for_monster_attack_id(state.selectedAttackID)->target ==
-										  MonsterAbilityTargetPlayer ?
+										  MonsterAbilityTargetTeam ?
 				SelectionSidePlayer : SelectionSideOpponent;
 		}
 		if (selectedMode == SelectionModeGeneral) {
@@ -314,8 +321,7 @@ void monster_battle_input() {
 				}
 				case UIBattleChoiceIconIDDefend: {
 					pause_all_monster_initiative(false);
-					state.currentMonster.monster = &emptyMonster;
-					state.currentMonster.index = 0;
+					clear_current_monster();
 					state.uiBattleChoiceState.uiSelectionMode = SelectionModeNone;
 					break;
 				}
@@ -344,36 +350,56 @@ void monster_battle_input() {
 	}
 }
 
-static AnimatedTiledSprite new_animation_attack(Texture2D texture) {
-//	const TileMap monsterTileSet = assets.monsterTileMaps[monsterID];
-//	AnimatedTiledSprite sprite = {
-//		.entity = {
-//			.id = monsterTileSet.texture.id,
-//			.layer = WorldLayerTop,
-//		},
-//		.texture = monsterTileSet.texture,
-//		.loop = loop,
-//		.framesLen = 4,
-//		.frameTimer = 0,
-//		.animationSpeed = settings.monsterAnimationSpeed,
-//	};
-//	for (i32 i = 0; i < AnimatedSpriteAnimationFramesLen; i++) {
-//		sprite.sourceFrames[i] = tile_map_get_frame_at(monsterTileSet, i, animationFramesRow);
-//	}
-//	return sprite;
-	return (AnimatedTiledSprite){};
+static AnimatedTiledSprite new_animation_attack(TileMap tileMap) {
+	AnimatedTiledSprite sprite = {
+		.entity = {
+			.id = tileMap.texture.id,
+			.layer = WorldLayerTop,
+		},
+		.texture = tileMap.texture,
+		.loop = false,
+		.framesLen = 4,
+		.frameTimer = 0,
+		.animationSpeed = settings.monsterAnimationSpeed,
+	};
+	for (i32 i = 0; i < AnimatedSpriteAnimationFramesLen; i++) {
+		sprite.sourceFrames[i] = tile_map_get_frame_at(tileMap, i, 0);
+	}
+	return sprite;
 }
 
 static void monster_start_attack() {
 	panicIf(state.selectedAttackID == MonsterAbilityNone);
+	panicIf(state.currentMonster.side != SelectionSidePlayer && state.currentMonster.side != SelectionSideOpponent);
 
+	const selectionSide_ currentMonsterSide = state.currentMonster.side;
 	state.currentMonster.monster->state = MonsterStateAttack;
-	state.playerMonsterSprites[state.currentMonster.index] = monster_get_attack_animated_sprite_for_id(
+	AnimatedTiledSprite *monsterSprites = currentMonsterSide == SelectionSidePlayer ?
+		state.playerMonsterSprites : state.opponentMonsterSprites;
+	monsterSprites[state.currentMonster.index] = monster_get_attack_animated_sprite_for_id(
 		state.currentMonster.monster->id
 	);
+
+	const MonsterAbilityData *attackData = game_data_for_monster_attack_id(state.selectedAttackID);
+	const TileMap tm = assets.monsterAttackTileMaps[attackData->animation];
+	Vector2 *activeMonsterLocations;
+	if (attackData->target == MonsterAbilityTargetTeam) {
+		activeMonsterLocations = currentMonsterSide == SelectionSidePlayer ?
+			state.playerActiveMonsterLocations : state.opponentActiveMonsterLocations;
+	} else {
+		activeMonsterLocations = currentMonsterSide == SelectionSidePlayer ?
+			state.opponentActiveMonsterLocations : state.playerActiveMonsterLocations;
+	}
+
+	state.attackAnimationSprite.sprite = new_animation_attack(tm);
+	state.attackAnimationSprite.rect = rectangle_with_center_at(
+		(Rectangle){.width = (f32)tm.texture.height, .height = (f32)tm.texture.height},
+		activeMonsterLocations[state.selectedTargetMonster.index]
+	);
+	state.attackAnimationSprite.active = true;
 }
 
-static void apply_start_attack() {
+static void apply_pending_attack() {
 	panicIf(state.currentMonster.monster->state != MonsterStateAttack && state.selectedAttackID == MonsterAbilityNone);
 
 	// get the attack data
@@ -381,18 +407,44 @@ static void apply_start_attack() {
 	state.currentMonster.monster->energy -= abilityData->cost;
 	state.currentMonster.monster->energy = max(0, state.currentMonster.monster->energy);
 
-	state.selectedTargetMonster.monster->health -= (i32)(
-		state.currentMonster.monster->stats.attack *
-		abilityData->damageAmount
-	);
-	state.selectedTargetMonster.monster->health = max(0, state.selectedTargetMonster.monster->health);
+	f32 damageDealt = state.currentMonster.monster->stats.attack * abilityData->damageAmount;
+	MonsterType targetType = state.selectedTargetMonster.monster->type;
 
-	state.currentMonster.monster->state = MonsterStateActive;
+	// if it's not a healing move, then we do type calculation
+	if (abilityData->damageAmount > 0) {
+		if ((abilityData->element == MonsterTypeFire && targetType == MonsterTypePlant) ||
+			(abilityData->element == MonsterTypeWater && targetType == MonsterTypeFire) ||
+			(abilityData->element == MonsterTypePlant && targetType == MonsterTypeWater)) {
+			damageDealt *= 2;
+		} else if ((abilityData->element == MonsterTypePlant && targetType == MonsterTypeFire) ||
+				   (abilityData->element == MonsterTypeFire && targetType == MonsterTypeWater) ||
+				   (abilityData->element == MonsterTypeWater && targetType == MonsterTypePlant)) {
+			damageDealt *= 0.5f;
+		}
+
+		// 2000 is just a number that worked :shrug:
+		f32 targetDefense = 1 - (state.selectedTargetMonster.monster->stats.defense / 2000);
+		targetDefense = min((f32)1, targetDefense);
+		targetDefense = max((f32)0, targetDefense);
+		damageDealt = max(damageDealt * targetDefense, (f32)1);
+	}
+
+	state.selectedTargetMonster.monster->health -= (i32)damageDealt; // make sure we always do at least one damage
+	state.selectedTargetMonster.monster->health = max((i32)0, state.selectedTargetMonster.monster->health);
+	state.selectedTargetMonster.monster->health = min(
+		state.selectedTargetMonster.monster->health,
+		state.selectedTargetMonster.monster->stats.maxHealth
+	);
+
+	// check if it's a death condition so we can cycle next frame
+//	state.cycleMonsters = state.selectedTargetMonster.monster->health <= 0;
+
 	state.selectedAttackID = MonsterAbilityNone;
+	state.currentMonster.monster->state = MonsterStateActive;
 
 	// clear for next monster attack
-	state.currentMonster.monster = &emptyMonster;
-	state.currentMonster.index = 0;
+	clear_current_monster();
+	pause_all_monster_initiative(false);
 }
 
 static void pause_all_monster_initiative(bool pause) {
@@ -402,55 +454,37 @@ static void pause_all_monster_initiative(bool pause) {
 	}
 }
 
-static bool common_monster_update(Monster *monster, AnimatedTiledSprite *sprite, i32 fieldIndex, f32 dt) {
+static bool common_monster_update(
+	Monster *monster,
+	AnimatedTiledSprite *sprite,
+	selectionSide_ side,
+	i32 fieldIndex,
+	f32 dt
+) {
 	panicIf(fieldIndex >= MAX_MONSTERS_PER_SIDE_LEN);
 
 	// check if attack animation is playing, and it's done.
 	// would be nice to have animation hooks, but we already know when an animation
 	// is finished here, and that's good enough.
-//	for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN; i++) {
-//		const i32 index = i % MAX_MONSTERS_PER_SIDE_LEN;
 	if (monster->state == MonsterStateAttack && sprite->done) {
-		apply_start_attack();
+		apply_pending_attack();
 		*sprite = monster_get_idle_animated_sprite_for_id(monster->id);
 	}
-//		if (state.opponentActiveMonsters[index]->state == MonsterStateAttack && state.opponentMonsterSprites[index].done) {
-//			state.opponentMonsterSprites[index] = monster_get_idle_animated_sprite_for_id(
-//				state.opponentActiveMonsters[index]->id
-//			);
-//			apply_start_attack();
-//		}
-//	}
-
-	// if any monster reached the max initiative, then we should pause the rest
-//	Monster *allMonsters[MAX_MONSTERS_PER_SIDE_LEN * 2];
-//	for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN * 2; i++) {
-//		if (i < MAX_MONSTERS_PER_SIDE_LEN) {
-//			allMonsters[i] = state.playerActiveMonsters[i % MAX_MONSTERS_PER_SIDE_LEN];
-//		} else {
-//			allMonsters[i] = state.opponentActiveMonsters[i % MAX_MONSTERS_PER_SIDE_LEN];
-//		}
-//	}
 
 	if (!monster->paused) {
 		monster->initiative = min(monster->initiative + monster->stats.speed * dt, MonsterMaxInitiative);
 	}
 
 	// checking to see who is active
-//	for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN * 2; i++) {
 	if (monster->initiative >= 100) {
 		pause_all_monster_initiative(true);
-		state.currentMonster.monster = monster;
-		state.currentMonster.monster->initiative = 0;
-		state.currentMonster.index = fieldIndex; // original index
+		monster->initiative = 0;
+
+		set_current_monster(monster, side, fieldIndex);
 		set_monster_highlight(true);
 
-		// if is a player monster, index 0,1,2
-		// this assumption breaks if the ordering above changes.
-//			break;
 		return true;
 	}
-//	}
 
 	animated_tiled_sprite_update(sprite, dt);
 	return false;
@@ -466,7 +500,7 @@ static void set_monster_highlight(bool activate) {
 static void player_monster_update(Monster *monster, AnimatedTiledSprite *sprite, i32 fieldIndex, f32 dt) {
 	panicIf(fieldIndex >= MAX_MONSTERS_PER_SIDE_LEN);
 
-	bool finishedTurn = common_monster_update(monster, sprite, fieldIndex, dt);
+	bool finishedTurn = common_monster_update(monster, sprite, SelectionSidePlayer, fieldIndex, dt);
 	if (finishedTurn) {
 		state.uiBattleChoiceState.uiSelectionMode = SelectionModeGeneral;
 		state.uiBattleChoiceState.indexes[SelectionModeGeneral] = UIBattleChoiceIconIDFight;
@@ -476,17 +510,57 @@ static void player_monster_update(Monster *monster, AnimatedTiledSprite *sprite,
 static void opponent_monster_update(Monster *monster, AnimatedTiledSprite *sprite, i32 fieldIndex, f32 dt) {
 	panicIf(fieldIndex >= MAX_MONSTERS_PER_SIDE_LEN);
 
-	common_monster_update(monster, sprite, fieldIndex, dt);
+	common_monster_update(monster, sprite, SelectionSideOpponent, fieldIndex, dt);
 }
+
 
 void monster_battle_update(f32 dt) {
 	if (game.gameModeState != GameModeBattle) { return; }
+	// reset the default empty structs
+	emptyMonster = (Monster){};
+	emptyTileMap = (TileMap){};
 
 	// timers
 	if (timer_is_valid(state.removeHighlightTimer) && timer_done(state.removeHighlightTimer)) {
 		set_monster_highlight(false);
 		timer_stop(&state.removeHighlightTimer);
 	}
+
+	// check for deaths todo
+//	if (state.cycleMonsters) {
+//		for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN; i++) {
+//			if (state.playerActiveMonsters[i]->id != MonsterIDNone &&
+//				state.playerActiveMonsters[i]->health <= 0 &&
+//				state.playerActiveMonsters[i]->inField) {
+//				printfln("found dead player monster: %s", state.playerActiveMonsters[i]->name);
+//
+//				// find the next available monster
+//				for (i32 j = 0; j < player_party_length(); j++) {
+//					if (game.playerMonsters[j].health > 0 && !game.playerMonsters[j].inField) {
+//						printfln("%s is available for battle", game.playerMonsters[j].name);
+//					}
+//				}
+//
+//				printfln("done");
+//			}
+////	}
+////
+////	for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN; i++) {
+//			if (state.opponentActiveMonsters[i]->id != MonsterIDNone &&
+//				state.opponentActiveMonsters[i]->health <= 0 &&
+//				state.opponentActiveMonsters[i]->inField) {
+//				printfln("found dead opponent monster: %s", state.opponentActiveMonsters[i]->name);
+//				// find the next available monster
+//				for (i32 j = 0; j < opponent_party_length(); j++) {
+//					if (game.battleStage.opponentMonsters[j].health > 0 && !game.battleStage.opponentMonsters[j].inField) {
+//						printfln("%s is available for battle", game.battleStage.opponentMonsters[j].name);
+//					}
+//				}
+//
+//				printfln("done");
+//			}
+//		}
+//	}
 
 	// player
 	for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN; i++) {
@@ -508,6 +582,12 @@ void monster_battle_update(f32 dt) {
 			i,
 			dt
 		);
+	}
+	if (state.attackAnimationSprite.active) {
+		animated_tiled_sprite_update(&state.attackAnimationSprite.sprite, dt);
+		if (state.attackAnimationSprite.sprite.done) {
+			state.attackAnimationSprite.active = false;
+		}
 	}
 
 	// update shaders data
@@ -577,8 +657,24 @@ void monster_battle_draw() {
 		state.opponentActiveMonsterLocations[2],
 		false
 	);
+	draw_monster_attack();
 
 	draw_ui();
+}
+
+static void draw_monster_attack() {
+	if (!state.attackAnimationSprite.active) { return; }
+	Rectangle animationFrame = animated_tiled_sprite_current_frame(&state.attackAnimationSprite.sprite);
+
+	// todo(hector) - will break when enemy attacks
+	DrawTexturePro(
+		state.attackAnimationSprite.sprite.texture,
+		animationFrame,
+		state.attackAnimationSprite.rect,
+		(Vector2){0, 0},
+		0.f,
+		WHITE
+	);
 }
 
 static void draw_monster(const Monster *monster, const AnimatedTiledSprite *sprite, Vector2 pos, bool flipped) {
@@ -993,7 +1089,7 @@ static void draw_switch_ui() {
 
 	i32 availableMonsterCount = 0;
 	const Monster *availableMonsters[MAX_PARTY_MONSTERS_LEN] = {};
-	for (usize i = 0; i < static_array_len(game.playerMonsters); i++) {
+	for (usize i = 0; i < comptime_array_len(game.playerMonsters); i++) {
 		const Monster *monster = &game.playerMonsters[i];
 		if (monster->id == MonsterIDNone || monster->health <= 0 || player_monster_in_stage(monster)) { continue; }
 		availableMonsters[availableMonsterCount] = monster;
@@ -1094,12 +1190,45 @@ static void draw_switch_ui() {
 }
 
 bool player_monster_in_stage(const Monster *monster) {
-	for (usize i = 0; i < static_array_len(state.playerActiveMonsters); i++) {
+	for (usize i = 0; i < comptime_array_len(state.playerActiveMonsters); i++) {
 		const Monster *m = state.playerActiveMonsters[i];
 		if (monster == m) {
 			return true;
 		}
 	}
 	return false;
+}
+
+static void clear_current_monster() {
+	state.currentMonster = (struct selectedMonsterState_){};
+	state.currentMonster.monster = &emptyMonster;
+}
+
+static void clear_selected_target_monster() {
+	state.selectedTargetMonster = (struct selectedMonsterState_){};
+	state.selectedTargetMonster.monster = &emptyMonster;
+}
+
+static void set_current_monster(Monster *monster, selectionSide_ side, i32 index) {
+	state.currentMonster.monster = monster;
+	state.currentMonster.side = side;
+	state.currentMonster.index = index;
+}
+
+static void set_selected_target_monster(Monster *monster, selectionSide_ side, i32 index) {
+	state.selectedTargetMonster.monster = monster;
+	state.selectedTargetMonster.side = side;
+	state.selectedTargetMonster.index = index;
+}
+
+static i32 opponent_party_length() {
+	i32 count = 0;
+	for (i32 i = 0; i < (i32)comptime_array_len(game.battleStage.opponentMonsters); i++) {
+		if (game.battleStage.opponentMonsters[i].id == MonsterIDNone) {
+			break;
+		}
+		count++;
+	}
+	return count;
 }
 

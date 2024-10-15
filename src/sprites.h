@@ -39,6 +39,7 @@ typedef struct StaticSprite {
 
 static_assert(offsetof(StaticSprite, entity) == 0, "entity must be the first member of StaticSprite");
 
+
 #define AnimatedSpriteAnimationFramesLen 4
 typedef struct AnimatedTiledSprite {
 	Entity entity; // cannot be moved from 1st position

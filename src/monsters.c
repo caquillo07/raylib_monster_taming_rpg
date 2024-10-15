@@ -168,7 +168,7 @@ MonsterAbilityTarget monster_target_from_str(const char *name) {
 		return MonsterAbilityTargetOpponent;
 	}
 	if (streq(name, "player")) {
-		return MonsterAbilityTargetPlayer;
+		return MonsterAbilityTargetTeam;
 	}
 	panic("unknown name \"%s\" provided", name)
 }

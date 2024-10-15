@@ -106,7 +106,7 @@ typedef struct MonsterData {
 } MonsterData;
 
 typedef enum MonsterAbilityTarget {
-	MonsterAbilityTargetPlayer,
+	MonsterAbilityTargetTeam,
 	MonsterAbilityTargetOpponent,
 } MonsterAbilityTarget;
 
@@ -139,7 +139,10 @@ typedef struct Monster {
 	i32 health;
 	i32 energy;
 	f32 initiative;
+
+	// battle specific, these should really be a bitfield flag
 	bool paused;
+	bool inField;
 } Monster;
 
 extern const char *monsterTypeStr[MonsterTypeCount];
