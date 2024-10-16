@@ -1,5 +1,8 @@
 //
 // Created by Hector Mejia on 8/20/24.
+// todo: improvements for next game
+//  - timers should have a call back to make it easier to run logic on intervals.
+//  - should have "loop" functionality, similar to Go's timers.
 //
 
 #ifndef TIMER_H
@@ -26,7 +29,7 @@ void timer_start(Timer *timer, double lifetime);
 void timer_stop(Timer *timer);
 
 /**
- * checks wether or not a given timer is running
+ * checks whether or not a given timer is running
  * @param timer the timer to check
  * @return true if valid, false otherwise
  */

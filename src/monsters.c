@@ -278,3 +278,22 @@ Texture2D monster_icon_texture_for_id(MonsterID id) {
 		default: panic("invalid monsterID");
 	}
 }
+
+void monster_gain_xp(Monster *monster, i32 xp) {
+	monster->xp += xp;
+	const MonsterData *data = game_data_for_monster_id(monster->id);
+	while (monster->xp > monster->levelUp) {
+		monster->xp -= monster->levelUp;
+		monster->level++;
+		monster->levelUp = monster->level * 150;
+		// we make a copy because we don't want to update the underlying data.
+		MonsterStats stats = data->stats;
+		stats.maxHealth *= (f32)monster->level;
+		stats.maxEnergy *= (f32)monster->level;
+		stats.attack *= (f32)monster->level;
+		stats.defense *= (f32)monster->level;
+		stats.recovery *= (f32)monster->level;
+		stats.speed *= (f32)monster->level;
+		monster->stats = stats;
+	}
+}

@@ -158,5 +158,6 @@ Color monster_type_color(MonsterType type);
 AnimatedTiledSprite monster_get_idle_animated_sprite_for_id(MonsterID monsterID);
 AnimatedTiledSprite monster_get_attack_animated_sprite_for_id(MonsterID monsterID);
 Texture2D monster_icon_texture_for_id(MonsterID id);
+void monster_gain_xp(Monster *monster, i32 xp);
 
 #endif //MONSTERS_H
