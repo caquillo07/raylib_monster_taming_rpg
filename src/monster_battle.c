@@ -281,7 +281,6 @@ void monster_battle_input() {
 			for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN; i++) {
 				if (targetMonsters[i]->id != MonsterIDNone && targetMonsters[i]->health > 0) {
 					if (displayedIndex == state.uiBattleChoiceState.indexes[SelectionModeTarget]) {
-						printfln("selected monster %s", targetMonsters[i]->name);
 						set_selected_target_monster(targetMonsters[i], state.selectedSelectionSide, i);
 						break;
 					}
@@ -310,23 +309,36 @@ void monster_battle_input() {
 				}
 				displayedIndex++;
 			}
-			printfln("chosen attack %s", monsterAbilityStr[state.selectedAttackID]);
-			state.selectedSelectionSide = game_data_for_monster_attack_id(state.selectedAttackID)->target ==
-										  MonsterAbilityTargetTeam ?
+			MonsterAbilityTarget abilityTargetSide = game_data_for_monster_attack_id(state.selectedAttackID)->target;
+			state.selectedSelectionSide = abilityTargetSide == MonsterAbilityTargetTeam ?
 				SelectionSidePlayer : SelectionSideOpponent;
 		}
 		if (selectedMode == SelectionModeSwitch) {
-			i32 displayedIndex = 0;
+			i32 monsterDisplayIndex = 0;
+			i32 monsterPartyIndex = -1;
 			for (usize i = 0; i < comptime_array_len(game.playerMonsters); i++) {
 				const Monster *monster = &game.playerMonsters[i];
-				if (monster->id == MonsterIDNone || monster->health <= 0 || player_monster_in_stage(monster)) { continue; }
-				if (displayedIndex == state.uiBattleChoiceState.indexes[SelectionModeSwitch]) {
+				if (monster->id == MonsterIDNone || monster->health <= 0 || player_monster_in_stage(monster)) {
+					continue;
+				}
+				if (monsterDisplayIndex == state.uiBattleChoiceState.indexes[SelectionModeSwitch]) {
 					printfln("switching to monster %s Lv. %d", monster->name, monster->level);
+					monsterPartyIndex = (i32)i;
 					break;
 				}
-				displayedIndex++;
+				monsterDisplayIndex++;
 			}
-			// todo - finish this
+			panicIf(monsterPartyIndex == -1, "somehow did not find the monster selected in the party");
+			// i should really make a damn function for this.
+			state.playerActiveMonsters[state.currentMonster.index]->inField = false;
+			state.playerActiveMonsters[state.currentMonster.index] = &game.playerMonsters[monsterPartyIndex];
+			state.playerActiveMonsters[state.currentMonster.index]->inField = true;
+			state.playerMonsterSprites[state.currentMonster.index] = monster_get_idle_animated_sprite_for_id(
+				game.playerMonsters[monsterPartyIndex].id
+			);
+			pause_all_monster_initiative(false);
+			clear_current_monster();
+			state.uiBattleChoiceState.uiSelectionMode = SelectionModeNone;
 		}
 		if (selectedMode == SelectionModeGeneral) {
 			switch (state.uiBattleChoiceState.indexes[SelectionModeGeneral]) {
@@ -464,7 +476,7 @@ static void apply_pending_attack() {
 		if (state.selectedTargetMonster.side == SelectionSideOpponent) {
 
 			i32 playersActiveMonsLen = get_active_monster_len(state.playerActiveMonsters);
-			i32 xpAmount = state.selectedTargetMonster.monster->level * 100 /playersActiveMonsLen;
+			i32 xpAmount = state.selectedTargetMonster.monster->level * 100 / playersActiveMonsLen;
 			for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN; i++) {
 				monster_gain_xp(state.playerActiveMonsters[i], xpAmount);
 			}
