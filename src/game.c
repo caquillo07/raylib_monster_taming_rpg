@@ -5,6 +5,7 @@
 #include "game.h"
 
 #include <tmx_utils.h>
+#include <raymath.h>
 
 #include "common.h"
 #include "raylib.h"
@@ -15,6 +16,7 @@
 #include "settings.h"
 #include "array/array.h"
 #include "monster_battle.h"
+#include "raylib_extras.h"
 
 //
 static void setup_game(MapID mapID);
@@ -27,6 +29,7 @@ static void handle_screen_transition(f32 dt);
 static void game_draw_fade_transition();
 static void game_load_map(MapID mapID);
 static void game_start_battle(BattleType battleType);
+static void game_over_draw();
 
 MapID startingMap = MapIDWorld;
 
@@ -164,6 +167,8 @@ void game_draw() {
 		monster_index_draw();
 		monster_battle_draw();
 
+		game_over_draw();
+
 		// last thing we draw
 		game_draw_debug_screen();
 	}
@@ -173,6 +178,32 @@ void game_draw() {
 	}
 	game.gameMetrics.timeInDraw = ((double)(clock() - now)) / (CLOCKS_PER_SEC / 1000);
 	game.gameMetrics.drawnSprites = 0;
+}
+
+static void game_over_draw() {
+	if (!game.gameOver) { return; }
+
+	Color c = {0, 0, 0, 200};
+	Rectangle rect = {
+		.height = (f32)GetScreenHeight(),
+		.width = (f32)GetScreenWidth(),
+	};
+
+	const char *gameOverText = "Game Over!";
+	Vector2 textSize = MeasureTextEx(assets.fonts.bold.rFont, gameOverText, assets.fonts.bold.size * 2, 1.f);
+
+	// background
+	DrawRectangleRec(rect, c);
+	DrawTextPro(
+		assets.fonts.bold.rFont,
+		gameOverText,
+		rectangle_center(rect),
+		(Vector2){textSize.x / 2, textSize.y / 2},
+		0.f,
+		assets.fonts.bold.size * 2,
+		1.f,
+		gameColors[ColorsWhite]
+	);
 }
 
 i32 player_party_length() {

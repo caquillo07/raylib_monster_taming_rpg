@@ -73,6 +73,7 @@ typedef struct Game {
 		MonsterData *monsterData;
 		MonsterAbilityData *attackData;
 	} data;
+	bool gameOver;
 } Game;
 
 extern Game game;

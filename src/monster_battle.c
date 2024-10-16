@@ -36,6 +36,9 @@ typedef enum selectionSide_ {
 	SelectionSideCount,
 } selectionSide_;
 
+// game
+static void check_end_battle(void);
+
 // monster specific
 static void set_monster_highlight(bool activate);
 static void pause_all_monster_initiative(bool pause);
@@ -123,6 +126,7 @@ struct monsterBattleState {
 	selectionSide_ selectedSelectionSide;
 	MonsterAbilityID selectedAttackID;
 	bool cycleMonsters;
+	bool battleOver;
 };
 
 static Monster emptyMonster = {};
@@ -177,6 +181,7 @@ static struct monsterBattleState state = {
 	.selectedSelectionSide = SelectionSideNone,
 	.selectedAttackID = {},
 	.cycleMonsters = false,
+	.battleOver = false,
 };
 
 void monster_battle_setup() {
@@ -190,6 +195,7 @@ void monster_battle_setup() {
 		}
 		state.playerActiveMonsters[i] = &game.playerMonsters[i];
 		state.playerActiveMonsters[i]->inField = true;
+		state.playerActiveMonsters[i]->initiative = 0;
 		state.playerMonsterSprites[i] = monster_get_idle_animated_sprite_for_id(
 			game.playerMonsters[i].id
 		);
@@ -204,6 +210,7 @@ void monster_battle_setup() {
 		}
 		state.opponentActiveMonsters[i] = &game.battleStage.opponentMonsters[i];
 		state.opponentActiveMonsters[i]->inField = true;
+		state.opponentActiveMonsters[i]->initiative = 0;
 		state.opponentMonsterSprites[i] = monster_get_idle_animated_sprite_for_id(
 			game.battleStage.opponentMonsters[i].id
 		);
@@ -349,6 +356,7 @@ void monster_battle_input() {
 					timer_start(&state.timers.catchFailed, settings.monsterCatchFailedTimerIntervalSecs);
 				}
 
+				// End turn...
 				pause_all_monster_initiative(false);
 				set_monster_highlight(false);
 				clear_current_monster();
@@ -406,6 +414,7 @@ void monster_battle_input() {
 					break;
 				}
 				case UIBattleChoiceIconIDDefend: {
+					state.currentMonster.monster->defending = true;
 					pause_all_monster_initiative(false);
 					clear_current_monster();
 					state.uiBattleChoiceState.uiSelectionMode = SelectionModeNone;
@@ -520,6 +529,9 @@ static void apply_pending_attack() {
 		f32 targetDefense = 1 - (state.selectedTargetMonster.monster->stats.defense / 2000);
 		targetDefense = min((f32)1, targetDefense);
 		targetDefense = max((f32)0, targetDefense);
+		if (state.selectedTargetMonster.monster->defending) {
+			targetDefense -= 0.2f;
+		}
 		damageDealt = max(damageDealt * targetDefense, (f32)1);
 	}
 
@@ -589,6 +601,7 @@ static bool common_monster_update(
 	if (monster->initiative >= 100) {
 		pause_all_monster_initiative(true);
 		monster->initiative = 0;
+		monster->defending = false;
 
 		set_current_monster(monster, side, fieldIndex);
 		set_monster_highlight(true);
@@ -644,7 +657,7 @@ static void opponent_monster_update(Monster *monster, AnimatedTiledSprite *sprit
 		printfln("opponent chosen attack %s", monsterAbilityStr[state.selectedAttackID]);
 		MonsterAbilityTarget abilityTarget = game_data_for_monster_attack_id(state.selectedAttackID)->target;
 		state.selectedSelectionSide = abilityTarget == MonsterAbilityTargetTeam ?
-			SelectionSidePlayer : SelectionSideOpponent;
+			 SelectionSideOpponent : SelectionSidePlayer;
 
 		// get a random target for the attack
 		i32 playerActiveMonsters = 0;
@@ -684,6 +697,11 @@ void monster_battle_update(f32 dt) {
 	emptyMonster = (Monster){};
 	emptyTileMap = (TileMap){};
 
+	check_end_battle();
+	if (game.gameOver) {
+		return;
+	}
+
 	// timers
 	if (timer_is_valid(state.timers.removeHighlight) && timer_done(state.timers.removeHighlight)) {
 		set_monster_highlight(false);
@@ -703,14 +721,12 @@ void monster_battle_update(f32 dt) {
 			if (state.playerActiveMonsters[i]->id != MonsterIDNone &&
 				state.playerActiveMonsters[i]->health <= 0 &&
 				state.playerActiveMonsters[i]->inField) {
-				printfln("found dead player monster: %s", state.playerActiveMonsters[i]->name);
 
 				// find the next available monster
 				i32 nextMonsterIndex = -1;
 				for (i32 j = 0; j < player_party_length(); j++) {
 					if (game.playerMonsters[j].health > 0 &&
 						!game.playerMonsters[j].inField) {
-						printfln("%s is available for battle", game.playerMonsters[j].name);
 						nextMonsterIndex = j;
 						break;
 					}
@@ -730,13 +746,11 @@ void monster_battle_update(f32 dt) {
 			if (state.opponentActiveMonsters[i]->id != MonsterIDNone &&
 				state.opponentActiveMonsters[i]->health <= 0 &&
 				state.opponentActiveMonsters[i]->inField) {
-				printfln("found dead opponent monster: %s", state.opponentActiveMonsters[i]->name);
 				// find the next available monster
 				i32 nextMonsterIndex = -1;
 				for (i32 j = 0; j < opponent_party_length(); j++) {
 					if (game.battleStage.opponentMonsters[j].health > 0 &&
 						!game.battleStage.opponentMonsters[j].inField) {
-						printfln("%s is available for battle", game.battleStage.opponentMonsters[j].name);
 						nextMonsterIndex = j;
 						break;
 					}
@@ -1450,4 +1464,29 @@ i32 get_active_monster_len(Monster **activeMonsters) {
 		}
 	}
 	return count;
+}
+
+void check_end_battle(void) {
+	if (state.battleOver) { return; }
+
+	i32 playerMonstersLeft = 0;
+	i32 opponentMonstersLeft = 0;
+	for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN; i++) {
+		if (state.playerActiveMonsters[i]->id != MonsterIDNone && state.playerActiveMonsters[i]->health > 0) {
+			playerMonstersLeft++;
+		}
+		if (state.opponentActiveMonsters[i]->id != MonsterIDNone && state.opponentActiveMonsters[i]->health > 0) {
+			opponentMonstersLeft++;
+		}
+	}
+
+	if (playerMonstersLeft == 0) {
+		game.gameOver = true;
+		return;
+	}
+	if (opponentMonstersLeft == 0) {
+		// opponent lost
+		printfln("opponent lost");
+		state.battleOver = true;
+	}
 }

@@ -143,6 +143,7 @@ typedef struct Monster {
 	// battle specific, these should really be a bitfield flag
 	bool paused;
 	bool inField;
+	bool defending;
 } Monster;
 
 extern const char *monsterTypeStr[MonsterTypeCount];
