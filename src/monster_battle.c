@@ -69,6 +69,7 @@ static void draw_switch_ui();
 static void draw_monster_attack();
 static void draw_monster(const Monster *monster, const AnimatedTiledSprite *sprite, Vector2 pos, bool flipped);
 static void draw_monster_stat_bar(Vector2 textPos, f32 barWidth, i32 value, i32 maxValue, Colors barColor);
+static void draw_monster_catch_failed_icon();
 
 struct selectedMonsterState_ {
 	Monster *monster;
@@ -90,6 +91,12 @@ struct monsterBattleState {
 		Rectangle rect;
 	} attackAnimationSprite;
 
+	struct {
+		bool active;
+		StaticSprite sprite;
+		Rectangle rect;
+	} catchFailedSprite;
+
 	// player state
 	AnimatedTiledSprite playerMonsterSprites[MAX_MONSTERS_PER_SIDE_LEN];
 	Monster *playerActiveMonsters[MAX_MONSTERS_PER_SIDE_LEN];
@@ -102,8 +109,11 @@ struct monsterBattleState {
 
 	bool highlight; // use to highlight monster when damage occurs
 	i32 highlightLoc;
-	Timer removeHighlightTimer;
-	Timer opponentMonsterAttackTimer;
+	struct {
+		Timer removeHighlight;
+		Timer opponentMonsterAttack;
+		Timer catchFailed;
+	} timers;
 	struct {
 		selectionMode_ uiSelectionMode;
 		//	uiBattleChoiceIconID_ selectedIcon;
@@ -150,8 +160,11 @@ static struct monsterBattleState state = {
 
 	.highlight = false, // use to highlight monster when damage occurs
 	.highlightLoc = 0,
-	.removeHighlightTimer = {},
-	.opponentMonsterAttackTimer = {},
+	.timers = {
+		.removeHighlight = {},
+		.opponentMonsterAttack = {},
+		.catchFailed = {},
+	},
 	.uiBattleChoiceState = {
 		.indexes = {
 			[SelectionModeGeneral] = 0,
@@ -196,6 +209,17 @@ void monster_battle_setup() {
 		);
 		state.opponentMonsterSprites[i].animationSpeed *= rand_f32(minAnimSpeed, maxAnimSpeed);
 	}
+
+	state.catchFailedSprite.sprite = (StaticSprite){
+		.entity = {
+			.id = assets.uiIcons.cross.id,
+			.layer = WorldLayerTop,
+		},
+		.texture = assets.uiIcons.cross,
+		.width = (f32)assets.uiIcons.cross.width,
+		.height = (f32)assets.uiIcons.cross.height,
+		.sourceFrame = rectangle_from_texture(assets.uiIcons.cross),
+	};
 
 	// set up the shaders - this should all be in a shader container, but ¯\_(ツ)_/¯ for now
 
@@ -289,11 +313,46 @@ void monster_battle_input() {
 			}
 			state.uiBattleChoiceState.indexes[SelectionModeTarget] = 0;
 
+			selectedMode = SelectionModeNone;
 			if (state.selectedAttackID != MonsterAbilityNone) {
 				monster_start_attack();
-				selectedMode = SelectionModeNone;
 			} else {
 				// catch
+				printfln("catching monster %s Lv. %d",
+						 state.selectedTargetMonster.monster->name,
+						 state.selectedTargetMonster.monster->level);
+				Monster *selectedMonster = state.selectedTargetMonster.monster;
+				if ((f32)selectedMonster->health < selectedMonster->stats.maxHealth * settings.globalCatchRate) {
+					// create a copy of the monster and add it to the last index of the party
+					i32 nextIndex = -1;
+					for (i32 i = 0; i < MAX_PARTY_MONSTERS_LEN; i++) {
+						if (game.playerMonsters[i].id == MonsterIDNone) {
+							nextIndex = i;
+						}
+					}
+					panicIf(nextIndex == -1 || nextIndex >= MAX_PARTY_MONSTERS_LEN);
+					game.playerMonsters[nextIndex] = *selectedMonster;
+
+					// remove the monster from the field and set up a swap cycle
+					selectedMonster->health = 0;
+					state.cycleMonsters = true;
+					state.uiBattleChoiceState.uiSelectionMode = selectedMode = SelectionModeNone;
+
+				} else {
+					// catch failed
+					state.catchFailedSprite.active = true;
+					i32 currentIndex = state.selectedTargetMonster.index;
+					state.catchFailedSprite.rect = rectangle_with_center_at(
+						rectangle_from_texture(state.catchFailedSprite.sprite.texture),
+						state.opponentActiveMonsterLocations[currentIndex]
+					);
+					timer_start(&state.timers.catchFailed, settings.monsterCatchFailedTimerIntervalSecs);
+				}
+
+				pause_all_monster_initiative(false);
+				set_monster_highlight(false);
+				clear_current_monster();
+				clear_selected_target_monster();
 			}
 		}
 		if (selectedMode == SelectionModeAttack) {
@@ -359,6 +418,7 @@ void monster_battle_input() {
 				}
 				case UIBattleChoiceIconIDCatch: {
 					state.uiBattleChoiceState.uiSelectionMode = SelectionModeTarget;
+					state.selectedSelectionSide = SelectionSideOpponent;
 					printfln("catching monster");
 					break;
 				}
@@ -542,7 +602,7 @@ static bool common_monster_update(
 static void set_monster_highlight(bool activate) {
 	state.highlight = activate;
 	if (activate) {
-		timer_start(&state.removeHighlightTimer, settings.monsterBattleRemoveHighlightIntervalSecs);
+		timer_start(&state.timers.removeHighlight, settings.monsterBattleRemoveHighlightIntervalSecs);
 	}
 }
 
@@ -613,7 +673,7 @@ static void opponent_monster_update(Monster *monster, AnimatedTiledSprite *sprit
 			}
 			displayedIndex++;
 		}
-		timer_start(&state.opponentMonsterAttackTimer, settings.monsterBattleRemoveHighlightIntervalSecs);
+		timer_start(&state.timers.opponentMonsterAttack, settings.monsterBattleRemoveHighlightIntervalSecs);
 	}
 }
 
@@ -625,16 +685,19 @@ void monster_battle_update(f32 dt) {
 	emptyTileMap = (TileMap){};
 
 	// timers
-	if (timer_is_valid(state.removeHighlightTimer) && timer_done(state.removeHighlightTimer)) {
+	if (timer_is_valid(state.timers.removeHighlight) && timer_done(state.timers.removeHighlight)) {
 		set_monster_highlight(false);
-		timer_stop(&state.removeHighlightTimer);
+		timer_stop(&state.timers.removeHighlight);
 	}
-	if (timer_is_valid(state.opponentMonsterAttackTimer) && timer_done(state.opponentMonsterAttackTimer)) {
+	if (timer_is_valid(state.timers.opponentMonsterAttack) && timer_done(state.timers.opponentMonsterAttack)) {
 		monster_start_attack();
-		timer_stop(&state.opponentMonsterAttackTimer);
+		timer_stop(&state.timers.opponentMonsterAttack);
+	}
+	if (timer_is_valid(state.timers.catchFailed) && timer_done(state.timers.catchFailed)) {
+		state.catchFailedSprite.active = false;
+		timer_stop(&state.timers.catchFailed);
 	}
 
-	// check for deaths todo
 	if (state.cycleMonsters) {
 		for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN; i++) {
 			if (state.playerActiveMonsters[i]->id != MonsterIDNone &&
@@ -788,15 +851,28 @@ void monster_battle_draw() {
 		false
 	);
 	draw_monster_attack();
+	draw_monster_catch_failed_icon();
 
 	draw_ui();
+}
+
+static void draw_monster_catch_failed_icon() {
+	if (!state.catchFailedSprite.active) { return; }
+
+	DrawTexturePro(
+		state.catchFailedSprite.sprite.texture,
+		rectangle_from_texture(state.catchFailedSprite.sprite.texture),
+		state.catchFailedSprite.rect,
+		(Vector2){0, 0},
+		0.f,
+		WHITE
+	);
 }
 
 static void draw_monster_attack() {
 	if (!state.attackAnimationSprite.active) { return; }
 	Rectangle animationFrame = animated_tiled_sprite_current_frame(&state.attackAnimationSprite.sprite);
 
-	// todo(hector) - will break when enemy attacks
 	DrawTexturePro(
 		state.attackAnimationSprite.sprite.texture,
 		animationFrame,

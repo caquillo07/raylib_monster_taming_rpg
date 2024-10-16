@@ -51,7 +51,6 @@ typedef struct Game {
 	Map *currentMap;
 	Player player;
 	Monster playerMonsters[MAX_PARTY_MONSTERS_LEN];
-	Monster dummyMonsters[MAX_PARTY_MONSTERS_LEN];
 	Camera2D camera;
 	Rectangle cameraBoundingBox;
 	GameMetrics gameMetrics;

@@ -86,7 +86,7 @@ typedef struct MonsterStats {
 #define MAX_MONSTER_NAME_LEN 32
 #define MAX_MONSTER_ABILITIES_LEN 5
 #define MAX_MONSTER_EVOLUTIONS_LEN 3
-#define MAX_PARTY_MONSTERS_LEN 8
+#define MAX_PARTY_MONSTERS_LEN 32
 typedef struct MonsterData {
 	MonsterID id;
 	char name[MAX_MONSTER_NAME_LEN];

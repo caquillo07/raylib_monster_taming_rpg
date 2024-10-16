@@ -19,6 +19,8 @@ typedef struct GameSettings {
 	f32 monsterAnimationSpeed;
 	f32 monsterAttackAnimationSpeed;
 	f32 monsterBattleRemoveHighlightIntervalSecs;
+	f32 globalCatchRate;
+	f32 monsterCatchFailedTimerIntervalSecs;
 } GameSettings;
 
 extern GameSettings settings;
