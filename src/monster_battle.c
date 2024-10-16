@@ -109,7 +109,7 @@ struct monsterBattleState {
 	} uiBattleChoiceState;
 	selectionSide_ selectedSelectionSide;
 	MonsterAbilityID selectedAttackID;
-//	bool cycleMonsters;
+	bool cycleMonsters;
 };
 
 static Monster emptyMonster = {};
@@ -159,7 +159,7 @@ static struct monsterBattleState state = {
 	},
 	.selectedSelectionSide = SelectionSideNone,
 	.selectedAttackID = {},
-//	.cycleMonsters = false,
+	.cycleMonsters = false,
 };
 
 void monster_battle_setup() {
@@ -437,7 +437,7 @@ static void apply_pending_attack() {
 	);
 
 	// check if it's a death condition so we can cycle next frame
-//	state.cycleMonsters = state.selectedTargetMonster.monster->health <= 0;
+	state.cycleMonsters = state.selectedTargetMonster.monster->health <= 0;
 
 	state.selectedAttackID = MonsterAbilityNone;
 	state.currentMonster.monster->state = MonsterStateActive;
@@ -527,40 +527,64 @@ void monster_battle_update(f32 dt) {
 	}
 
 	// check for deaths todo
-//	if (state.cycleMonsters) {
-//		for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN; i++) {
-//			if (state.playerActiveMonsters[i]->id != MonsterIDNone &&
-//				state.playerActiveMonsters[i]->health <= 0 &&
-//				state.playerActiveMonsters[i]->inField) {
-//				printfln("found dead player monster: %s", state.playerActiveMonsters[i]->name);
-//
-//				// find the next available monster
-//				for (i32 j = 0; j < player_party_length(); j++) {
-//					if (game.playerMonsters[j].health > 0 && !game.playerMonsters[j].inField) {
-//						printfln("%s is available for battle", game.playerMonsters[j].name);
-//					}
-//				}
-//
-//				printfln("done");
-//			}
-////	}
-////
-////	for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN; i++) {
-//			if (state.opponentActiveMonsters[i]->id != MonsterIDNone &&
-//				state.opponentActiveMonsters[i]->health <= 0 &&
-//				state.opponentActiveMonsters[i]->inField) {
-//				printfln("found dead opponent monster: %s", state.opponentActiveMonsters[i]->name);
-//				// find the next available monster
-//				for (i32 j = 0; j < opponent_party_length(); j++) {
-//					if (game.battleStage.opponentMonsters[j].health > 0 && !game.battleStage.opponentMonsters[j].inField) {
-//						printfln("%s is available for battle", game.battleStage.opponentMonsters[j].name);
-//					}
-//				}
-//
-//				printfln("done");
-//			}
-//		}
+	if (state.cycleMonsters) {
+		for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN; i++) {
+			if (state.playerActiveMonsters[i]->id != MonsterIDNone &&
+				state.playerActiveMonsters[i]->health <= 0 &&
+				state.playerActiveMonsters[i]->inField) {
+				printfln("found dead player monster: %s", state.playerActiveMonsters[i]->name);
+
+				// find the next available monster
+				i32 nextMonsterIndex = -1;
+				for (i32 j = 0; j < player_party_length(); j++) {
+					if (game.playerMonsters[j].health > 0 &&
+						!game.playerMonsters[j].inField) {
+						printfln("%s is available for battle", game.playerMonsters[j].name);
+						nextMonsterIndex = j;
+						break;
+					}
+				}
+				if (nextMonsterIndex != -1) {
+					state.playerActiveMonsters[i]->inField = false;
+					state.playerActiveMonsters[i] = &game.playerMonsters[nextMonsterIndex];
+					state.playerActiveMonsters[i]->inField = true;
+
+					state.playerMonsterSprites[i] = monster_get_idle_animated_sprite_for_id(
+						state.playerActiveMonsters[i]->id
+					);
+					break;
+				}
+			}
 //	}
+//
+//	for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN; i++) {
+			if (state.opponentActiveMonsters[i]->id != MonsterIDNone &&
+				state.opponentActiveMonsters[i]->health <= 0 &&
+				state.opponentActiveMonsters[i]->inField) {
+				printfln("found dead opponent monster: %s", state.opponentActiveMonsters[i]->name);
+				// find the next available monster
+				i32 nextMonsterIndex = -1;
+				for (i32 j = 0; j < opponent_party_length(); j++) {
+					if (game.battleStage.opponentMonsters[j].health > 0 &&
+						!game.battleStage.opponentMonsters[j].inField) {
+						printfln("%s is available for battle", game.battleStage.opponentMonsters[j].name);
+						nextMonsterIndex = j;
+						break;
+					}
+				}
+				if (nextMonsterIndex != -1) {
+					state.opponentActiveMonsters[i]->inField = false;
+					state.opponentActiveMonsters[i] = &game.battleStage.opponentMonsters[nextMonsterIndex];
+					state.opponentActiveMonsters[i]->inField = true;
+
+					state.opponentMonsterSprites[i] = monster_get_idle_animated_sprite_for_id(
+						state.opponentActiveMonsters[i]->id
+					);
+					break;
+				}
+			}
+		}
+	}
 
 	// player
 	for (i32 i = 0; i < MAX_MONSTERS_PER_SIDE_LEN; i++) {
@@ -1231,4 +1255,3 @@ static i32 opponent_party_length() {
 	}
 	return count;
 }
-
