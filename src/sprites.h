@@ -10,6 +10,12 @@
 #include "common.h"
 
 typedef enum {
+	StaticSpriteTypeNone,
+	StaticSpriteTypeMonsterEncounter,
+	StaticSpriteTypeCount,
+} StaticSpriteType;
+
+typedef enum {
 	WorldLayerWater = 0,
 	WorldLayerBackground,
 	WorldLayerShadow,
@@ -35,6 +41,7 @@ typedef struct StaticSprite {
 	f32 width;
 	f32 height;
 	Rectangle sourceFrame;
+	StaticSpriteType type;
 } StaticSprite;
 
 static_assert(offsetof(StaticSprite, entity) == 0, "entity must be the first member of StaticSprite");

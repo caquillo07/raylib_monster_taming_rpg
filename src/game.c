@@ -128,6 +128,48 @@ void game_handle_input() {
 	game.gameMetrics.timeInInput = ((double)(clock() - now)) / (CLOCKS_PER_SEC / 1000);
 }
 
+static void check_player_random_encounter(void) {
+	// monster patches
+	bool walkingOnGrass = false;
+	if (game.gameModeState == GameModePlaying) {
+		array_range(game.currentMap->mainSprites, i) {
+			const StaticSprite sprite = game.currentMap->mainSprites[i];
+			const Rectangle box = rectangle_at(sprite.sourceFrame, sprite.entity.position);
+			if (sprite.type == StaticSpriteTypeMonsterEncounter &&
+				CheckCollisionRecs(game.player.characterComponent.hitBox, box)) {
+				walkingOnGrass = true;
+				break;
+			}
+		}
+		array_range(game.currentMap->backgroundSprites, i) {
+			const StaticSprite sprite = game.currentMap->backgroundSprites[i];
+			const Rectangle box = rectangle_at(sprite.sourceFrame, sprite.entity.position);
+			if (sprite.type == StaticSpriteTypeMonsterEncounter &&
+				CheckCollisionRecs(game.player.characterComponent.hitBox, box)) {
+				walkingOnGrass = true;
+				break;
+			}
+		}
+	}
+	if (!walkingOnGrass && timer_is_valid(game.timers.monsterEncounterTimer)) {
+		timer_stop(&game.timers.monsterEncounterTimer);
+	} else if (walkingOnGrass && !timer_is_valid(game.timers.monsterEncounterTimer)) {
+		timer_start(&game.timers.monsterEncounterTimer, 2.f);
+	}
+
+	if (timer_is_valid(game.timers.monsterEncounterTimer) && timer_done(game.timers.monsterEncounterTimer)) {
+		timer_stop(&game.timers.monsterEncounterTimer);
+#define randomMonstersLen 3
+
+		// todo get the monsters from Tiled
+		const MonsterID monster = (rand() % MonsterIDCount) + 1;
+		Monster monsters[randomMonstersLen] = {
+			monster_new(monster, 10),
+		};
+		game_start_battle(BattleTypeWildEncounter, BattleStageBackgroundForest, monsters, randomMonstersLen);
+	}
+}
+
 static void do_game_update(const f32 deltaTime) {
 	if (frameStepMode && !shouldRenderFrame) {
 		return;
@@ -135,6 +177,7 @@ static void do_game_update(const f32 deltaTime) {
 	do_map_transition_check();
 	map_update(game.currentMap, deltaTime);
 	player_update(&game.player, deltaTime);
+	check_player_random_encounter();
 	monster_index_update(deltaTime);
 	monster_battle_update(deltaTime);
 

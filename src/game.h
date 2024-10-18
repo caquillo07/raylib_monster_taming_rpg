@@ -74,6 +74,10 @@ typedef struct Game {
 		MonsterAbilityData *attackData;
 	} data;
 	bool gameOver;
+
+	struct {
+		Timer monsterEncounterTimer;
+	} timers;
 } Game;
 
 extern Game game;

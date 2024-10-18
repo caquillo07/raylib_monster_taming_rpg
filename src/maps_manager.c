@@ -162,9 +162,9 @@ Map *load_map(const MapID mapID) {
 	const tmx_layer *terrainTopLayer = tmx_find_layer_by_name(map->tiledMap, "Terrain Top");
 	panicIfNil(terrainTopLayer, "could not find the Terrain Top layer in tmx map");
 
-	// grass for random ecounters
-	const tmx_layer *monsterEcounterLayer = tmx_find_layer_by_name(map->tiledMap, "Monsters");
-	panicIfNil(monsterEcounterLayer, "could not find the Monsters layer in tmx map");
+	// grass for random encounters
+	const tmx_layer *monsterEncounterLayer = tmx_find_layer_by_name(map->tiledMap, "Monsters");
+	panicIfNil(monsterEncounterLayer, "could not find the Monsters layer in tmx map");
 
 	// entities
 	const tmx_layer *entitiesLayer = tmx_find_layer_by_name(map->tiledMap, "Entities");
@@ -195,7 +195,7 @@ Map *load_map(const MapID mapID) {
 	map->coastLineSpritesList = init_coast_line_sprites(coastLineLayer);
 	map->overWorldCharacters = init_over_world_characters(entitiesLayer);
 
-	init_monster_encounter_sprites(map, monsterEcounterLayer);
+	init_monster_encounter_sprites(map, monsterEncounterLayer);
 	init_terrain_sprites(map, terrainLayer, false);
 	init_terrain_sprites(map, terrainTopLayer, true);
 	init_object_sprites(map, objectsLayer);
@@ -318,6 +318,7 @@ static void init_monster_encounter_sprites(Map *map, const tmx_layer *layer) {
 				.height = monsterTileH->height,
 				.width = monsterTileH->width,
 			},
+			.type = StaticSpriteTypeMonsterEncounter,
 		};
 		if (worldLayer == WorldLayerMain) {
 			array_push(map->mainSprites, s);

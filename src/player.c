@@ -11,6 +11,7 @@
 #include "array/array.h"
 #include "raymath.h"
 #include "settings.h"
+#include "raylib_extras.h"
 
 static void player_handle_dialog(Player *p);
 
