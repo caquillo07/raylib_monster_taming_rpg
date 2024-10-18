@@ -184,19 +184,15 @@ Monster monster_new(MonsterID id, u8 level) {
 	stats.recovery *= (f32)level;
 	stats.speed *= (f32)level;
 
-	i32 levelUp = level * 150;
-	i32 currentXP = rand() % levelUp; // todo - remove, just some test data
-	i32 currentHP = rand() % (i32)(stats.maxHealth); // todo - remove, just some test data
-	i32 currentEnergy = rand() % (i32)(stats.maxEnergy); // todo - remove, just some test data
 	Monster m = {
 		.id = id,
 		.state = MonsterStateActive,
 		.level = level,
-		.health = max(currentHP, 10),
-		.energy = currentEnergy,
+		.health = (i32)stats.maxHealth,
+		.energy = (i32)stats.maxEnergy,
 		.type = data->element,
 		.stats = stats,
-		.xp = currentXP,
+		.xp = 0,
 		.levelUp = level * 150,
 		.initiative = 0.f,
 		.paused = false, // used in battles

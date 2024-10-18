@@ -32,12 +32,12 @@ typedef struct MapInfo {
     u32 startingPositionObjectID;
 } MapInfo;
 
-#define MAX_TRASNSITION_DEST_LEN 32
+#define MAX_TRANSITION_DEST_LEN 32
 
 typedef struct TransitionSprite {
     Rectangle box;
-    char destination[MAX_TRASNSITION_DEST_LEN];
-    char destinationPos[MAX_TRASNSITION_DEST_LEN];
+    char destination[MAX_TRANSITION_DEST_LEN];
+    char destinationPos[MAX_TRANSITION_DEST_LEN];
 } TransitionSprite;
 
 typedef struct Map {

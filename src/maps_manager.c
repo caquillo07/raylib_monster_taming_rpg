@@ -659,10 +659,10 @@ void init_transition_sprites(Map *map, const tmx_layer *layer) {
 		const tmx_property *posProp = tmx_get_property(objectHead->properties, "pos");
 		panicIfNil(posProp, "expected coast line object ot have 'pos' property");
 
-		usize len = strnlen(targetProp->value.string, MAX_TRASNSITION_DEST_LEN + 1);
-		panicIf(len == 0 || len >= MAX_TRASNSITION_DEST_LEN + 1, "found a bad string for 'target' property");
-		len = strnlen(posProp->value.string, MAX_TRASNSITION_DEST_LEN + 1);
-		panicIf(len == 0 || len >= MAX_TRASNSITION_DEST_LEN + 1, "found a bad string for 'pos' property");
+		usize len = strnlen(targetProp->value.string, MAX_TRANSITION_DEST_LEN + 1);
+		panicIf(len == 0 || len >= MAX_TRANSITION_DEST_LEN + 1, "found a bad string for 'target' property");
+		len = strnlen(posProp->value.string, MAX_TRANSITION_DEST_LEN + 1);
+		panicIf(len == 0 || len >= MAX_TRANSITION_DEST_LEN + 1, "found a bad string for 'pos' property");
 
 		const Rectangle boundingBox = {
 			.x = (f32)objectHead->x,

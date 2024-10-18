@@ -83,6 +83,7 @@ void game_handle_input();
 void game_shutdown();
 void game_update(f32 deltaTime);
 void game_draw();
+void game_start_battle(BattleType battleType, BattleStageBackground bg, Monster *monsters, usize monstersLen);
 
 // general stuff
 i32 player_party_length();

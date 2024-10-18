@@ -132,59 +132,66 @@ struct monsterBattleState {
 static Monster emptyMonster = {};
 static TileMap emptyTileMap = {};
 
-static struct monsterBattleState state = {
-	.currentMonsterRect = {},
-	.currentMonster = {},
-	.selectedTargetMonster = {},
+static struct monsterBattleState state = {};
 
-	// all spites are the same, so we can just swap the textures and reset the sprite
-	.attackAnimationSprite = {
-		.sprite = {},
-	},
+static void reset_state() {
+	state = (struct monsterBattleState){
+		.currentMonsterRect = {},
+		.currentMonster = {},
+		.selectedTargetMonster = {},
 
-	// player state
-	.playerMonsterSprites = {
-	},
-	.playerActiveMonsters = {&emptyMonster, &emptyMonster, &emptyMonster},
-	.playerActiveMonsterLocations = {
-		{.x=360, .y= 260},
-		{.x=190, .y= 400},
-		{.x=410, .y= 520},
-	},
-
-	// opponent state
-	.opponentMonsterSprites = {
-	},
-	.opponentActiveMonsters = {&emptyMonster, &emptyMonster, &emptyMonster},
-	.opponentActiveMonsterLocations = {
-		{.x = 900, .y = 260},
-		{.x = 1110, .y = 390},
-		{.x = 900, .y = 550},
-	},
-
-	.highlight = false, // use to highlight monster when damage occurs
-	.highlightLoc = 0,
-	.timers = {
-		.removeHighlight = {},
-		.opponentMonsterAttack = {},
-		.catchFailed = {},
-	},
-	.uiBattleChoiceState = {
-		.indexes = {
-			[SelectionModeGeneral] = 0,
-			[SelectionModeAttack] = 0,
-			[SelectionModeSwitch] = 0,
-			[SelectionModeTarget] = 0,
+		// all spites are the same, so we can just swap the textures and reset the sprite
+		.attackAnimationSprite = {
+			.sprite = {},
 		},
-		.uiSelectionMode = SelectionModeNone,
-	},
-	.selectedSelectionSide = SelectionSideNone,
-	.selectedAttackID = {},
-	.cycleMonsters = false,
-	.battleOver = false,
-};
+
+		// player state
+		.playerMonsterSprites = {
+		},
+		.playerActiveMonsters = {&emptyMonster, &emptyMonster, &emptyMonster},
+		.playerActiveMonsterLocations = {
+			{.x=360, .y= 260},
+			{.x=190, .y= 400},
+			{.x=410, .y= 520},
+		},
+
+		// opponent state
+		.opponentMonsterSprites = {
+		},
+		.opponentActiveMonsters = {&emptyMonster, &emptyMonster, &emptyMonster},
+		.opponentActiveMonsterLocations = {
+			{.x = 900, .y = 260},
+			{.x = 1110, .y = 390},
+			{.x = 900, .y = 550},
+		},
+
+		.highlight = false, // use to highlight monster when damage occurs
+		.highlightLoc = 0,
+		.timers = {
+			.removeHighlight = {},
+			.opponentMonsterAttack = {},
+			.catchFailed = {},
+		},
+		.uiBattleChoiceState = {
+			.indexes = {
+				[SelectionModeGeneral] = 0,
+				[SelectionModeAttack] = 0,
+				[SelectionModeSwitch] = 0,
+				[SelectionModeTarget] = 0,
+			},
+			.uiSelectionMode = SelectionModeNone,
+		},
+		.selectedSelectionSide = SelectionSideNone,
+		.selectedAttackID = {},
+		.cycleMonsters = false,
+		.battleOver = false,
+	};
+}
 
 void monster_battle_setup() {
+	// make sure we reset the state
+	reset_state();
+
 	// player side
 	const f32 minAnimSpeed = 0.85f;
 	const f32 maxAnimSpeed = 1.00f;
@@ -444,7 +451,7 @@ void monster_battle_input() {
 		state.uiBattleChoiceState.indexes[SelectionModeSwitch] = 0;
 		state.uiBattleChoiceState.indexes[SelectionModeTarget] = 0;
 	}
-	if (IsKeyPressed(KEY_LEFT)) {
+	if (IsKeyPressed(KEY_ESCAPE)) {
 		if (selectedMode == SelectionModeSwitch ||
 			selectedMode == SelectionModeAttack ||
 			selectedMode == SelectionModeTarget) {
@@ -698,7 +705,8 @@ void monster_battle_update(f32 dt) {
 	emptyTileMap = (TileMap){};
 
 	check_end_battle();
-	if (game.gameOver) {
+	if (state.battleOver || game.gameOver) {
+		game.gameModeState = GameModePlaying;
 		return;
 	}
 
@@ -805,7 +813,7 @@ void monster_battle_update(f32 dt) {
 // but since this scene is fairly basic, and stuff won't dynamically change their
 // z ordering; we will just manually draw them in the correct order.
 void monster_battle_draw() {
-	if (game.gameModeState != GameModeBattle) { return; }
+if (game.gameModeState != GameModeBattle) { return; }
 
 	DrawTexture(game.battleStage.bgTexture, 0, 0, WHITE);
 	DrawTexturePro(
@@ -1467,7 +1475,7 @@ i32 get_active_monster_len(Monster **activeMonsters) {
 }
 
 void check_end_battle(void) {
-	if (state.battleOver) { return; }
+	if (state.battleOver || game.gameOver) { return; }
 
 	i32 playerMonstersLeft = 0;
 	i32 opponentMonstersLeft = 0;

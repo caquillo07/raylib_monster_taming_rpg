@@ -28,7 +28,6 @@ static void do_map_transition_check();
 static void handle_screen_transition(f32 dt);
 static void game_draw_fade_transition();
 static void game_load_map(MapID mapID);
-static void game_start_battle(BattleType battleType);
 static void game_over_draw();
 
 MapID startingMap = MapIDWorld;
@@ -308,7 +307,6 @@ static void game_draw_fade_transition() {
 		.width = (f32)GetScreenWidth(),
 	};
 	const f32 a = clamp(game.transition.progress, 0, 255);
-	printfln("progress: %.2f", a);
 	const Color c = {0, 0, 0, (u8)a};
 	DrawRectangleRec(screen, c);
 }
@@ -389,9 +387,6 @@ static void setup_game(const MapID mapID) {
 
 	// start the game;
 	game.gameModeState = GameModePlaying;
-
-	// todo - temp
-	game_start_battle(BattleTypeWildEncounter);
 }
 
 static void update_camera() {
@@ -411,18 +406,21 @@ static void update_camera() {
 	};
 }
 
-void game_start_battle(BattleType battleType) {
+void game_start_battle(BattleType battleType, BattleStageBackground bg, Monster *monsters, usize monstersLen) {
+	Texture2D bgTexture = assets.battleBackgrounds.forrest;
+	if (bg == BattleStageBackgroundSand) {
+		bgTexture = assets.battleBackgrounds.sand;
+	} else if (bg == BattleStageBackgroundIce) {
+		bgTexture = assets.battleBackgrounds.ice;
+	}
+
 	game.battleStage = (BattleStage){
-		.opponentMonsters = {
-			monster_new(MonsterIDLarvea, 13),
-			monster_new(MonsterIDAtrox, 14),
-			monster_new(MonsterIDSparchu, 25),
-			monster_new(MonsterIDGulfin, 14),
-			monster_new(MonsterIDJacana, 12),
-		},
-		.bgTexture = assets.battleBackgrounds.forrest,
+		.bgTexture = bgTexture,
 		.battleType = battleType,
 	};
+	for (usize i = 0; i < monstersLen; i++) {
+		game.battleStage.opponentMonsters[i] = monsters[i]; // copy them over
+	}
 	monster_battle_setup();
 	game.gameModeState = GameModeBattle;
 }

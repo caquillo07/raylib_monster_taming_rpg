@@ -36,7 +36,7 @@ void monster_index_handle_input() {
 	if (game.gameModeState != GameModeMonsterIndex) {
 		return;
 	}
-	if (IsKeyPressed(KEY_ENTER)) {
+	if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_ESCAPE)) {
 		game.gameModeState = GameModePlaying;
 		game.monsterIndex.state.currentIndex = 0;
 		game.monsterIndex.state.selectedIndex = -1;
@@ -398,7 +398,7 @@ void monster_index_draw() {
 		.width = detailRec.width * 0.45f,
 		.height = 30,
 	};
-	const f32 maxHealth = currentMonster.stats.maxHealth * (f32)currentMonster.level;
+	const f32 maxHealth = currentMonster.stats.maxHealth;
 	ui_draw_progress_bar(
 		healthBarRect,
 		(f32)currentMonster.health,
@@ -434,7 +434,7 @@ void monster_index_draw() {
 		.width = healthBarRect.width,
 		.height = 30,
 	};
-	const f32 maxEnergy = currentMonster.stats.maxEnergy * (f32)currentMonster.level;
+	const f32 maxEnergy = currentMonster.stats.maxEnergy;
 	ui_draw_progress_bar(
 		energyBarRect,
 		(f32)currentMonster.energy,

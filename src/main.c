@@ -15,6 +15,7 @@ static void init() {
 	panicIf(!IsWindowReady(), "Window failed to initialize");
 
 	SetWindowState(FLAG_WINDOW_RESIZABLE);
+	SetExitKey(KEY_NULL);
 #ifdef DUAL_SCREENS
 	if (GetMonitorCount() > 1) {
 		SetWindowMonitor(1);

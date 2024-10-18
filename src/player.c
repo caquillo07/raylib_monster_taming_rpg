@@ -125,6 +125,37 @@ static void player_handle_dialog(Player *p) {
 		player_unblock(p);
 		game.dialogBubble.visible = false;
 		game.dialogBubble.index = 0;
+		printfln("ended dialog with %s", data->id);
+		if (streq(data->id, "Nurse")) {
+			for (i32 i = 0; i < MAX_PARTY_MONSTERS_LEN; i++) {
+				if (game.playerMonsters[i].id == MonsterIDNone) { continue; }
+				game.playerMonsters[i].health = (i32)game.playerMonsters[i].stats.maxHealth;
+				game.playerMonsters[i].energy = (i32)game.playerMonsters[i].stats.maxEnergy;
+			}
+		} else if (!data->defeated) {
+
+			const usize monstersLen = comptime_array_len(data->monsters);
+			Monster monsters[monstersLen] = {};
+			for (usize i = 0; i < comptime_array_len(data->monsters); i++) {
+				if (streq(data->monsters[i].name, "")) { continue; }
+				monsters[i] = monster_new(monster_name_from_str(data->monsters[i].name), data->monsters[i].level);
+			}
+			BattleStageBackground bg = BattleStageBackgroundCount;
+			if (streq(data->biome, "sand")) {
+				bg = BattleStageBackgroundSand;
+			} else if (streq(data->biome, "ice")) {
+				bg = BattleStageBackgroundIce;
+			} else if (streq(data->biome, "forest")) {
+				bg = BattleStageBackgroundForest;
+			} else {
+				panic("unknown biome %s", data->biome);
+			}
+
+			// ok to pass here a stack allocated array since it will be copied
+			// todo(hector) - we dont have a way to set the character to defeated.
+			//  this may be okay since it lets us re-battle them for the demo?
+			game_start_battle(BattleTypeTrainer, bg, monsters, monstersLen);
+		}
 	}
 }
 
