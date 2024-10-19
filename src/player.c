@@ -191,6 +191,7 @@ void player_unblock(Player *p) {
 void player_set_noticed(Player *p) {
 	p->noticed = true;
 	timer_start(&p->noticedTimer, settings.playerNoticedTimerSec);
+	PlaySound(assets.sounds.notice);
 }
 
 void player_unset_noticed(Player *p) {

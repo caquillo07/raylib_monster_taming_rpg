@@ -114,6 +114,22 @@ typedef struct Assets {
 		Shader textureOutline;
 		Shader grayscale;
 	} shaders;
+
+	struct {
+		Sound explosion;
+		Sound evolution;
+		Sound fire;
+		Sound green;
+		Sound ice;
+		Sound notice;
+		Sound scratch;
+		Sound splash;
+	} sounds;
+
+	struct {
+		Music battle;
+		Music overWorld;
+	} music;
 } Assets;
 
 extern Assets assets;

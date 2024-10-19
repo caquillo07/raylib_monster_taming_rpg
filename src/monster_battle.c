@@ -254,6 +254,9 @@ void monster_battle_setup() {
 	SetShaderValue(assets.shaders.textureOutline, outlineColorLoc, outlineColor, SHADER_UNIFORM_VEC4);
 	SetShaderValue(assets.shaders.textureOutline, textureSizeLoc, textureSize, SHADER_UNIFORM_VEC2);
 	SetShaderValue(assets.shaders.textureOutline, state.highlightLoc, &state.highlight, SHADER_UNIFORM_INT);
+
+	panicIf(!IsMusicReady(assets.music.battle));
+	PlayMusicStream(assets.music.battle);
 }
 
 void monster_battle_input() {
@@ -507,6 +510,36 @@ static void monster_start_attack() {
 		activeMonsterLocations[state.selectedTargetMonster.index]
 	);
 	state.attackAnimationSprite.active = true;
+	switch (attackData->animation) {
+
+		case MonsterAbilityAnimationIDExplosion: {
+			PlaySound(assets.sounds.explosion);
+			break;
+		}
+		case MonsterAbilityAnimationIDFire: {
+			PlaySound(assets.sounds.fire);
+			break;
+		}
+		case MonsterAbilityAnimationIDGreen: {
+			PlaySound(assets.sounds.green);
+			break;
+		}
+		case MonsterAbilityAnimationIDIce: {
+			PlaySound(assets.sounds.ice);
+			break;
+		}
+		case MonsterAbilityAnimationIDScratch: {
+			PlaySound(assets.sounds.scratch);
+			break;
+		}
+		case MonsterAbilityAnimationIDSplash: {
+			PlaySound(assets.sounds.splash);
+			break;
+		}
+		case MonsterAbilityAnimationIDNone:
+		case MonsterAbilityAnimationIDCount:
+		default: panic("bad animation id for sound");
+	}
 }
 
 static void apply_pending_attack() {
@@ -700,6 +733,10 @@ static void opponent_monster_update(Monster *monster, AnimatedTiledSprite *sprit
 
 void monster_battle_update(f32 dt) {
 	if (game.gameModeState != GameModeBattle) { return; }
+	// music
+
+	UpdateMusicStream(assets.music.battle);
+
 	// reset the default empty structs
 	emptyMonster = (Monster){};
 	emptyTileMap = (TileMap){};
@@ -707,6 +744,8 @@ void monster_battle_update(f32 dt) {
 	check_end_battle();
 	if (state.battleOver || game.gameOver) {
 		game.gameModeState = GameModePlaying;
+		StopMusicStream(assets.music.battle);
+		ResumeMusicStream(assets.music.overWorld);
 		return;
 	}
 

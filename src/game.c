@@ -46,17 +46,20 @@ void game_init() {
 	game_data_init();
 
 	setup_game(startingMap);
+	PlayMusicStream(assets.music.overWorld);
 }
 
 void game_shutdown() {
 	map_free(game.currentMap);
 	game.currentMap = nil;
 
-	player_free(&game.player);
-
 	unload_assets();
 	unload_shaders();
 	game_data_free();
+
+	if (IsMusicStreamPlaying(assets.music.overWorld)) {
+		StopMusicStream(assets.music.overWorld);
+	}
 }
 
 static void do_game_handle_input() {
@@ -174,6 +177,7 @@ static void do_game_update(const f32 deltaTime) {
 	if (frameStepMode && !shouldRenderFrame) {
 		return;
 	}
+	UpdateMusicStream(assets.music.overWorld);
 	do_map_transition_check();
 	map_update(game.currentMap, deltaTime);
 	player_update(&game.player, deltaTime);
@@ -450,6 +454,11 @@ static void update_camera() {
 }
 
 void game_start_battle(BattleType battleType, BattleStageBackground bg, Monster *monsters, usize monstersLen) {
+	// stop the over world music and play battle theme.
+	if (IsMusicStreamPlaying(assets.music.overWorld)) {
+		PauseMusicStream(assets.music.overWorld);
+	}
+
 	Texture2D bgTexture = assets.battleBackgrounds.forrest;
 	if (bg == BattleStageBackgroundSand) {
 		bgTexture = assets.battleBackgrounds.sand;

@@ -27,6 +27,8 @@ static void init() {
 
 	SetTargetFPS(120);
 	SetTextLineSpacing(16);
+
+	InitAudioDevice();
 }
 
 int main() {
@@ -43,6 +45,7 @@ int main() {
 	game_shutdown();
 
 	CloseWindow();
+	CloseAudioDevice();
 
 	char *memUsage = get_memory_usage_str();
 	slogi(memUsage);

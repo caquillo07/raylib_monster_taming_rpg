@@ -101,12 +101,24 @@ void load_assets() {
 	assets.monsterTileMaps[MonsterIDPouch] = load_tile_map(4, 2, "./graphics/monsters/Pouch.png");
 	assets.monsterTileMaps[MonsterIDSparchu] = load_tile_map(4, 2, "./graphics/monsters/Sparchu.png");
 
-	assets.monsterAttackTileMaps[MonsterAbilityAnimationIDExplosion] = load_tile_map(4, 1, "./graphics/attacks/explosion.png");
+	assets.monsterAttackTileMaps[MonsterAbilityAnimationIDExplosion] = load_tile_map(
+		4,
+		1,
+		"./graphics/attacks/explosion.png"
+	);
 	assets.monsterAttackTileMaps[MonsterAbilityAnimationIDFire] = load_tile_map(4, 1, "./graphics/attacks/fire.png");
 	assets.monsterAttackTileMaps[MonsterAbilityAnimationIDGreen] = load_tile_map(4, 1, "./graphics/attacks/green.png");
 	assets.monsterAttackTileMaps[MonsterAbilityAnimationIDIce] = load_tile_map(4, 1, "./graphics/attacks/ice.png");
-	assets.monsterAttackTileMaps[MonsterAbilityAnimationIDScratch] = load_tile_map(4, 1, "./graphics/attacks/scratch.png");
-	assets.monsterAttackTileMaps[MonsterAbilityAnimationIDSplash] = load_tile_map(4, 1, "./graphics/attacks/splash.png");
+	assets.monsterAttackTileMaps[MonsterAbilityAnimationIDScratch] = load_tile_map(
+		4,
+		1,
+		"./graphics/attacks/scratch.png"
+	);
+	assets.monsterAttackTileMaps[MonsterAbilityAnimationIDSplash] = load_tile_map(
+		4,
+		1,
+		"./graphics/attacks/splash.png"
+	);
 
 	assets.grassTexture = LoadTexture("./graphics/objects/grass.png");
 	assets.iceGrassTexture = LoadTexture("./graphics/objects/grass_ice.png");
@@ -133,6 +145,21 @@ void load_assets() {
 	assets.fonts.small.rFont = LoadFontEx("./graphics/fonts/PixeloidSans.ttf", (i32)assets.fonts.small.size, nil, 250);
 	assets.fonts.bold.size = 20;
 	assets.fonts.bold.rFont = LoadFontEx("./graphics/fonts/dogicapixelbold.otf", (i32)assets.fonts.bold.size, nil, 250);
+
+	// music and sounds
+	assets.sounds.explosion = LoadSound("./audio/explosion.wav");
+	assets.sounds.evolution = LoadSound("./audio/evolution.mp3");
+	assets.sounds.fire = LoadSound("./audio/fire.wav");
+	assets.sounds.green = LoadSound("./audio/green.wav");
+	assets.sounds.ice = LoadSound("./audio/ice.mp3");
+	assets.sounds.notice = LoadSound("./audio/notice.wav");
+	assets.sounds.scratch = LoadSound("./audio/scratch.mp3");
+	assets.sounds.splash = LoadSound("./audio/splash.wav");
+
+	assets.music.battle = LoadMusicStream("./audio/battle.ogg");
+	assets.music.battle.looping = true;
+	assets.music.overWorld = LoadMusicStream("./audio/overWorld.ogg");
+	assets.music.overWorld.looping = true; // default, but explicit
 }
 
 void unload_assets() {
@@ -247,6 +274,19 @@ void unload_assets() {
 	UnloadFont(assets.fonts.regular.rFont);
 	UnloadFont(assets.fonts.small.rFont);
 	UnloadFont(assets.fonts.bold.rFont);
+
+	// sounds and music
+	UnloadSound(assets.sounds.explosion);
+	UnloadSound(assets.sounds.evolution);
+	UnloadSound(assets.sounds.fire);
+	UnloadSound(assets.sounds.green);
+	UnloadSound(assets.sounds.ice);
+	UnloadSound(assets.sounds.notice);
+	UnloadSound(assets.sounds.scratch);
+	UnloadSound(assets.sounds.splash);
+
+	UnloadMusicStream(assets.music.battle);
+	UnloadMusicStream(assets.music.overWorld);
 }
 
 static Texture2D *import_textures_from_directory(const char *dirPath) {
@@ -332,6 +372,7 @@ void load_shaders() {
 
 void unload_shaders() {
 	UnloadShader(assets.shaders.textureOutline);
+	UnloadShader(assets.shaders.grayscale);
 }
 
 static int dir_entry_compare(const void *lhsp, const void *rhsp) {
